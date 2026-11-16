@@ -22,10 +22,12 @@ class MessagesModulePageRouter extends StatelessWidget {
     required this.pageSpec,
     required this.routerState,
     super.key,
+    this.tabIndex,
   });
 
   final PageSpec pageSpec;
   final GoRouterState routerState;
+  final int? tabIndex;
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +35,7 @@ class MessagesModulePageRouter extends StatelessWidget {
     final conversationId = query['conversationId'] ?? query['id'] ?? '';
 
     if (pageSpec.id == AppPages.psn01.id) {
-      return const Psn01ConversationsPage();
+      return Psn01ConversationsPage(tabIndex: tabIndex);
     }
     if (pageSpec.id == AppPages.psn02.id) {
       return const Psn02MessageRequestsPage();

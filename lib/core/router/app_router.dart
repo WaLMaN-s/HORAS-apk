@@ -129,19 +129,21 @@ GoRouter createAppRouter({
               ),
             ],
           ),
-          // Tab 2: Tarombo (TAR-01 .. TAR-07 — Selesai di Prompt 6)
+          // Tab 2: Pesan (PSN-01 .. PSN-06 — di tengah bilah navigasi bawah)
           StatefulShellBranch(
             routes: <RouteBase>[
               _buildTabBranchRouteWithState(
-                rootSpec: AppPages.tar01,
-                childSpecs: AppPages.taromboPages.skip(1).toList(),
-                rootBuilder: (spec, state) => TaromboModulePageRouter(
+                rootSpec: AppPages.psn01,
+                childSpecs: AppPages.messagePages.skip(1).toList(),
+                rootBuilder: (spec, state) => MessagesModulePageRouter(
                   pageSpec: spec,
                   routerState: state,
                   tabIndex: 2,
                 ),
-                childBuilder: (spec, state) =>
-                    TaromboModulePageRouter(pageSpec: spec, routerState: state),
+                childBuilder: (spec, state) => MessagesModulePageRouter(
+                  pageSpec: spec,
+                  routerState: state,
+                ),
               ),
             ],
           ),
@@ -186,13 +188,13 @@ GoRouter createAppRouter({
           name: spec.id,
           builder: (context, state) => AuthModulePageRouter(pageSpec: spec),
         ),
-      // Rute modul Pesan (PSN-01 .. PSN-06 — Selesai di Prompt 8)
-      for (final spec in AppPages.messagePages)
+      // Rute modul Tarombo (TAR-01 .. TAR-08 — diakses lewat Akun > Pengaturan)
+      for (final spec in AppPages.taromboPages)
         GoRoute(
           path: spec.routePath,
           name: spec.id,
           builder: (context, state) =>
-              MessagesModulePageRouter(pageSpec: spec, routerState: state),
+              TaromboModulePageRouter(pageSpec: spec, routerState: state),
         ),
       // Rute modul Sistem (SIS-01 .. SIS-08 — Selesai di Prompt 9)
       for (final spec in AppPages.systemPages)

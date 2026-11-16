@@ -9,9 +9,9 @@ import 'package:horas/core/router/shell_navigation_controller.dart';
 import 'package:horas/features/account/presentation/akn01_my_profile_page.dart';
 import 'package:horas/features/account/presentation/akn02_edit_profile_page.dart';
 import 'package:horas/features/home/presentation/ber01_feed_page.dart';
+import 'package:horas/features/messages/presentation/psn01_conversations_page.dart';
 import 'package:horas/features/nearby/presentation/sek01_nearby_page.dart';
 import 'package:horas/features/play/presentation/man01_play_page.dart';
-import 'package:horas/features/tarombo/presentation/tar01_dashboard_page.dart';
 
 void main() {
   testWidgets(
@@ -40,10 +40,10 @@ void main() {
       expect(find.byType(Sek01NearbyPage), findsOneWidget);
       expect(container.read(shellNavigationProvider).lastTabIndex, 1);
 
-      // Pindah ke Tab 2: Tarombo (TAR-01)
-      await tester.tap(find.text(AppStrings.tabTarombo));
+      // Pindah ke Tab 2: Pesan (PSN-01) di tengah bilah bawah
+      await tester.tap(find.text(AppStrings.tabPesan));
       await tester.pumpAndSettle();
-      expect(find.byType(Tar01DashboardPage), findsOneWidget);
+      expect(find.byType(Psn01ConversationsPage), findsOneWidget);
       expect(container.read(shellNavigationProvider).lastTabIndex, 2);
 
       // Pindah ke Tab 3: Main (MAN-01)

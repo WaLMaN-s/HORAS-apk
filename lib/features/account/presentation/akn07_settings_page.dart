@@ -73,6 +73,11 @@ class Akn07SettingsPage extends ConsumerWidget {
 
             const SectionHeader(title: AppStrings.akn07AccountSection),
             _NavTile(
+              icon: Icons.account_tree_outlined,
+              title: AppStrings.tar01Title,
+              route: AppPages.tar01.routePath,
+            ),
+            _NavTile(
               icon: Icons.lock_outline_rounded,
               title: AppStrings.akn08Title,
               route: AppPages.akn08.routePath,

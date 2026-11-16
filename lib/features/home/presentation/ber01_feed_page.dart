@@ -73,12 +73,6 @@ class Ber01FeedPage extends ConsumerWidget {
             badgeCount: unreadCounts.unreadNotifications,
             onTap: () => context.push(AppPages.sis01.routePath),
           ),
-          _FeedTopBarIcon(
-            icon: Icons.chat_bubble_outline_rounded,
-            semanticsLabel: AppStrings.semanticsMessages,
-            badgeCount: unreadCounts.unreadMessages,
-            onTap: () => context.push(AppPages.psn01.routePath),
-          ),
         ],
       ),
       body: authRepo.hadDeletionRecentlyCancelled

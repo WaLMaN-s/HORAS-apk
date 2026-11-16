@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:horas/core/config/repository_providers.dart';
 import 'package:horas/core/l10n/app_strings.dart';
 import 'package:horas/core/router/shell_navigation_controller.dart';
 import 'package:horas/core/theme/app_theme.dart';
@@ -35,10 +36,10 @@ const List<_BottomNavTabSpec> _kBottomTabs = <_BottomNavTabSpec>[
     activeIcon: Icons.explore_rounded,
   ),
   _BottomNavTabSpec(
-    label: AppStrings.tabTarombo,
-    sublabel: AppStrings.tabTaromboSub,
-    icon: Icons.account_tree_outlined,
-    activeIcon: Icons.account_tree_rounded,
+    label: AppStrings.tabPesan,
+    sublabel: AppStrings.tabPesanSub,
+    icon: Icons.chat_bubble_outline_rounded,
+    activeIcon: Icons.chat_bubble_rounded,
   ),
   _BottomNavTabSpec(
     label: AppStrings.tabMain,
@@ -81,6 +82,9 @@ class MainShellScaffold extends ConsumerWidget {
     final colors = context.colors;
     final typo = context.typo;
     final currentIndex = navigationShell.currentIndex;
+    final unreadCounts =
+        ref.watch(unreadCountsProvider).value ??
+        ref.read(navigationBadgeRepositoryProvider).currentUnreadCounts();
 
     return Scaffold(
       body: navigationShell,
@@ -103,6 +107,7 @@ class MainShellScaffold extends ConsumerWidget {
                     child: _BottomNavBarItem(
                       spec: _kBottomTabs[i],
                       isSelected: i == currentIndex,
+                      badgeCount: i == 2 ? unreadCounts.unreadMessages : 0,
                       activeColor: colors.accent,
                       inactiveColor: colors.textMuted,
                       labelStyle: typo.micro,
@@ -126,6 +131,7 @@ class _BottomNavBarItem extends StatelessWidget {
     required this.inactiveColor,
     required this.labelStyle,
     required this.onTap,
+    this.badgeCount = 0,
   });
 
   final _BottomNavTabSpec spec;
@@ -134,15 +140,19 @@ class _BottomNavBarItem extends StatelessWidget {
   final Color inactiveColor;
   final TextStyle labelStyle;
   final VoidCallback onTap;
+  final int badgeCount;
 
   @override
   Widget build(BuildContext context) {
     final fgColor = isSelected ? activeColor : inactiveColor;
+    final semanticsLabel = badgeCount > 0
+        ? '${AppStrings.semanticsTab(spec.label, spec.sublabel)}, ${AppStrings.semanticsUnreadBadge(badgeCount)}'
+        : AppStrings.semanticsTab(spec.label, spec.sublabel);
 
     return Semantics(
       button: true,
       selected: isSelected,
-      label: AppStrings.semanticsTab(spec.label, spec.sublabel),
+      label: semanticsLabel,
       child: InkWell(
         onTap: onTap,
         child: ConstrainedBox(
@@ -153,10 +163,14 @@ class _BottomNavBarItem extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              Icon(
-                isSelected ? spec.activeIcon : spec.icon,
-                size: AppSizes.iconMd,
-                color: fgColor,
+              Badge(
+                isLabelVisible: badgeCount > 0,
+                label: Text(badgeCount > 99 ? '99+' : '$badgeCount'),
+                child: Icon(
+                  isSelected ? spec.activeIcon : spec.icon,
+                  size: AppSizes.iconMd,
+                  color: fgColor,
+                ),
               ),
               const SizedBox(height: AppSpacing.xs),
               Text(

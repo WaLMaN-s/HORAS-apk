@@ -115,3 +115,10 @@ Dokumen ini mencatat seluruh keputusan teknis, asumsi produk saat PRD ambigu, da
   1. **Tata Letak Threads pada `PostCard` & `BER-01`:** Menghapus kotak berbatas/bayangan kartu dan pemisah internal pada `PostCard`, diganti tata letak dua kolom datar ala Threads (`AppAvatar` di kiri, teks/media/aksi sejajar di kanan) di atas permukaan bersih dengan pemisah garis tipis antar item.
   2. **Kotak Postingan Cepat Halus (`_ThreadsQuickComposer`):** Menambahkan strip composer cepat yang datar dan menyatu di bagian teratas `BER-01` menuju `BER-04` (sambil tetap mempertahankan ikon `+` pada bilah atas sesuai PRD 4).
   3. **Ketuk Profil Pengguna Lain & Galeri Geser Bersih:** Menautkan ketukan avatar/nama penulis pada `PostCard`, `BER-07` komentar, `BER-08` daftar suka, serta hasil pencarian `BER-10` ke `SEK-04` (`?id=...`) atau tab `/akun` bila milik sendiri; karosel foto horizontal menggunakan `ListView` geser samping tanpa overlay teks/bingkai mencolok.
+
+## D-017 · Pindahkan Pesan ke Tab Tengah & Tarombo ke Akun > Pengaturan (16 Nov 2026)
+- **Konteks:** Masukan pengguna meminta **Tarombo** dipindahkan dari bilah navigasi bawah ke dalam menu **Akun → Pengaturan** (`AKN-07`), dan **Pesan** diturunkan menjadi pengganti di tab tengah bilah navigasi bawah (`index == 2`).
+- **Keputusan:**
+  1. **5 Tab Bilah Bawah (`MainShellScaffold` & `app_router.dart`):** Susunan tab bawah kini menjadi **Beranda**, **Sekitar**, **Pesan** (dengan lencana jumlah pesan belum dibaca langsung di ikon tab tengah), **Main**, dan **Akun**.
+  2. **Akses Tarombo via Pengaturan (`AKN-07`):** Rute `AppPages.taromboPages` tetap tersedia sebagai rute teratas (`/tarombo`, `/tarombo/*`) sehingga `PartuturanBadge` (`TAR-05`) dan menu **Tarombo** di [Akn07SettingsPage](file:///home/man/HORAS-apk/lib/features/account/presentation/akn07_settings_page.dart) langsung membuka `TAR-01` dengan tombol kembali.
+  3. **Bilah Atas Beranda:** Ikon pintasan Pesan pada bilah atas `BER-01` dihapus agar tidak ganda dengan tab tengah Pesan.

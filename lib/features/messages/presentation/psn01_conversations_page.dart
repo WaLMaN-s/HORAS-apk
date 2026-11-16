@@ -4,6 +4,7 @@ import 'package:horas/core/config/feature_flags.dart';
 import 'package:horas/core/config/repository_providers.dart';
 import 'package:horas/core/l10n/app_strings.dart';
 import 'package:horas/core/router/app_pages.dart';
+import 'package:horas/core/router/shell_navigation_controller.dart';
 import 'package:horas/core/theme/app_theme.dart';
 import 'package:horas/core/theme/app_tokens.dart';
 import 'package:horas/core/widgets/widgets.dart';
@@ -16,7 +17,9 @@ import 'package:material_ui/material_ui.dart';
 /// Grup buatan pengguna adalah Fase 2 (`FeatureFlags.userGroups == false`) dan
 /// disembunyikan dari layar ini pada MVP.
 class Psn01ConversationsPage extends ConsumerWidget {
-  const Psn01ConversationsPage({super.key});
+  const Psn01ConversationsPage({super.key, this.tabIndex});
+
+  final int? tabIndex;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -24,6 +27,14 @@ class Psn01ConversationsPage extends ConsumerWidget {
     final controller = ref.read(conversationsListProvider.notifier);
     final flags = ref.watch(featureFlagsProvider);
     final now = ref.read(authRepositoryProvider).currentTime;
+    final unreadCounts =
+        ref.watch(unreadCountsProvider).value ??
+        ref.read(navigationBadgeRepositoryProvider).currentUnreadCounts();
+    final scrollController = tabIndex != null
+        ? ref
+              .read(shellNavigationProvider.notifier)
+              .scrollControllerForTab(tabIndex!)
+        : null;
     final colors = context.colors;
     final typo = context.typo;
 
@@ -44,6 +55,7 @@ class Psn01ConversationsPage extends ConsumerWidget {
       body = RefreshIndicator(
         onRefresh: controller.loadInitial,
         child: ListView(
+          controller: scrollController,
           padding: const EdgeInsets.all(AppSpacing.lg),
           children: <Widget>[
             // Pintu masuk Permintaan Pesan (PSN-02)
@@ -185,7 +197,23 @@ class Psn01ConversationsPage extends ConsumerWidget {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text(AppStrings.psn01Title)),
+      appBar: AppBar(
+        title: const Text(AppStrings.psn01Title),
+        actions: <Widget>[
+          IconButton(
+            tooltip: AppStrings.semanticsNotifications,
+            onPressed: () => context.push(AppPages.sis01.routePath),
+            icon: Badge(
+              isLabelVisible: unreadCounts.unreadNotifications > 0,
+              label: Text('${unreadCounts.unreadNotifications}'),
+              child: Semantics(
+                label: AppStrings.semanticsNotifications,
+                child: const Icon(Icons.notifications_none_rounded),
+              ),
+            ),
+          ),
+        ],
+      ),
       body: SafeArea(child: body),
     );
   }

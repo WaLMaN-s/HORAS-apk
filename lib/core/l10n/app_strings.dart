@@ -72,6 +72,8 @@ abstract final class AppStrings {
   static const String tabSekitarSub = 'Penemuan';
   static const String tabTarombo = 'Tarombo';
   static const String tabTaromboSub = 'Keluarga';
+  static const String tabPesan = 'Pesan';
+  static const String tabPesanSub = 'Obrolan';
   static const String tabMain = 'Main';
   static const String tabMainSub = 'Aktivitas';
   static const String tabAkun = 'Akun';

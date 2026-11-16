@@ -176,8 +176,14 @@ void main() {
 
         await openProfile('u-15');
         expect(find.byType(Sek04PersonProfilePage), findsOneWidget);
-        // Tombol Pesan TIDAK BOLEH ADA
-        expect(find.text(AppStrings.termPesan), findsNothing);
+        // Tombol Pesan TIDAK BOLEH ADA di halaman profil orang lain (AC-06)
+        expect(
+          find.descendant(
+            of: find.byType(Sek04PersonProfilePage),
+            matching: find.text(AppStrings.termPesan),
+          ),
+          findsNothing,
+        );
         expect(
           find.textContaining(AppStrings.sek04MessageRequestBadge),
           findsNothing,
@@ -216,7 +222,13 @@ void main() {
         store.currentUserId = 'u-01';
         await openProfile('u-03');
         expect(find.text(AppStrings.termTerhubung), findsOneWidget);
-        expect(find.text(AppStrings.termPesan), findsOneWidget);
+        expect(
+          find.descendant(
+            of: find.byType(Sek04PersonProfilePage),
+            matching: find.text(AppStrings.termPesan),
+          ),
+          findsOneWidget,
+        );
       },
     );
   });

@@ -44,7 +44,7 @@ class TaromboModulePageRouter extends StatelessWidget {
     final userId = params['userId'] ?? '';
 
     if (pageSpec.id == AppPages.tar01.id) {
-      return Tar01DashboardPage(tabIndex: tabIndex ?? 2);
+      return Tar01DashboardPage(tabIndex: tabIndex);
     }
     if (pageSpec.id == AppPages.tar02.id) {
       return const Tar02TreePage();

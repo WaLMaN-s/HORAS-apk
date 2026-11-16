@@ -235,9 +235,9 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Dari BER-01 bilah atas, ketuk ikon Pesan -> PSN-01
+        // Dari BER-01, ketuk tab tengah Pesan di bilah navigasi bawah -> PSN-01
         expect(find.byType(Ber01FeedPage), findsOneWidget);
-        await tester.tap(find.byTooltip(AppStrings.semanticsMessages));
+        await tester.tap(find.text(AppStrings.tabPesan));
         await tester.pumpAndSettle();
         expect(find.byType(Psn01ConversationsPage), findsOneWidget);
 

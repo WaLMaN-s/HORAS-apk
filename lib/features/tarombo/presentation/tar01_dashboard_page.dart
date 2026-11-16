@@ -16,9 +16,9 @@ import 'package:material_ui/material_ui.dart';
 
 /// TAR-01 Dashboard Tarombo (`TAR-R1` .. `TAR-R12`).
 class Tar01DashboardPage extends ConsumerWidget {
-  const Tar01DashboardPage({super.key, this.tabIndex = 2});
+  const Tar01DashboardPage({super.key, this.tabIndex});
 
-  final int tabIndex;
+  final int? tabIndex;
 
   Future<void> _openAddMember(BuildContext context, WidgetRef ref) async {
     final consented = await ensureTaromboConsent(context, ref);
@@ -104,9 +104,11 @@ class Tar01DashboardPage extends ConsumerWidget {
     final unreadCounts =
         ref.watch(unreadCountsProvider).value ??
         ref.read(navigationBadgeRepositoryProvider).currentUnreadCounts();
-    final scrollController = ref
-        .read(shellNavigationProvider.notifier)
-        .scrollControllerForTab(tabIndex);
+    final scrollController = tabIndex != null
+        ? ref
+              .read(shellNavigationProvider.notifier)
+              .scrollControllerForTab(tabIndex!)
+        : null;
 
     return Scaffold(
       appBar: AppBar(
@@ -135,7 +137,7 @@ class Tar01DashboardPage extends ConsumerWidget {
     WidgetRef ref,
     TaromboState state,
     TaromboController controller,
-    ScrollController scrollController,
+    ScrollController? scrollController,
   ) {
     if (state.isLoading) {
       return const SingleChildScrollView(

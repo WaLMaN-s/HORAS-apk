@@ -347,11 +347,17 @@ void main() {
           await tester.pumpAndSettle();
           expect(find.byType(Akn07SettingsPage), findsOneWidget);
 
+          final settingsScrollable = find.descendant(
+            of: find.byType(Akn07SettingsPage),
+            matching: find.byType(Scrollable),
+          );
           await tester.scrollUntilVisible(
             find.text(AppStrings.akn10Title),
             200,
-            scrollable: find.byType(Scrollable).last,
+            scrollable: settingsScrollable,
           );
+          await tester.ensureVisible(find.text(AppStrings.akn10Title));
+          await tester.pumpAndSettle();
           await tester.tap(find.text(AppStrings.akn10Title));
           await tester.pumpAndSettle();
           expect(find.byType(Akn10NotificationPrefsPage), findsOneWidget);
@@ -362,8 +368,10 @@ void main() {
           await tester.scrollUntilVisible(
             find.text(AppStrings.akn14Title),
             200,
-            scrollable: find.byType(Scrollable).last,
+            scrollable: settingsScrollable,
           );
+          await tester.ensureVisible(find.text(AppStrings.akn14Title));
+          await tester.pumpAndSettle();
           await tester.tap(find.text(AppStrings.akn14Title));
           await tester.pumpAndSettle();
           expect(find.byType(Akn14DeleteAccountPage), findsOneWidget);

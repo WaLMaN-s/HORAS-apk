@@ -120,8 +120,12 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Buka Tab Tarombo (TAR-01)
-        await tester.tap(find.text(AppStrings.tabTarombo));
+        // Buka Tarombo lewat Tab Akun -> Pengaturan -> Tarombo (TAR-01)
+        await tester.tap(find.text(AppStrings.tabAkun));
+        await tester.pumpAndSettle();
+        await tester.tap(find.bySemanticsLabel(AppStrings.semanticsSettings));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(AppStrings.tar01Title));
         await tester.pumpAndSettle();
         expect(find.byType(Tar01DashboardPage), findsOneWidget);
         expect(find.text('80% Lengkap'), findsOneWidget);

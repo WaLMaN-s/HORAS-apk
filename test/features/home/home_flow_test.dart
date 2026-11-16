@@ -11,6 +11,7 @@ import 'package:horas/data/mock/mock_store.dart';
 import 'package:horas/domain/models/models.dart';
 import 'package:horas/features/home/presentation/ber01_feed_page.dart';
 import 'package:horas/features/home/presentation/home_feed_controller.dart';
+import 'package:horas/features/nearby/presentation/sek04_person_profile_page.dart';
 import 'package:material_ui/material_ui.dart';
 
 void main() {
@@ -254,6 +255,90 @@ void main() {
         // Pastikan tab Gereja & Postingan (Fase 2) TIDAK tampil
         expect(find.text('Gereja'), findsNothing);
         expect(find.text('Postingan'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'Beranda bergaya Threads: kotak postingan cepat, klik profil pengguna lain, & galeri foto geser horizontal bersih',
+      (tester) async {
+        final store = MockStore(
+          appConfig: const AppConfig(
+            env: AppEnvironment.dev,
+            useMockBackend: true,
+            allowDraftRules: true,
+          ),
+          enableNetworkLatency: false,
+        );
+        final postRepo = MockPostRepository(store);
+        await postRepo.createPost(
+          text: 'Galeri Toba tanpa teks overlay',
+          visibility: PostVisibility.publicPost,
+          mediaSeeds: const <String>['toba-a', 'toba-b'],
+        );
+
+        final container = ProviderContainer(
+          overrides: [
+            enableMockNetworkLatencyProvider.overrideWithValue(false),
+            mockStoreProvider.overrideWithValue(store),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: const HorasApp(),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // 1. Kotak postingan cepat di atas Beranda tampil & membuka BER-04
+        expect(find.text(AppStrings.ber01ComposerPrompt), findsOneWidget);
+
+        // 2. Galeri multi-foto dapat digeser ke samping (ListView horizontal) tanpa teks "1/2"
+        final horizontalLists = tester
+            .widgetList<ListView>(find.byType(ListView))
+            .where((lv) => lv.scrollDirection == Axis.horizontal)
+            .toList();
+        expect(horizontalLists, isNotEmpty);
+        expect(find.text('1/2'), findsNothing);
+
+        // 3. Ketuk nama/avatar pengguna lain di Beranda -> membuka SEK-04 profilnya
+        final otherAuthorPost = container
+            .read(homeFeedControllerProvider)
+            .posts
+            .firstWhere((p) => p.author.id != 'u-01');
+        final feedScrollable = find
+            .descendant(
+              of: find.byType(Ber01FeedPage),
+              matching: find.byType(Scrollable),
+            )
+            .first;
+        final authorNameFinder = find.text(otherAuthorPost.author.displayName);
+        await tester.scrollUntilVisible(
+          authorNameFinder,
+          250,
+          scrollable: feedScrollable,
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(authorNameFinder.first);
+        await tester.pumpAndSettle();
+        expect(find.byType(Sek04PersonProfilePage), findsOneWidget);
+        expect(find.text(otherAuthorPost.author.displayName), findsWidgets);
+
+        // Kembali ke Beranda dan uji kotak postingan cepat -> BER-04
+        await tester.binding.handlePopRoute();
+        await tester.pumpAndSettle();
+        final composerPrompt = find.text(AppStrings.ber01ComposerPrompt);
+        await tester.scrollUntilVisible(
+          composerPrompt,
+          -250,
+          scrollable: feedScrollable,
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(composerPrompt);
+        await tester.pumpAndSettle();
+        expect(find.text(AppStrings.ber04Title), findsOneWidget);
       },
     );
   });

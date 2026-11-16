@@ -15,6 +15,7 @@ final class HomeFeedState {
     this.error,
     this.isOfflineWithCache = false,
     this.currentUserId,
+    this.myProfile,
   });
 
   final List<Post> posts;
@@ -25,6 +26,7 @@ final class HomeFeedState {
   final AppError? error;
   final bool isOfflineWithCache;
   final String? currentUserId;
+  final Profil? myProfile;
 
   HomeFeedState copyWith({
     List<Post>? posts,
@@ -36,6 +38,7 @@ final class HomeFeedState {
     bool clearError = false,
     bool? isOfflineWithCache,
     String? currentUserId,
+    Profil? myProfile,
   }) {
     return HomeFeedState(
       posts: posts ?? this.posts,
@@ -46,6 +49,7 @@ final class HomeFeedState {
       error: clearError ? null : (error ?? this.error),
       isOfflineWithCache: isOfflineWithCache ?? this.isOfflineWithCache,
       currentUserId: currentUserId ?? this.currentUserId,
+      myProfile: myProfile ?? this.myProfile,
     );
   }
 }
@@ -65,6 +69,7 @@ class HomeFeedController extends Notifier<HomeFeedState> {
   Future<void> loadInitial() async {
     final postRepo = ref.read(postRepositoryProvider);
     final authRepo = ref.read(authRepositoryProvider);
+    final profileRepo = ref.read(profileRepositoryProvider);
 
     state = state.copyWith(
       isInitialLoading: true,
@@ -73,7 +78,12 @@ class HomeFeedController extends Notifier<HomeFeedState> {
       currentUserId: authRepo.currentUserId,
     );
 
-    final res = await postRepo.getFeed(page: 1, pageSize: _pageSize);
+    final feedFuture = postRepo.getFeed(page: 1, pageSize: _pageSize);
+    final profileFuture = profileRepo.getMyProfile();
+    final res = await feedFuture;
+    final profileRes = await profileFuture;
+    final loadedProfile = profileRes is Ok<Profil> ? profileRes.value : null;
+
     res.fold(
       onOk: (items) {
         state = state.copyWith(
@@ -83,6 +93,7 @@ class HomeFeedController extends Notifier<HomeFeedState> {
           currentPage: 1,
           clearError: true,
           isOfflineWithCache: false,
+          myProfile: loadedProfile,
         );
       },
       onErr: (err) {
@@ -96,6 +107,7 @@ class HomeFeedController extends Notifier<HomeFeedState> {
               hasMore: false,
               error: err,
               isOfflineWithCache: true,
+              myProfile: loadedProfile,
             );
             return;
           }
@@ -104,6 +116,7 @@ class HomeFeedController extends Notifier<HomeFeedState> {
           isInitialLoading: false,
           error: err,
           isOfflineWithCache: false,
+          myProfile: loadedProfile,
         );
       },
     );

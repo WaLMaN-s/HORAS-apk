@@ -401,10 +401,30 @@ class _CommentTile extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          AppAvatar(
-            name: comment.author.displayName,
-            seed: comment.author.avatarSeed,
-            size: isReply ? AppSizes.avatarXs : AppSizes.avatarSm,
+          Semantics(
+            button: true,
+            label: AppStrings.ber01AuthorProfileSemantics(
+              comment.author.displayName,
+            ),
+            child: InkWell(
+              onTap: () => context.push(
+                '${AppPages.sek04.routePath}?id=${comment.author.id}',
+              ),
+              borderRadius: AppRadius.pillRadius,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  minWidth: AppSizes.minTouchTarget,
+                  minHeight: AppSizes.minTouchTarget,
+                ),
+                child: Center(
+                  child: AppAvatar(
+                    name: comment.author.displayName,
+                    seed: comment.author.avatarSeed,
+                    size: isReply ? AppSizes.avatarXs : AppSizes.avatarSm,
+                  ),
+                ),
+              ),
+            ),
           ),
           const SizedBox(width: AppSpacing.sm),
           Expanded(
@@ -421,9 +441,14 @@ class _CommentTile extends StatelessWidget {
                   Row(
                     children: <Widget>[
                       Expanded(
-                        child: Text(
-                          '${comment.author.displayName} · ${comment.author.marga}',
-                          style: typo.captionStrong,
+                        child: InkWell(
+                          onTap: () => context.push(
+                            '${AppPages.sek04.routePath}?id=${comment.author.id}',
+                          ),
+                          child: Text(
+                            '${comment.author.displayName} · ${comment.author.marga}',
+                            style: typo.captionStrong,
+                          ),
                         ),
                       ),
                       Text(

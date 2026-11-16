@@ -67,7 +67,11 @@ class _Ber06PostDetailPageState extends ConsumerState<Ber06PostDetailPage> {
     final currentUid = authRepo.currentUserId;
 
     return Scaffold(
-      appBar: AppBar(title: Text(AppStrings.ber06Title, style: typo.h2)),
+      backgroundColor: context.colors.surface,
+      appBar: AppBar(
+        backgroundColor: context.colors.surface,
+        title: Text(AppStrings.ber06Title, style: typo.h2),
+      ),
       body: SafeArea(
         child: _isLoading
             ? const SingleChildScrollView(
@@ -83,10 +87,7 @@ class _Ber06PostDetailPageState extends ConsumerState<Ber06PostDetailPage> {
                 onBack: () => context.go(AppPages.berandaPath),
               )
             : ListView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.screenMargin,
-                  vertical: AppSpacing.md,
-                ),
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
                 children: <Widget>[
                   PostCard(
                     post: _post!,
@@ -125,34 +126,41 @@ class _Ber06PostDetailPageState extends ConsumerState<Ber06PostDetailPage> {
                     onEditTextTap: _openEditTextSheet,
                     onDeleteTap: _confirmDelete,
                   ),
-                  const SizedBox(height: AppSpacing.md),
-                  Row(
-                    children: <Widget>[
-                      Expanded(
-                        child: AppButton(
-                          label: AppStrings.ber06ViewLikesAction,
-                          variant: AppButtonVariant.secondary,
-                          isExpanded: true,
-                          onPressed: () => context.push(
-                            '${AppPages.ber08.routePath}?id=${_post!.id}',
+                  Divider(
+                    height: AppSizes.strokeThin,
+                    thickness: AppSizes.strokeThin,
+                    color: context.colors.border.withValues(alpha: 0.55),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(AppSpacing.screenMargin),
+                    child: Row(
+                      children: <Widget>[
+                        Expanded(
+                          child: AppButton(
+                            label: AppStrings.ber06ViewLikesAction,
+                            variant: AppButtonVariant.secondary,
+                            isExpanded: true,
+                            onPressed: () => context.push(
+                              '${AppPages.ber08.routePath}?id=${_post!.id}',
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: AppButton(
-                          label:
-                              '${AppStrings.ber07Title} (${_post!.commentCount})',
-                          isExpanded: true,
-                          onPressed: () async {
-                            await context.push(
-                              '${AppPages.ber07.routePath}?id=${_post!.id}',
-                            );
-                            await _loadPost();
-                          },
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(
+                          child: AppButton(
+                            label:
+                                '${AppStrings.ber07Title} (${_post!.commentCount})',
+                            isExpanded: true,
+                            onPressed: () async {
+                              await context.push(
+                                '${AppPages.ber07.routePath}?id=${_post!.id}',
+                              );
+                              await _loadPost();
+                            },
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ],
               ),

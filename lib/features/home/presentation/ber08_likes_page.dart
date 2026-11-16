@@ -88,42 +88,53 @@ class _Ber08LikesPageState extends ConsumerState<Ber08LikesPage> {
                   final showBadge =
                       partuturan != null && !partuturan.modeNetral;
 
-                  return Container(
-                    padding: const EdgeInsets.all(AppSpacing.md),
-                    decoration: BoxDecoration(
-                      color: colors.surface,
+                  return Material(
+                    color: colors.surface,
+                    shape: RoundedRectangleBorder(
                       borderRadius: AppRadius.cardRadius,
-                      border: Border.all(color: colors.border),
+                      side: BorderSide(color: colors.border),
                     ),
-                    child: Row(
-                      children: <Widget>[
-                        AppAvatar(
-                          name: user.displayName,
-                          seed: user.avatarSeed,
-                          size: AppSizes.avatarMd,
-                        ),
-                        const SizedBox(width: AppSpacing.md),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
-                              Text(user.displayName, style: typo.bodyStrong),
-                              const SizedBox(height: AppSpacing.xxs),
-                              Text(
-                                '${user.marga} · ${user.city}',
-                                style: typo.caption,
-                              ),
-                            ],
-                          ),
-                        ),
-                        if (showBadge)
-                          PartuturanBadge(
-                            result: partuturan,
-                            onTap: () => context.push(
-                              '${AppPages.tar05.routePath}?userId=${user.id}',
+                    child: InkWell(
+                      borderRadius: AppRadius.cardRadius,
+                      onTap: () => context.push(
+                        '${AppPages.sek04.routePath}?id=${user.id}',
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(AppSpacing.md),
+                        child: Row(
+                          children: <Widget>[
+                            AppAvatar(
+                              name: user.displayName,
+                              seed: user.avatarSeed,
+                              size: AppSizes.avatarMd,
                             ),
-                          ),
-                      ],
+                            const SizedBox(width: AppSpacing.md),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: <Widget>[
+                                  Text(
+                                    user.displayName,
+                                    style: typo.bodyStrong,
+                                  ),
+                                  const SizedBox(height: AppSpacing.xxs),
+                                  Text(
+                                    '${user.marga} · ${user.city}',
+                                    style: typo.caption,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (showBadge)
+                              PartuturanBadge(
+                                result: partuturan,
+                                onTap: () => context.push(
+                                  '${AppPages.tar05.routePath}?userId=${user.id}',
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
                     ),
                   );
                 },

@@ -171,7 +171,8 @@ class _Ber10SearchResultsPageState extends ConsumerState<Ber10SearchResultsPage>
           ),
           child: InkWell(
             borderRadius: AppRadius.cardRadius,
-            onTap: () => context.push(AppPages.sek04.routePath),
+            onTap: () =>
+                context.push('${AppPages.sek04.routePath}?id=${person.id}'),
             child: Padding(
               padding: const EdgeInsets.all(AppSpacing.md),
               child: Row(

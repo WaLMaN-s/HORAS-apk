@@ -44,8 +44,18 @@ class Ber01FeedPage extends ConsumerWidget {
     );
 
     return Scaffold(
+      backgroundColor: context.colors.surface,
       appBar: AppBar(
+        backgroundColor: context.colors.surface,
         title: const HorasLogo(showRoof: false, wordmarkFontSize: 26),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(AppSizes.strokeThin),
+          child: Divider(
+            height: AppSizes.strokeThin,
+            thickness: AppSizes.strokeThin,
+            color: context.colors.border.withValues(alpha: 0.55),
+          ),
+        ),
         actions: <Widget>[
           _FeedTopBarIcon(
             icon: Icons.add_box_outlined,
@@ -176,22 +186,37 @@ class Ber01FeedPage extends ConsumerWidget {
     required ScrollController scrollController,
     required DateTime now,
   }) {
+    final colors = context.colors;
+    final totalItems = 1 + feedState.posts.length + (feedState.hasMore ? 1 : 0);
+
     return RefreshIndicator(
       onRefresh: controller.refresh,
       child: ListView.separated(
         controller: scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.screenMargin,
-          vertical: AppSpacing.md,
+        padding: EdgeInsets.zero,
+        itemCount: totalItems,
+        separatorBuilder: (context, index) => Divider(
+          height: AppSizes.strokeThin,
+          thickness: AppSizes.strokeThin,
+          color: colors.border.withValues(alpha: 0.55),
         ),
-        itemCount: feedState.posts.length + (feedState.hasMore ? 1 : 0),
-        separatorBuilder: (context, index) =>
-            const SizedBox(height: AppSpacing.md),
         itemBuilder: (context, index) {
-          if (index >= feedState.posts.length) {
+          if (index == 0) {
+            return _ThreadsQuickComposer(
+              profile: feedState.myProfile,
+              onAvatarTap: () => context.go(AppPages.akunPath),
+              onComposeTap: () => context.push(AppPages.ber04.routePath),
+            );
+          }
+
+          final postIndex = index - 1;
+          if (postIndex >= feedState.posts.length) {
             return Padding(
-              padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.screenMargin,
+                vertical: AppSpacing.md,
+              ),
               child: AppButton(
                 label: AppStrings.ber01LoadMoreBtn,
                 variant: AppButtonVariant.secondary,
@@ -202,13 +227,22 @@ class Ber01FeedPage extends ConsumerWidget {
             );
           }
 
-          final post = feedState.posts[index];
+          final post = feedState.posts[postIndex];
           final isOwn = post.author.id == feedState.currentUserId;
 
           return PostCard(
             post: post,
             now: now,
             isOwnPost: isOwn,
+            onAuthorTap: () {
+              if (isOwn) {
+                context.go(AppPages.akunPath);
+              } else {
+                context.push(
+                  '${AppPages.sek04.routePath}?id=${post.author.id}',
+                );
+              }
+            },
             onTapCard: () =>
                 context.push('${AppPages.ber06.routePath}?id=${post.id}'),
             onLikeTap: () => controller.toggleLike(post.id),
@@ -406,6 +440,99 @@ class _FeedTopBarIcon extends StatelessWidget {
                 ),
               ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ThreadsQuickComposer extends StatelessWidget {
+  const _ThreadsQuickComposer({
+    required this.onAvatarTap,
+    required this.onComposeTap,
+    this.profile,
+  });
+
+  final Profil? profile;
+  final VoidCallback onAvatarTap;
+  final VoidCallback onComposeTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final typo = context.typo;
+    final displayName = profile?.displayName ?? AppStrings.appName;
+    final avatarSeed = profile?.avatarSeed ?? 'horas-me';
+
+    return Material(
+      color: colors.surface,
+      child: InkWell(
+        onTap: onComposeTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.screenMargin,
+            vertical: AppSpacing.md,
+          ),
+          child: Row(
+            children: <Widget>[
+              Semantics(
+                button: true,
+                label: AppStrings.ber01AuthorProfileSemantics(displayName),
+                child: InkWell(
+                  onTap: onAvatarTap,
+                  borderRadius: AppRadius.pillRadius,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      minWidth: AppSizes.minTouchTarget,
+                      minHeight: AppSizes.minTouchTarget,
+                    ),
+                    child: Center(
+                      child: AppAvatar(
+                        name: displayName,
+                        seed: avatarSeed,
+                        size: AppSizes.avatarMd,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Semantics(
+                  button: true,
+                  label: AppStrings.ber01ComposerSemantics,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      if (profile != null)
+                        Text(displayName, style: typo.bodyStrong),
+                      Text(
+                        AppStrings.ber01ComposerPrompt,
+                        style: typo.body.copyWith(color: colors.textMuted),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Semantics(
+                button: true,
+                label: AppStrings.ber01ComposerPhotoTooltip,
+                child: IconButton(
+                  constraints: const BoxConstraints(
+                    minWidth: AppSizes.minTouchTarget,
+                    minHeight: AppSizes.minTouchTarget,
+                  ),
+                  tooltip: AppStrings.ber01ComposerPhotoTooltip,
+                  onPressed: onComposeTap,
+                  icon: Icon(
+                    Icons.photo_library_outlined,
+                    size: AppSizes.iconMd,
+                    color: colors.textMuted,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

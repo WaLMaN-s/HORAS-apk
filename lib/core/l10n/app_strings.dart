@@ -349,6 +349,10 @@ abstract final class AppStrings {
   // Beranda (BER-01 .. BER-10)
   static const String ber01Title = 'Beranda';
   static const String ber01Purpose = 'Daftar postingan dari lingkaranmu';
+  static const String ber01ComposerPrompt = 'Ada cerita apa hari ini?';
+  static const String ber01ComposerSemantics = 'Tulis postingan baru';
+  static const String ber01ComposerPhotoTooltip = 'Tambah foto';
+  static String ber01AuthorProfileSemantics(String name) => 'Buka profil $name';
   static const String ber01EmptyMessage =
       'Belum ada postingan di berandamu. Ikuti orang dan gabung komunitas untuk melihat kabar terbaru.';
   static const String ber01EmptyAction = 'Jelajahi Sekitar';

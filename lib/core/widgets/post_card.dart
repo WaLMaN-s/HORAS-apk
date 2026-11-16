@@ -71,6 +71,11 @@ class PostCard extends StatelessWidget {
     final locationLabel = (post.cityTag != null && post.cityTag!.isNotEmpty)
         ? post.cityTag!
         : author.city;
+    final hasSubInfo =
+        showPartuturan ||
+        author.isSameMarga ||
+        locationLabel.isNotEmpty ||
+        post.isEdited;
 
     return Material(
       color: colors.surface,
@@ -115,65 +120,99 @@ class PostCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
                         Expanded(
-                          child: Wrap(
-                            spacing: AppSpacing.xs,
-                            runSpacing: AppSpacing.xxs,
-                            crossAxisAlignment: WrapCrossAlignment.center,
-                            children: <Widget>[
-                              Semantics(
-                                button: true,
-                                label: AppStrings.ber01AuthorProfileSemantics(
-                                  author.displayName,
+                          child: Semantics(
+                            button: true,
+                            label: AppStrings.ber01AuthorProfileSemantics(
+                              author.displayName,
+                            ),
+                            child: InkWell(
+                              onTap: () => _openAuthorProfile(context),
+                              borderRadius: AppRadius.buttonRadius,
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  minHeight: AppSizes.minTouchTarget,
                                 ),
-                                child: InkWell(
-                                  onTap: () => _openAuthorProfile(context),
-                                  borderRadius: AppRadius.buttonRadius,
-                                  child: ConstrainedBox(
-                                    constraints: const BoxConstraints(
-                                      minHeight: AppSizes.minTouchTarget,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: <Widget>[
+                                    Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.baseline,
+                                      textBaseline: TextBaseline.alphabetic,
+                                      children: <Widget>[
+                                        Expanded(
+                                          child: Text(
+                                            author.displayName,
+                                            style: typo.bodyStrong,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        const SizedBox(width: AppSpacing.xs),
+                                        Text(relativeTime, style: typo.caption),
+                                      ],
                                     ),
-                                    child: Align(
-                                      alignment: Alignment.centerLeft,
-                                      widthFactor: 1.0,
-                                      child: Text(
-                                        author.displayName,
-                                        style: typo.bodyStrong,
-                                        overflow: TextOverflow.ellipsis,
+                                    if (hasSubInfo) ...<Widget>[
+                                      const SizedBox(
+                                        height: AppSpacing.xxs + 1,
                                       ),
-                                    ),
-                                  ),
+                                      Wrap(
+                                        spacing: AppSpacing.xs,
+                                        runSpacing: AppSpacing.xxs,
+                                        crossAxisAlignment:
+                                            WrapCrossAlignment.center,
+                                        children: <Widget>[
+                                          if (showPartuturan)
+                                            PartuturanBadge(
+                                              result: partuturan,
+                                              onTap: () => context.push(
+                                                '${AppPages.tar05.routePath}?userId=${author.id}',
+                                              ),
+                                            )
+                                          else if (author.isSameMarga)
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: AppSpacing.sm,
+                                                    vertical: AppSpacing.xxs,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: colors.chipInactive,
+                                                borderRadius:
+                                                    AppRadius.pillRadius,
+                                              ),
+                                              child: Text(
+                                                AppStrings.termSemarga,
+                                                style: typo.micro,
+                                              ),
+                                            ),
+                                          if (locationLabel.isNotEmpty)
+                                            Text(
+                                              (showPartuturan ||
+                                                      author.isSameMarga)
+                                                  ? '· $locationLabel'
+                                                  : locationLabel,
+                                              style: typo.micro,
+                                            ),
+                                          if (post.isEdited)
+                                            Text(
+                                              '· ${AppStrings.ber01EditedBadge}',
+                                              style: typo.micro,
+                                            ),
+                                        ],
+                                      ),
+                                    ],
+                                  ],
                                 ),
                               ),
-                              if (showPartuturan)
-                                PartuturanBadge(
-                                  result: partuturan,
-                                  onTap: () => context.push(
-                                    '${AppPages.tar05.routePath}?userId=${author.id}',
-                                  ),
-                                ),
-                              if (author.isSameMarga && !showPartuturan)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: AppSpacing.sm,
-                                    vertical: AppSpacing.xxs,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: colors.chipInactive,
-                                    borderRadius: AppRadius.pillRadius,
-                                  ),
-                                  child: Text(
-                                    AppStrings.termSemarga,
-                                    style: typo.micro,
-                                  ),
-                                ),
-                            ],
+                            ),
                           ),
                         ),
                         const SizedBox(width: AppSpacing.xs),
-                        Text(relativeTime, style: typo.caption),
                         _PostOverflowMenu(
                           isOwnPost: isOwnPost,
                           onReportTap: onReportTap,
@@ -184,23 +223,6 @@ class PostCard extends StatelessWidget {
                         ),
                       ],
                     ),
-                    if (locationLabel.isNotEmpty || post.isEdited)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: AppSpacing.xs),
-                        child: Wrap(
-                          spacing: AppSpacing.xs,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          children: <Widget>[
-                            if (locationLabel.isNotEmpty)
-                              Text(locationLabel, style: typo.micro),
-                            if (post.isEdited)
-                              Text(
-                                '· ${AppStrings.ber01EditedBadge}',
-                                style: typo.micro,
-                              ),
-                          ],
-                        ),
-                      ),
                     if (post.moderationStatus ==
                         PostModerationStatus.underReview) ...<Widget>[
                       const SizedBox(height: AppSpacing.xs),
@@ -471,14 +493,17 @@ class _PostOverflowMenu extends StatelessWidget {
       child: PopupMenuButton<String>(
         tooltip: AppStrings.ber01MenuTooltip,
         padding: EdgeInsets.zero,
-        constraints: const BoxConstraints(
-          minWidth: AppSizes.minTouchTarget,
-          minHeight: AppSizes.minTouchTarget,
-        ),
-        icon: Icon(
-          Icons.more_horiz_rounded,
-          size: AppSizes.iconMd,
-          color: colors.textMuted,
+        child: SizedBox(
+          width: AppSizes.minTouchTarget,
+          height: AppSizes.minTouchTarget,
+          child: Align(
+            alignment: Alignment.topRight,
+            child: Icon(
+              Icons.more_horiz_rounded,
+              size: AppSizes.iconMd,
+              color: colors.textMuted,
+            ),
+          ),
         ),
         onSelected: (value) {
           switch (value) {

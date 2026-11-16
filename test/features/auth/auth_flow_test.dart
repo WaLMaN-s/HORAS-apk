@@ -3,13 +3,17 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:horas/app.dart';
 import 'package:horas/core/config/app_config.dart';
 import 'package:horas/core/config/repository_providers.dart';
+import 'package:horas/core/errors/result.dart';
 import 'package:horas/core/l10n/app_strings.dart';
+import 'package:horas/data/mock/mock_repositories.dart';
 import 'package:horas/data/mock/mock_store.dart';
+import 'package:horas/domain/models/models.dart';
 import 'package:horas/domain/partuturan/partuturan_confidence.dart';
 import 'package:horas/features/auth/presentation/auth_placeholder_page.dart';
 import 'package:horas/features/nearby/presentation/sek01_nearby_page.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:pinput/pinput.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   group(
@@ -287,6 +291,70 @@ void main() {
           expect(find.byType(Sek01NearbyPage), findsOneWidget);
         },
       );
+
+      test('Akun baru yang selesai onboarding tetap tersimpan di database lokal dan dapat login kembali setelah keluar/restart', () async {
+        SharedPreferences.setMockInitialValues(<String, Object>{});
+        final prefs = await SharedPreferences.getInstance();
+
+        final store1 = MockStore(
+          appConfig: const AppConfig(
+            env: AppEnvironment.dev,
+            useMockBackend: true,
+            allowDraftRules: true,
+          ),
+          prefs: prefs,
+          enableNetworkLatency: false,
+        );
+        final authRepo1 = MockAuthRepository(store1);
+
+        await authRepo1.logout();
+        const newPhone = '+6281998877665';
+        await authRepo1.sendOtp(phoneE164: newPhone);
+        final regRes = await authRepo1.verifyOtp(
+          phoneE164: newPhone,
+          otpCode: '123456',
+          deviceName: 'Pixel Uji',
+          platform: 'Android',
+        );
+        expect(regRes.isOk, isTrue);
+
+        final onbRes = await authRepo1.completeOnboarding(
+          displayName: 'Tumpal Hutabarat',
+          gender: UserGender.male,
+          birthYear: 1995,
+          marga: 'Hutabarat',
+          subEthnic: SubEthnic.toba,
+          city: 'Medan',
+          subdistrict: 'Medan Baru',
+        );
+        expect((onbRes as Ok<Profil>).value.onboardingCompleted, isTrue);
+
+        // Keluar akun lalu buat instance MockStore baru (simulasi aplikasi dibuka ulang)
+        await authRepo1.logout();
+        final store2 = MockStore(
+          appConfig: const AppConfig(
+            env: AppEnvironment.dev,
+            useMockBackend: true,
+            allowDraftRules: true,
+          ),
+          prefs: prefs,
+          enableNetworkLatency: false,
+        );
+        expect(store2.currentUserId, isNull);
+
+        final authRepo2 = MockAuthRepository(store2);
+        await authRepo2.sendOtp(phoneE164: newPhone);
+        final reLoginRes = await authRepo2.verifyOtp(
+          phoneE164: newPhone,
+          otpCode: '123456',
+          deviceName: 'Pixel Uji',
+          platform: 'Android',
+        );
+        final loggedBack = (reLoginRes as Ok<Profil>).value;
+        expect(loggedBack.onboardingCompleted, isTrue);
+        expect(loggedBack.displayName, 'Tumpal Hutabarat');
+        expect(loggedBack.marga, 'Hutabarat');
+      });
     },
   );
 }

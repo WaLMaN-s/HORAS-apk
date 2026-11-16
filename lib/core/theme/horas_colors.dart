@@ -50,17 +50,17 @@ final class HorasColors extends ThemeExtension<HorasColors> {
     shadow: Color(0x0D1F1A1A),
   );
 
-  /// Palet gelap sesuai spesifikasi Tahap 4 (kontras teks >= 4.5:1).
+  /// Palet gelap bergaya Threads (latar gelap pekat, kontras teks >= 4.5:1).
   static const HorasColors dark = HorasColors(
     primary: Color(0xFF8A1C27),
     primaryDark: Color(0xFF6B1420),
     splashRed: Color(0xFFA82230),
-    background: Color(0xFF141010),
-    surface: Color(0xFF221A1A),
-    chipInactive: Color(0xFF2D2323),
-    border: Color(0xFF3A2E2E),
-    text: Color(0xFFF5EFEA),
-    textMuted: Color(0xFFB5A9A4),
+    background: Color(0xFF0A0A0A),
+    surface: Color(0xFF101010),
+    chipInactive: Color(0xFF1C1C1C),
+    border: Color(0xFF262626),
+    text: Color(0xFFF3F5F7),
+    textMuted: Color(0xFF8E9297),
     verifiedBlue: Color(0xFF1D9BF0),
     ratingGold: Color(0xFFE8A317),
     success: Color(0xFF54B67B),
@@ -70,7 +70,7 @@ final class HorasColors extends ThemeExtension<HorasColors> {
     buttonPrimary: Color(0xFFC62828),
     accent: Color(0xFFF26B6B),
     onPrimary: Color(0xFFFFFFFF),
-    shadow: Color(0x33000000),
+    shadow: Color(0x4D000000),
   );
 
   /// Token warna juga disediakan tepat dengan nilai referensi `#7A7270` untuk konstanta brand.

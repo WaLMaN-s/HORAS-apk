@@ -76,7 +76,7 @@ final class AuthFlowState {
   String formatE164([String? customNational]) {
     final raw = (customNational ?? nationalPhone).trim();
     if (raw.startsWith('+')) {
-      return raw.replaceAll(RegExp(r'\s+'), '');
+      return raw.replaceAll(RegExp(r'[\s\-()]'), '');
     }
     var digits = raw.replaceAll(RegExp(r'[\s\-()]'), '');
     if (countryDialCode == '+62' && digits.startsWith('0')) {

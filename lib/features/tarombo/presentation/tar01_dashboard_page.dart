@@ -391,42 +391,6 @@ class Tar01DashboardPage extends ConsumerWidget {
               ),
           const SizedBox(height: AppSpacing.xl),
 
-          // Saran Kerabat (ketuk membuka TAR-05 Detail Hubungan)
-          const SectionHeader(title: AppStrings.tar01SuggestionsTitle),
-          const SizedBox(height: AppSpacing.sm),
-          if (state.suggestions.isEmpty)
-            Text(AppStrings.tar01EmptySuggestions, style: typo.caption)
-          else
-            for (final person in state.suggestions)
-              Card(
-                margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-                child: ListTile(
-                  leading: AppAvatar(
-                    name: person.displayName,
-                    seed: person.avatarSeed,
-                  ),
-                  title: Text(person.displayName, style: typo.bodyStrong),
-                  subtitle: Text(
-                    '${person.marga} · ${person.city}',
-                    style: typo.caption,
-                  ),
-                  trailing:
-                      person.partuturan != null &&
-                          !person.partuturan!.modeNetral
-                      ? PartuturanBadge(
-                          result: person.partuturan!,
-                          onTap: () => context.push(
-                            '${AppPages.tar05.routePath}?userId=${person.id}',
-                          ),
-                        )
-                      : null,
-                  onTap: () => context.push(
-                    '${AppPages.tar05.routePath}?userId=${person.id}',
-                  ),
-                ),
-              ),
-          const SizedBox(height: AppSpacing.xl),
-
           // Privasi & Hapus Seluruh Data Tarombo (TAR-R10)
           Container(
             padding: const EdgeInsets.all(AppSpacing.lg),

@@ -9,7 +9,6 @@ import 'package:horas/core/theme/app_tokens.dart';
 import 'package:horas/core/widgets/widgets.dart';
 import 'package:horas/domain/models/models.dart';
 import 'package:horas/features/home/presentation/home_feed_controller.dart';
-import 'package:horas/features/home/presentation/post_card.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// BER-06 Detail Postingan (BER-R7, BER-R8, BER-R9, PRD 5.2).

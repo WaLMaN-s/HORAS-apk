@@ -12,6 +12,7 @@ import 'package:horas/data/mock/mock_repositories.dart';
 import 'package:horas/data/mock/mock_store.dart';
 import 'package:horas/domain/models/models.dart';
 import 'package:horas/domain/partuturan/partuturan_confidence.dart';
+import 'package:horas/features/account/presentation/akn02_edit_profile_page.dart';
 import 'package:horas/features/tarombo/presentation/tar01_dashboard_page.dart';
 import 'package:horas/features/tarombo/presentation/tar02_tree_page.dart';
 import 'package:horas/features/tarombo/presentation/tar05_relationship_detail_page.dart';
@@ -120,17 +121,38 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Buka Tarombo lewat Tab Akun -> Pengaturan -> Tarombo (TAR-01)
+        // Buka Tarombo lewat Tab Akun -> Edit Profil (terintegrasi tanpa Saran Kerabat)
         await tester.tap(find.text(AppStrings.tabAkun));
         await tester.pumpAndSettle();
-        await tester.tap(find.bySemanticsLabel(AppStrings.semanticsSettings));
+        await tester.ensureVisible(find.text(AppStrings.akn02Title));
         await tester.pumpAndSettle();
-        await tester.tap(find.text(AppStrings.tar01Title));
+        await tester.tap(find.text(AppStrings.akn02Title));
         await tester.pumpAndSettle();
-        expect(find.byType(Tar01DashboardPage), findsOneWidget);
+        expect(find.byType(Akn02EditProfilePage), findsOneWidget);
+
+        final editScroll = find
+            .descendant(
+              of: find.byType(Akn02EditProfilePage),
+              matching: find.byType(Scrollable),
+            )
+            .first;
+        await tester.scrollUntilVisible(
+          find.text(AppStrings.akn02TaromboSectionTitle),
+          250,
+          scrollable: editScroll,
+        );
+        await tester.pumpAndSettle();
         expect(find.text('80% Lengkap'), findsOneWidget);
+        expect(find.text(AppStrings.tar01SuggestionsTitle), findsNothing);
 
         // Buka TAR-02 Pohon Silsilah: ada InteractiveViewer, CustomPaint, dan keterangan Pohon penuh menyusul
+        await tester.scrollUntilVisible(
+          find.text(AppStrings.tar01OpenTreeBtn),
+          250,
+          scrollable: editScroll,
+        );
+        await tester.ensureVisible(find.text(AppStrings.tar01OpenTreeBtn));
+        await tester.pumpAndSettle();
         await tester.tap(find.text(AppStrings.tar01OpenTreeBtn));
         await tester.pumpAndSettle();
         expect(find.byType(Tar02TreePage), findsOneWidget);
@@ -144,6 +166,8 @@ void main() {
         store.currentUserId = 'u-08';
         router.go(AppPages.taromboPath);
         await tester.pumpAndSettle();
+        expect(find.byType(Tar01DashboardPage), findsOneWidget);
+        expect(find.text(AppStrings.tar01SuggestionsTitle), findsNothing);
 
         final neutralPush = router.push(
           '${AppPages.tar05.routePath}?userId=u-03',

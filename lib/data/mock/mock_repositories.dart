@@ -297,6 +297,7 @@ final class MockAuthRepository implements AuthRepository {
     }
 
     _store.currentUserId = user.id;
+    _store.persistedAccountIds.add(user.id);
     await _writeSecureToken(
       'mock-jwt-${user.id}-${_store.now.millisecondsSinceEpoch}',
     );
@@ -361,6 +362,7 @@ final class MockAuthRepository implements AuthRepository {
     );
 
     _store.usersById[updated.id] = updated;
+    _store.persistedAccountIds.add(updated.id);
     _store.currentSelectedCity = updated.city;
     await _store.persistSessionAndProfile();
     _store.notifyListeners();

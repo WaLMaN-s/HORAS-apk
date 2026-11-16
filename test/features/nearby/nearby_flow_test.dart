@@ -8,11 +8,14 @@ import 'package:horas/core/errors/result.dart';
 import 'package:horas/core/l10n/app_strings.dart';
 import 'package:horas/core/router/app_pages.dart';
 import 'package:horas/core/router/app_router.dart';
+import 'package:horas/core/theme/horas_colors.dart';
+import 'package:horas/core/widgets/widgets.dart';
 import 'package:horas/data/mock/mock_repositories.dart';
 import 'package:horas/data/mock/mock_store.dart';
 import 'package:horas/domain/models/models.dart';
 import 'package:horas/features/nearby/presentation/sek01_nearby_page.dart';
 import 'package:horas/features/nearby/presentation/sek04_person_profile_page.dart';
+import 'package:material_ui/material_ui.dart';
 
 void main() {
   group('Prompt 5 - Modul Sekitar (SEK-01..SEK-08, SEK-12)', () {
@@ -160,9 +163,12 @@ void main() {
         expect(find.text(AppStrings.sek10Title), findsNothing);
         expect(find.text('Gereja'), findsNothing);
 
-        // AC-07: Kartu di Sekitar hanya memuat rentang jarak, tanpa km / +62
+        // AC-07: Kartu ringkas di Sekitar tanpa km / +62 / pill komunitas sama yang membuat kartu tebal
         expect(find.textContaining('km'), findsNothing);
         expect(find.textContaining('+62'), findsNothing);
+        expect(find.textContaining('komunitas sama'), findsNothing);
+        expect(HorasColors.dark.background, equals(const Color(0xFF0A0A0A)));
+        expect(HorasColors.dark.surface, equals(const Color(0xFF101010)));
 
         // AC-06: Buka profil pengguna u-15 (tidak terhubung & tidak berbagi komunitas/sesi)
         final router = container.read(appRouterProvider);
@@ -218,7 +224,15 @@ void main() {
         await tester.tap(find.text(AppStrings.sek04AcceptBtn));
         await tester.pumpAndSettle();
 
-        // Kembali ke u-01: profil u-03 sekarang berstatus Terhubung & tombol Pesan aktif penuh
+        // Kembali ke u-01: profil u-03 sekarang berstatus Terhubung & tombol Pesan aktif penuh,
+        // serta menampilkan postingan dan galeri 2+ foto geser samping gaya Threads
+        final postRepo = MockPostRepository(store);
+        store.currentUserId = 'u-03';
+        await postRepo.createPost(
+          text: 'Dua foto latihan Bona',
+          visibility: PostVisibility.publicPost,
+          mediaSeeds: const <String>['bona-1', 'bona-2'],
+        );
         store.currentUserId = 'u-01';
         await openProfile('u-03');
         expect(find.text(AppStrings.termTerhubung), findsOneWidget);
@@ -229,6 +243,43 @@ void main() {
           ),
           findsOneWidget,
         );
+        final sek04Scroll = find
+            .descendant(
+              of: find.byType(Sek04PersonProfilePage),
+              matching: find.byType(Scrollable),
+            )
+            .first;
+        await tester.scrollUntilVisible(
+          find.text(AppStrings.sek04PhotosTab),
+          250,
+          scrollable: sek04Scroll,
+        );
+        await tester.ensureVisible(find.text(AppStrings.sek04PhotosTab));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(AppStrings.sek04PhotosTab));
+        await tester.pumpAndSettle();
+        await tester.scrollUntilVisible(
+          find.text('Dua foto latihan Bona'),
+          250,
+          scrollable: sek04Scroll,
+        );
+        expect(
+          find.descendant(
+            of: find.byType(Sek04PersonProfilePage),
+            matching: find.byType(PostCard),
+          ),
+          findsWidgets,
+        );
+        final horizontalLists = tester
+            .widgetList<ListView>(
+              find.descendant(
+                of: find.byType(Sek04PersonProfilePage),
+                matching: find.byType(ListView),
+              ),
+            )
+            .where((lv) => lv.scrollDirection == Axis.horizontal)
+            .toList();
+        expect(horizontalLists, isNotEmpty);
       },
     );
   });

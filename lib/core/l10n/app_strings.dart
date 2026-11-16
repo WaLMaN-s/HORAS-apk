@@ -673,6 +673,10 @@ abstract final class AppStrings {
       'Nama, foto, marga, dan kota tetap terlihat. Bio, hobi, dan rincian lain disembunyikan sesuai pengaturan privasi pemilik.';
   static const String sek04BioSectionTitle = 'Tentang';
   static const String sek04InfoSectionTitle = 'Informasi Terlihat';
+  static const String sek04PostsTab = 'Postingan';
+  static const String sek04PhotosTab = 'Foto';
+  static const String sek04NoPostsYet = 'Belum ada postingan.';
+  static const String sek04NoPhotosYet = 'Belum ada foto yang diposting.';
   static const String sek04MotherMargaLabel = 'Marga Ibu';
   static const String sek04SubdistrictLabel = 'Kecamatan';
   static const String sek04AgeGroupLabel = 'Rentang Usia';
@@ -1230,6 +1234,10 @@ abstract final class AppStrings {
       'Marga, sub-suku, dan jenis kelamin terkunci. Ubah lewat Hubungi dukungan.';
   static const String akn02PhoneHint =
       'Nomor HP hanya dapat diganti melalui menu Keamanan (AKN-09).';
+  static const String akn02TaromboSectionTitle = 'Tarombo & Silsilah';
+  static const String akn02TaromboPrivacyBtn = 'Privasi & Hapus Tarombo';
+  static const String akn07LogoutConfirmBody =
+      'Kamu bisa masuk kembali kapan saja menggunakan nomor HP yang sudah terdaftar.';
   static const String akn02SavedToast = 'Profil berhasil diperbarui.';
 
   static const String akn05EmptyFollowers = 'Belum ada pengikut.';

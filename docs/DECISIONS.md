@@ -126,3 +126,17 @@ Dokumen ini mencatat seluruh keputusan teknis, asumsi produk saat PRD ambigu, da
 ## D-018 · Ikon Peluncur APK Kustom Android & iOS (16 Nov 2026)
 - **Konteks:** Pengguna menyediakan logo resmi aplikasi (`assets/branding/app_icon_source.jpeg`, 1254×1254 px) untuk menggantikan ikon peluncur bawaan Flutter.
 - **Keputusan:** Menghasilkan seluruh resolusi ikon peluncur Android (`mipmap-mdpi` s.d. `mipmap-xxxhdpi`), Adaptive Icon (`mipmap-anydpi-v26/ic_launcher.xml` & `ic_launcher_round.xml` dengan `ic_launcher_foreground.png` dan latar `@color/ic_launcher_background` `#000000` agar emblem Rumah Bolon/gorga utuh di zona aman 66.7%), serta seluruh set ikon iOS di `ios/Runner/Assets.xcassets/AppIcon.appiconset/`.
+
+## D-019 · Mode Gelap Threads, Profil Orang Lain (`SEK-04`) dengan Galeri Foto Geser Samping, & Kartu Ringkas Sekitar (16 Nov 2026)
+- **Konteks:** Pengguna meminta mode gelap lebih pekat ala Threads, halaman profil orang lain (`SEK-04`) menampilkan postingan beserta foto-foto (dengan 2+ foto bisa digeser ke samping ala Threads), serta kartu orang di Sekitar lebih ringkas (cukup nama dan badge `Kemungkinan: ...`).
+- **Keputusan:**
+  1. **Palet Gelap Pekat (`HorasColors.dark`):** Menyesuaikan latar gelap ke `#0A0A0A`, permukaan ke `#101010`, chip ke `#1C1C1C`, garis batas ke `#262626`, teks utama `#F3F5F7`, dan teks sekunder `#8E9297` (rasio kontras > 5.9:1 WCAG AA).
+  2. **Shared `PostCard` di `core/widgets/post_card.dart` & `SEK-04`:** Memindahkan `PostCard` dan `RelativeTimeFormatter` ke `lib/core/` agar `Sek04PersonProfilePage` dapat menampilkan tab `Postingan` dan `Foto` bergaya Threads lengkap dengan karosel 2+ foto geser horizontal, suka, komentar, dan simpan tanpa ketergantungan lintas fitur.
+  3. **Kartu Orang Ringkas (`PersonNearbyCard`):** Merampingkan kartu orang pada `SEK-01`/`SEK-02`/`SEK-12` menjadi baris ringkas berisi avatar 40dp, nama, dan badge `Kemungkinan: ...` (atau marga/Semarga bila mode netral).
+
+## D-020 · Tarombo di Edit Profil, Pengaturan dengan Keluar Akun, & Persistensi Login Ulang (16 Nov 2026)
+- **Konteks:** Pengguna meminta Tarombo digabungkan ke `Edit Profil` (`AKN-02`), bagian `Saran Kerabat` dihapus dari Tarombo (hanya di daftar orang Sekitar), menu utama `Pengaturan` (`AKN-07`) menampilkan `Keluar dari Akun` bukan `Hapus Akun`, serta akun yang sudah tersimpan dapat login kembali setelah keluar atau restart.
+- **Keputusan:**
+  1. **Tarombo di `AKN-02 Edit Profil` & Tanpa Saran Kerabat:** Menanamkan panel kelengkapan 5 butir, ubah marga ibu, daftar anggota, serta pintasan Pohon/Tambah/Cek Partuturan/Konfirmasi langsung di `Akn02EditProfilePage` melalui `TaromboRepository`; menghapus bagian `Saran Kerabat` dari `Tar01DashboardPage` maupun `Akn02EditProfilePage`.
+  2. **`Keluar dari Akun` di `AKN-07` & `Hapus Akun` di `AKN-09`:** Mengganti entri `Tarombo` dan `Hapus Akun` di `Akn07SettingsPage` menjadi `Keluar dari Akun` (menuju `AUT-03`), sambil memindahkan akses `AKN-14 Hapus Akun` ke `Akn09SecurityPage`.
+  3. **Persistensi Multi-Akun (`kMockRegisteredAccountsPrefsKey`):** Memperbaiki `MockStore` agar seluruh akun yang terdaftar/diubah tetap tersimpan di `SharedPreferences` walau pengguna keluar (`logout()`), dipulihkan sebelum pemeriksaan `savedUserId`, serta menaikkan penghitung ID `_seq` agar tidak bentrok setelah restart.

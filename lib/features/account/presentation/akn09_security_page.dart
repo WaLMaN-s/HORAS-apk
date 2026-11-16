@@ -222,6 +222,15 @@ class _Akn09SecurityPageState extends ConsumerState<Akn09SecurityPage> {
                     isExpanded: true,
                     onPressed: _logout,
                   ),
+                  const SizedBox(height: AppSpacing.md),
+                  AppButton(
+                    label: AppStrings.akn14Title,
+                    variant: AppButtonVariant.text,
+                    isDestructive: true,
+                    isExpanded: true,
+                    onPressed: () =>
+                        context.push(AppPages.akn14.routePath).ignore(),
+                  ),
                 ],
               ),
       ),

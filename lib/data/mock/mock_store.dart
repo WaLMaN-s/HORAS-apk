@@ -17,8 +17,10 @@ import 'package:horas/domain/policies/privacy_defaults.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const String kMockSessionUserIdPrefsKey = 'horas.mock.session_user_id';
+const String kMockLoggedOutPrefsKey = 'horas.mock.logged_out';
 const String kMockOwnProfilePrefsKey = 'horas.mock.own_profile';
 const String kMockOwnPrivacyPrefsKey = 'horas.mock.own_privacy';
+const String kMockRegisteredAccountsPrefsKey = 'horas.mock.registered_accounts';
 const String kMockLegalConsentPrefsKey = 'horas.mock.legal_consent';
 const String kMockOnboardingDraftPrefsKey = 'horas.mock.onboarding_draft';
 const String kMockFeedCachePrefsKey = 'horas.mock.feed_cache_page1';
@@ -77,6 +79,7 @@ final class MockStore {
   ];
 
   final Map<String, Profil> usersById = <String, Profil>{};
+  final Set<String> persistedAccountIds = <String>{};
   final Map<String, DateTime> userLastActiveAt = <String, DateTime>{};
   final List<MargaEntry> margas = <MargaEntry>[];
   final List<WilayahCity> cities = <WilayahCity>[];
@@ -223,16 +226,32 @@ final class MockStore {
   Profil? get activeProfile =>
       currentUserId != null ? usersById[currentUserId!] : null;
 
-  /// Menyimpan sesi login, profil sendiri, dan pengaturan privasi ke `SharedPreferences` (Bagian C).
+  /// Menyimpan sesi login, daftar akun terdaftar/diubah, profil sendiri, dan privasi ke `SharedPreferences` (Bagian C).
   Future<void> persistSessionAndProfile() async {
     final p = prefs;
     if (p == null) {
       return;
     }
+
+    if (currentUserId != null && usersById.containsKey(currentUserId!)) {
+      persistedAccountIds.add(currentUserId!);
+    }
+
+    final savedAccounts = <Map<String, Object?>>[
+      for (final id in persistedAccountIds)
+        if (usersById[id] != null) usersById[id]!.toJson(),
+    ];
+    await p.setString(
+      kMockRegisteredAccountsPrefsKey,
+      jsonEncode(savedAccounts),
+    );
+
     if (currentUserId == null) {
+      await p.setBool(kMockLoggedOutPrefsKey, true);
       await p.remove(kMockSessionUserIdPrefsKey);
       return;
     }
+    await p.setBool(kMockLoggedOutPrefsKey, false);
     await p.setString(kMockSessionUserIdPrefsKey, currentUserId!);
     final me = activeProfile;
     if (me != null) {
@@ -244,28 +263,71 @@ final class MockStore {
     }
   }
 
+  void _bumpSeqFromRestoredId(String id) {
+    final parts = id.split('-');
+    if (parts.length == 2) {
+      final parsed = int.tryParse(parts[1]);
+      if (parsed != null && parsed > _seq) {
+        _seq = parsed;
+      }
+    }
+  }
+
   void _restorePersistedSessionAndProfile() {
     final p = prefs;
     if (p == null) {
       return;
     }
-    final savedUserId = p.getString(kMockSessionUserIdPrefsKey);
-    if (savedUserId != null && usersById.containsKey(savedUserId)) {
-      currentUserId = savedUserId;
-    }
-    final savedProfileJson = p.getString(kMockOwnProfilePrefsKey);
-    if (savedProfileJson != null) {
+
+    // 1. Pulihkan seluruh akun terdaftar/diubah terlebih dahulu agar login ulang selalu menemukan profilnya
+    final savedAccountsJson = p.getString(kMockRegisteredAccountsPrefsKey);
+    if (savedAccountsJson != null) {
       try {
-        final decoded = jsonDecode(savedProfileJson) as Map<String, Object?>;
-        final restored = Profil.fromJson(decoded);
-        if (restored.id.isNotEmpty) {
-          usersById[restored.id] = restored;
-          currentSpatialCitySync(restored.city);
+        final decoded = jsonDecode(savedAccountsJson) as List<Object?>;
+        for (final entry in decoded) {
+          if (entry is Map<String, Object?>) {
+            final restored = Profil.fromJson(entry);
+            if (restored.id.isNotEmpty) {
+              usersById[restored.id] = restored;
+              persistedAccountIds.add(restored.id);
+              _bumpSeqFromRestoredId(restored.id);
+            }
+          }
         }
       } on Object {
         // Abaikan bila data lama korup.
       }
     }
+
+    // 2. Pulihkan profil tunggal warisan bila ada
+    final savedProfileJson = p.getString(kMockOwnProfilePrefsKey);
+    if (savedProfileJson != null) {
+      try {
+        final decoded = jsonDecode(savedProfileJson) as Map<String, Object?>;
+        final restored = Profil.fromJson(decoded);
+        if (restored.id.isNotEmpty && !usersById.containsKey(restored.id)) {
+          usersById[restored.id] = restored;
+          persistedAccountIds.add(restored.id);
+          _bumpSeqFromRestoredId(restored.id);
+        } else if (restored.id.isNotEmpty) {
+          usersById[restored.id] = restored;
+          persistedAccountIds.add(restored.id);
+        }
+      } on Object {
+        // Abaikan bila data lama korup.
+      }
+    }
+
+    // 3. Pulihkan status logout atau sesi aktif & privasinya
+    final isLoggedOut = p.getBool(kMockLoggedOutPrefsKey) ?? false;
+    final savedUserId = p.getString(kMockSessionUserIdPrefsKey);
+    if (isLoggedOut) {
+      currentUserId = null;
+    } else if (savedUserId != null && usersById.containsKey(savedUserId)) {
+      currentUserId = savedUserId;
+      currentSpatialCitySync(usersById[savedUserId]!.city);
+    }
+
     final savedPrivacyJson = p.getString(kMockOwnPrivacyPrefsKey);
     if (savedPrivacyJson != null && currentUserId != null) {
       try {
@@ -411,6 +473,9 @@ final class MockStore {
     _seedAll();
 
     if (prefs != null) {
+      persistedAccountIds.clear();
+      await prefs!.setBool(kMockLoggedOutPrefsKey, false);
+      await prefs!.remove(kMockRegisteredAccountsPrefsKey);
       await prefs!.remove(kMockOwnProfilePrefsKey);
       await prefs!.remove(kMockOwnPrivacyPrefsKey);
       await persistSessionAndProfile();
@@ -460,6 +525,7 @@ final class MockStore {
   /// sambil membiarkan pesan chat lama terlihat sebagai "Pengguna terhapus".
   void purgePermanentlyDeletedUser(String userId) {
     usersById.remove(userId);
+    persistedAccountIds.remove(userId);
     posts.removeWhere((p) => p.author.id == userId);
     comments.removeWhere((c) => c.author.id == userId);
     savedPosts.removeWhere((s) => s.userId == userId);

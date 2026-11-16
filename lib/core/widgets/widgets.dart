@@ -10,6 +10,7 @@ export 'gorga_ornament.dart';
 export 'horas_logo.dart';
 export 'partuturan_badge.dart';
 export 'placeholder_image.dart';
+export 'post_card.dart';
 export 'section_header.dart';
 export 'skeleton_box.dart';
 export 'state_view.dart';

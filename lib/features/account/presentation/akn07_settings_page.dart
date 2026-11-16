@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:horas/core/config/repository_providers.dart';
 import 'package:horas/core/l10n/app_strings.dart';
 import 'package:horas/core/router/app_pages.dart';
 import 'package:horas/core/theme/app_theme.dart';
@@ -11,6 +12,21 @@ import 'package:material_ui/material_ui.dart';
 /// AKN-07 Pengaturan Utama, Mode Gelap, & Bahasa.
 class Akn07SettingsPage extends ConsumerWidget {
   const Akn07SettingsPage({super.key});
+
+  Future<void> _confirmLogout(BuildContext context, WidgetRef ref) async {
+    final ok = await ConfirmDialog.show(
+      context,
+      title: AppStrings.akn09LogoutBtn,
+      message: AppStrings.akn07LogoutConfirmBody,
+      confirmLabel: AppStrings.akn09LogoutBtn,
+      isDestructive: true,
+    );
+    if (!ok || !context.mounted) return;
+    await ref.read(authRepositoryProvider).logout();
+    if (context.mounted) {
+      context.go(AppPages.aut03.routePath);
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -73,11 +89,6 @@ class Akn07SettingsPage extends ConsumerWidget {
 
             const SectionHeader(title: AppStrings.akn07AccountSection),
             _NavTile(
-              icon: Icons.account_tree_outlined,
-              title: AppStrings.tar01Title,
-              route: AppPages.tar01.routePath,
-            ),
-            _NavTile(
               icon: Icons.lock_outline_rounded,
               title: AppStrings.akn08Title,
               route: AppPages.akn08.routePath,
@@ -107,11 +118,15 @@ class Akn07SettingsPage extends ConsumerWidget {
               title: AppStrings.akn13Title,
               route: AppPages.akn13.routePath,
             ),
-            _NavTile(
-              icon: Icons.delete_outline_rounded,
-              title: AppStrings.akn14Title,
-              route: AppPages.akn14.routePath,
-              isDestructive: true,
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(Icons.logout_rounded, color: colors.danger),
+              title: Text(
+                AppStrings.akn09LogoutBtn,
+                style: context.typo.body.copyWith(color: colors.danger),
+              ),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () => _confirmLogout(context, ref),
             ),
             Divider(color: colors.border),
             const SizedBox(height: AppSpacing.md),
@@ -164,17 +179,15 @@ class _NavTile extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.route,
-    this.isDestructive = false,
   });
 
   final IconData icon;
   final String title;
   final String route;
-  final bool isDestructive;
 
   @override
   Widget build(BuildContext context) {
-    final color = isDestructive ? context.colors.danger : context.colors.text;
+    final color = context.colors.text;
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: Icon(icon, color: color),

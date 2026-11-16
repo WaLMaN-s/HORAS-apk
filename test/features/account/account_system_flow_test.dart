@@ -16,6 +16,7 @@ import 'package:horas/domain/policies/horas_policies.dart';
 import 'package:horas/domain/policies/privacy_defaults.dart';
 import 'package:horas/features/account/presentation/akn01_my_profile_page.dart';
 import 'package:horas/features/account/presentation/akn07_settings_page.dart';
+import 'package:horas/features/account/presentation/akn09_security_page.dart';
 import 'package:horas/features/account/presentation/akn10_notification_prefs_page.dart';
 import 'package:horas/features/account/presentation/akn14_delete_account_page.dart';
 import 'package:horas/features/system/presentation/sis02_report_page.dart';
@@ -366,9 +367,34 @@ void main() {
           await tester.pumpAndSettle();
 
           await tester.scrollUntilVisible(
-            find.text(AppStrings.akn14Title),
+            find.text(AppStrings.akn09LogoutBtn),
             200,
             scrollable: settingsScrollable,
+          );
+          expect(find.text(AppStrings.akn09LogoutBtn), findsOneWidget);
+          expect(find.text(AppStrings.akn14Title), findsNothing);
+
+          // Buka Keamanan Akun -> Hapus Akun (AKN-14)
+          await tester.scrollUntilVisible(
+            find.text(AppStrings.akn09Title),
+            -200,
+            scrollable: settingsScrollable,
+          );
+          await tester.ensureVisible(find.text(AppStrings.akn09Title));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text(AppStrings.akn09Title));
+          await tester.pumpAndSettle();
+
+          final securityScrollable = find
+              .descendant(
+                of: find.byType(Akn09SecurityPage),
+                matching: find.byType(Scrollable),
+              )
+              .first;
+          await tester.scrollUntilVisible(
+            find.text(AppStrings.akn14Title),
+            200,
+            scrollable: securityScrollable,
           );
           await tester.ensureVisible(find.text(AppStrings.akn14Title));
           await tester.pumpAndSettle();

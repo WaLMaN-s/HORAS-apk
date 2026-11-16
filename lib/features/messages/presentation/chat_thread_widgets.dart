@@ -64,7 +64,7 @@ Future<String?> pickAndCompressChatPhoto(BuildContext context) async {
   }
 }
 
-/// Gelembung pesan bersama untuk `PSN-03` (Chat Pribadi) dan `PSN-04` (Chat Grup).
+/// Gelembung pesan ringkas ala Instagram DM untuk `PSN-03` dan `PSN-04`.
 class ChatMessageBubble extends StatelessWidget {
   const ChatMessageBubble({
     required this.message,
@@ -72,6 +72,8 @@ class ChatMessageBubble extends StatelessWidget {
     required this.isGroup,
     required this.now,
     required this.showReadStatus,
+    this.isGroupedWithPrevious = false,
+    this.isGroupedWithNext = false,
     this.repliedMessage,
     this.onLongPress,
     this.onPhotoTap,
@@ -83,6 +85,8 @@ class ChatMessageBubble extends StatelessWidget {
   final bool isGroup;
   final DateTime now;
   final bool showReadStatus;
+  final bool isGroupedWithPrevious;
+  final bool isGroupedWithNext;
   final Message? repliedMessage;
   final VoidCallback? onLongPress;
   final ValueChanged<String>? onPhotoTap;
@@ -98,6 +102,25 @@ class ChatMessageBubble extends StatelessWidget {
     };
   }
 
+  BorderRadius _bubbleRadius() {
+    const full = Radius.circular(20);
+    const tight = Radius.circular(6);
+    if (isMine) {
+      return BorderRadius.only(
+        topLeft: full,
+        bottomLeft: full,
+        topRight: isGroupedWithPrevious ? tight : full,
+        bottomRight: isGroupedWithNext ? tight : full,
+      );
+    }
+    return BorderRadius.only(
+      topRight: full,
+      bottomRight: full,
+      topLeft: isGroupedWithPrevious ? tight : full,
+      bottomLeft: isGroupedWithNext ? tight : full,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
@@ -107,16 +130,18 @@ class ChatMessageBubble extends StatelessWidget {
         ? colors.confidenceAmberSurface
         : isMine
         ? colors.primary
-        : colors.surface;
+        : colors.chipInactive;
     final textColor = (isMine && !message.isAnnouncement)
         ? colors.onPrimary
         : colors.text;
     final mutedColor = (isMine && !message.isAnnouncement)
-        ? colors.onPrimary.withValues(alpha: 0.8)
+        ? colors.onPrimary.withValues(alpha: 0.78)
         : colors.textMuted;
+    final radius = _bubbleRadius();
+    final showFooterMeta = !isGroupedWithNext;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+      padding: EdgeInsets.only(bottom: isGroupedWithNext ? 3 : AppSpacing.sm),
       child: Column(
         crossAxisAlignment: isMine
             ? CrossAxisAlignment.end
@@ -125,7 +150,10 @@ class ChatMessageBubble extends StatelessWidget {
           if (message.hasScamWarning)
             Container(
               margin: const EdgeInsets.only(bottom: AppSpacing.xs),
-              padding: const EdgeInsets.all(AppSpacing.md),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: AppSpacing.sm,
+              ),
               decoration: BoxDecoration(
                 color: colors.danger.withValues(alpha: 0.12),
                 borderRadius: AppRadius.cardRadius,
@@ -137,15 +165,44 @@ class ChatMessageBubble extends StatelessWidget {
                   Icon(
                     Icons.warning_amber_rounded,
                     color: colors.danger,
-                    size: 18,
+                    size: 16,
                   ),
-                  const SizedBox(width: AppSpacing.sm),
+                  const SizedBox(width: AppSpacing.xs),
                   Expanded(
                     child: Text(
                       AppStrings.psn03ScamWarningBanner,
                       style: typo.caption.copyWith(color: colors.danger),
                     ),
                   ),
+                ],
+              ),
+            ),
+          if (isGroup && !isMine && !isGroupedWithPrevious)
+            Padding(
+              padding: const EdgeInsets.only(
+                left: AppSizes.avatarSm + AppSpacing.xs,
+                bottom: AppSpacing.xxs,
+              ),
+              child: Wrap(
+                spacing: AppSpacing.xs,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: <Widget>[
+                  Text(
+                    message.sender.displayName,
+                    style: typo.micro.copyWith(
+                      color: colors.textMuted,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  if (message.sender.partuturan != null)
+                    PartuturanBadge(
+                      result: message.sender.partuturan!,
+                      onTap: () => context
+                          .push(
+                            '${AppPages.tar05.routePath}?userId=${message.sender.id}',
+                          )
+                          .ignore(),
+                    ),
                 ],
               ),
             ),
@@ -156,58 +213,36 @@ class ChatMessageBubble extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: <Widget>[
               if (!isMine && isGroup) ...<Widget>[
-                AppAvatar(
-                  name: message.sender.displayName,
-                  seed: message.sender.avatarSeed,
-                  size: AppSizes.avatarSm,
-                ),
-                const SizedBox(width: AppSpacing.sm),
+                if (!isGroupedWithNext)
+                  AppAvatar(
+                    name: message.sender.displayName,
+                    seed: message.sender.avatarSeed,
+                    size: AppSizes.avatarSm,
+                  )
+                else
+                  const SizedBox(width: AppSizes.avatarSm),
+                const SizedBox(width: AppSpacing.xs),
               ],
               Flexible(
                 child: InkWell(
                   onLongPress: onLongPress,
-                  borderRadius: AppRadius.cardRadius,
+                  borderRadius: radius,
                   child: Container(
-                    constraints: const BoxConstraints(maxWidth: 300),
-                    padding: const EdgeInsets.all(AppSpacing.md),
+                    constraints: const BoxConstraints(maxWidth: 280),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md,
+                      vertical: AppSpacing.sm,
+                    ),
                     decoration: BoxDecoration(
                       color: bubbleColor,
-                      borderRadius: AppRadius.cardRadius,
-                      border: isMine && !message.isAnnouncement
-                          ? null
-                          : Border.all(
-                              color: message.isAnnouncement
-                                  ? colors.confidenceAmber
-                                  : colors.border,
-                            ),
+                      borderRadius: radius,
+                      border: message.isAnnouncement
+                          ? Border.all(color: colors.confidenceAmber)
+                          : null,
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
-                        if (isGroup && !isMine) ...<Widget>[
-                          Wrap(
-                            spacing: AppSpacing.xs,
-                            crossAxisAlignment: WrapCrossAlignment.center,
-                            children: <Widget>[
-                              Text(
-                                message.sender.displayName,
-                                style: typo.captionStrong.copyWith(
-                                  color: colors.primary,
-                                ),
-                              ),
-                              if (message.sender.partuturan != null)
-                                PartuturanBadge(
-                                  result: message.sender.partuturan!,
-                                  onTap: () => context
-                                      .push(
-                                        '${AppPages.tar05.routePath}?userId=${message.sender.id}',
-                                      )
-                                      .ignore(),
-                                ),
-                            ],
-                          ),
-                          const SizedBox(height: AppSpacing.xs),
-                        ],
                         if (message.isAnnouncement) ...<Widget>[
                           Text(
                             AppStrings.psn04PinnedAnnouncementTitle,
@@ -215,7 +250,7 @@ class ChatMessageBubble extends StatelessWidget {
                               color: colors.confidenceAmber,
                             ),
                           ),
-                          const SizedBox(height: AppSpacing.xs),
+                          const SizedBox(height: 2),
                         ],
                         if (repliedMessage != null) ...<Widget>[
                           Container(
@@ -225,13 +260,11 @@ class ChatMessageBubble extends StatelessWidget {
                             ),
                             padding: const EdgeInsets.symmetric(
                               horizontal: AppSpacing.sm,
-                              vertical: AppSpacing.xs,
+                              vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: colors.chipInactive.withValues(
-                                alpha: 0.35,
-                              ),
-                              borderRadius: BorderRadius.circular(8),
+                              color: colors.background.withValues(alpha: 0.25),
+                              borderRadius: BorderRadius.circular(10),
                             ),
                             child: Text(
                               '${repliedMessage!.sender.displayName}: ${repliedMessage!.isDeletedForEveryone ? AppStrings.psn01DeletedPreview : repliedMessage!.text}',
@@ -249,10 +282,11 @@ class ChatMessageBubble extends StatelessWidget {
                               seed: message.photoSeed!,
                               width: 220,
                               height: 150,
+                              borderRadius: BorderRadius.circular(14),
                             ),
                           ),
                           if (message.text.isNotEmpty)
-                            const SizedBox(height: AppSpacing.sm),
+                            const SizedBox(height: AppSpacing.xs),
                         ],
                         if (message.text.isNotEmpty)
                           Text(
@@ -264,26 +298,6 @@ class ChatMessageBubble extends StatelessWidget {
                                   )
                                 : typo.body.copyWith(color: textColor),
                           ),
-                        const SizedBox(height: AppSpacing.xs),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: <Widget>[
-                            Text(
-                              ChatFormatters.formatShortTime(
-                                message.createdAt,
-                                now,
-                              ),
-                              style: typo.micro.copyWith(color: mutedColor),
-                            ),
-                            if (isMine) ...<Widget>[
-                              const SizedBox(width: AppSpacing.xs),
-                              Text(
-                                '· ${_statusLabel(message.deliveryStatus)}',
-                                style: typo.micro.copyWith(color: mutedColor),
-                              ),
-                            ],
-                          ],
-                        ),
                       ],
                     ),
                   ),
@@ -291,6 +305,21 @@ class ChatMessageBubble extends StatelessWidget {
               ),
             ],
           ),
+          if (showFooterMeta)
+            Padding(
+              padding: EdgeInsets.only(
+                top: 2,
+                left: (!isMine && isGroup)
+                    ? AppSizes.avatarSm + AppSpacing.xs
+                    : 0,
+              ),
+              child: Text(
+                isMine
+                    ? '${ChatFormatters.formatShortTime(message.createdAt, now)} · ${_statusLabel(message.deliveryStatus)}'
+                    : ChatFormatters.formatShortTime(message.createdAt, now),
+                style: typo.micro.copyWith(color: colors.textMuted),
+              ),
+            ),
         ],
       ),
     );
@@ -315,11 +344,14 @@ class FailedMessageTile extends StatelessWidget {
     return Align(
       alignment: Alignment.centerRight,
       child: Container(
-        margin: const EdgeInsets.only(bottom: AppSpacing.md),
-        padding: const EdgeInsets.all(AppSpacing.md),
+        margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.sm,
+        ),
         decoration: BoxDecoration(
           color: colors.danger.withValues(alpha: 0.1),
-          borderRadius: AppRadius.cardRadius,
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(color: colors.danger),
         ),
         child: Column(
@@ -329,7 +361,7 @@ class FailedMessageTile extends StatelessWidget {
               item.text.isNotEmpty ? item.text : AppStrings.psn01PhotoPreview,
               style: typo.body,
             ),
-            const SizedBox(height: AppSpacing.xs),
+            const SizedBox(height: 2),
             Text(
               '${AppStrings.psn03FailedSendLabel}: ${item.errorMessage}',
               style: typo.micro.copyWith(color: colors.danger),
@@ -346,7 +378,7 @@ class FailedMessageTile extends StatelessWidget {
   }
 }
 
-/// Bilah penulis pesan bersama (`PSN-03`, `PSN-04`, Fase 2 flag off: tanpa voice note/stiker/lokasi).
+/// Bilah penulis pesan gaya pil Instagram (`PSN-03`, `PSN-04`, Fase 2 flag off).
 class ChatComposerBar extends ConsumerWidget {
   const ChatComposerBar({
     required this.controller,
@@ -383,14 +415,14 @@ class ChatComposerBar extends ConsumerWidget {
 
     return Container(
       padding: const EdgeInsets.fromLTRB(
-        AppSpacing.md,
         AppSpacing.sm,
-        AppSpacing.md,
-        AppSpacing.md,
+        AppSpacing.xs,
+        AppSpacing.sm,
+        AppSpacing.sm,
       ),
       decoration: BoxDecoration(
         color: colors.surface,
-        border: Border(top: BorderSide(color: colors.border)),
+        border: Border(top: BorderSide(color: colors.border, width: 0.5)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -413,7 +445,7 @@ class ChatComposerBar extends ConsumerWidget {
                     .toList(growable: false),
               ),
             ),
-            const SizedBox(height: AppSpacing.sm),
+            const SizedBox(height: AppSpacing.xs),
           ],
           if (replyToMessage != null) ...<Widget>[
             Container(
@@ -423,7 +455,7 @@ class ChatComposerBar extends ConsumerWidget {
               ),
               decoration: BoxDecoration(
                 color: colors.chipInactive,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
                 children: <Widget>[
@@ -450,8 +482,9 @@ class ChatComposerBar extends ConsumerWidget {
               children: <Widget>[
                 PlaceholderImage(
                   seed: pendingPhotoSeed!,
-                  width: 92,
-                  height: 68,
+                  width: 84,
+                  height: 62,
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 Positioned(
                   right: 0,
@@ -466,42 +499,55 @@ class ChatComposerBar extends ConsumerWidget {
             ),
             const SizedBox(height: AppSpacing.xs),
           ],
-          Row(
-            children: <Widget>[
-              IconButton(
-                tooltip: AppStrings.psn03PickPhotoTooltip,
-                onPressed: enabled ? onPickPhoto : null,
-                icon: Semantics(
-                  label: AppStrings.psn03PickPhotoTooltip,
-                  child: const Icon(Icons.photo_outlined),
-                ),
-              ),
-              // Fase 2 guard (PSN-R3): voice note dan stiker disembunyikan saat flag off.
-              if (flags.voiceNote) const SizedBox.shrink(),
-              if (flags.stickers) const SizedBox.shrink(),
-              Expanded(
-                child: AppTextField(
-                  controller: controller,
-                  hintText: AppStrings.psn03ComposerHint,
-                  maxLength: AppLimits.messageTextMaxChars,
-                  enabled: enabled,
-                  textInputAction: TextInputAction.send,
-                  onSubmitted: enabled ? (_) => onSend() : null,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.xs),
-              IconButton(
-                tooltip: AppStrings.psn03SendBtnTooltip,
-                onPressed: enabled && !isSending ? onSend : null,
-                icon: Semantics(
-                  label: AppStrings.psn03SendBtnTooltip,
-                  child: Icon(
-                    Icons.send_rounded,
-                    color: enabled ? colors.primary : colors.textMuted,
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.xs,
+              vertical: 2,
+            ),
+            decoration: BoxDecoration(
+              color: colors.chipInactive,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Row(
+              children: <Widget>[
+                IconButton(
+                  tooltip: AppStrings.psn03PickPhotoTooltip,
+                  onPressed: enabled ? onPickPhoto : null,
+                  icon: Semantics(
+                    label: AppStrings.psn03PickPhotoTooltip,
+                    child: Icon(
+                      Icons.photo_outlined,
+                      color: enabled ? colors.text : colors.textMuted,
+                    ),
                   ),
                 ),
-              ),
-            ],
+                // Fase 2 guard (PSN-R3): voice note dan stiker disembunyikan saat flag off.
+                if (flags.voiceNote) const SizedBox.shrink(),
+                if (flags.stickers) const SizedBox.shrink(),
+                Expanded(
+                  child: AppTextField(
+                    controller: controller,
+                    hintText: AppStrings.psn03ComposerHint,
+                    maxLength: AppLimits.messageTextMaxChars,
+                    enabled: enabled,
+                    textInputAction: TextInputAction.send,
+                    onSubmitted: enabled ? (_) => onSend() : null,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.xs),
+                IconButton(
+                  tooltip: AppStrings.psn03SendBtnTooltip,
+                  onPressed: enabled && !isSending ? onSend : null,
+                  icon: Semantics(
+                    label: AppStrings.psn03SendBtnTooltip,
+                    child: Icon(
+                      Icons.send_rounded,
+                      color: enabled ? colors.primary : colors.textMuted,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

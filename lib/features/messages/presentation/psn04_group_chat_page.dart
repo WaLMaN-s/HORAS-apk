@@ -420,31 +420,17 @@ class _Psn04GroupChatPageState extends ConsumerState<Psn04GroupChatPage> {
               ),
             ),
           Expanded(
-            child: ListView(
+            child: ListView.builder(
               controller: _scrollController,
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              children: <Widget>[
-                ..._messages.map((msg) {
-                  final replied = msg.replyToMessageId == null
-                      ? null
-                      : _messages
-                            .where((m) => m.id == msg.replyToMessageId)
-                            .firstOrNull;
-                  return ChatMessageBubble(
-                    message: msg,
-                    isMine: msg.sender.id == uid,
-                    isGroup: true,
-                    now: now,
-                    showReadStatus: _sendReadReceipts,
-                    repliedMessage: replied,
-                    onLongPress: () => _showGroupMessageActions(msg),
-                    onPhotoTap: (seed) => context
-                        .push('${AppPages.psn06.routePath}?seed=$seed')
-                        .ignore(),
-                  );
-                }),
-                ..._failedMessages.map(
-                  (failed) => FailedMessageTile(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: AppSpacing.sm,
+              ),
+              itemCount: _messages.length + _failedMessages.length,
+              itemBuilder: (context, idx) {
+                if (idx >= _messages.length) {
+                  final failed = _failedMessages[idx - _messages.length];
+                  return FailedMessageTile(
                     item: failed,
                     onRetry: () => _sendMessage(
                       overrideText: failed.text,
@@ -452,9 +438,41 @@ class _Psn04GroupChatPageState extends ConsumerState<Psn04GroupChatPage> {
                       overrideReplyId: failed.replyToMessageId,
                       retryTempId: failed.tempId,
                     ),
-                  ),
-                ),
-              ],
+                  );
+                }
+                final msg = _messages[idx];
+                final prev = idx > 0 ? _messages[idx - 1] : null;
+                final next = idx + 1 < _messages.length
+                    ? _messages[idx + 1]
+                    : null;
+                final isGroupedPrev =
+                    prev != null &&
+                    prev.sender.id == msg.sender.id &&
+                    msg.createdAt.difference(prev.createdAt).inMinutes < 5;
+                final isGroupedNext =
+                    next != null &&
+                    next.sender.id == msg.sender.id &&
+                    next.createdAt.difference(msg.createdAt).inMinutes < 5;
+                final replied = msg.replyToMessageId == null
+                    ? null
+                    : _messages
+                          .where((m) => m.id == msg.replyToMessageId)
+                          .firstOrNull;
+                return ChatMessageBubble(
+                  message: msg,
+                  isMine: msg.sender.id == uid,
+                  isGroup: true,
+                  now: now,
+                  showReadStatus: _sendReadReceipts,
+                  isGroupedWithPrevious: isGroupedPrev,
+                  isGroupedWithNext: isGroupedNext,
+                  repliedMessage: replied,
+                  onLongPress: () => _showGroupMessageActions(msg),
+                  onPhotoTap: (seed) => context
+                      .push('${AppPages.psn06.routePath}?seed=$seed')
+                      .ignore(),
+                );
+              },
             ),
           ),
           if (!conv.isReadOnly)

@@ -114,122 +114,137 @@ class _Psn02MessageRequestsPageState
       body = RefreshIndicator(
         onRefresh: _load,
         child: ListView(
-          padding: const EdgeInsets.all(AppSpacing.lg),
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
           children: <Widget>[
-            Text(
-              AppStrings.psn02OneMessageLimitHint,
-              style: typo.caption.copyWith(color: colors.textMuted),
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.lg,
+                vertical: AppSpacing.xs,
+              ),
+              child: Text(
+                AppStrings.psn02OneMessageLimitHint,
+                style: typo.caption.copyWith(color: colors.textMuted),
+              ),
             ),
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: AppSpacing.xs),
             ..._requests.map((req) {
-              return Card(
-                margin: const EdgeInsets.only(bottom: AppSpacing.md),
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.lg),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Row(
-                        children: <Widget>[
-                          AppAvatar(
-                            name: req.sender.displayName,
-                            seed: req.sender.avatarSeed,
-                          ),
-                          const SizedBox(width: AppSpacing.md),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: <Widget>[
-                                Text(
-                                  '${req.sender.displayName} · ${req.sender.marga}',
-                                  style: typo.bodyStrong,
-                                ),
-                                Text(
-                                  req.sharedContextDescription,
-                                  style: typo.caption.copyWith(
-                                    color: colors.textMuted,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          if (req.sender.partuturan != null)
-                            PartuturanBadge(result: req.sender.partuturan!),
-                        ],
-                      ),
-                      if (req.firstMessage.hasScamWarning) ...<Widget>[
-                        const SizedBox(height: AppSpacing.md),
-                        Container(
-                          padding: const EdgeInsets.all(AppSpacing.md),
-                          decoration: BoxDecoration(
-                            color: colors.danger.withValues(alpha: 0.12),
-                            borderRadius: AppRadius.cardRadius,
-                            border: Border.all(color: colors.danger),
-                          ),
-                          child: Row(
+              return Container(
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(color: colors.border, width: 0.5),
+                  ),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.lg,
+                  vertical: AppSpacing.md,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Row(
+                      children: <Widget>[
+                        AppAvatar(
+                          name: req.sender.displayName,
+                          seed: req.sender.avatarSeed,
+                          size: AppSizes.avatarMd,
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(
+                          child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: <Widget>[
-                              Icon(
-                                Icons.warning_amber_rounded,
-                                color: colors.danger,
-                                size: 18,
+                              Text(
+                                '${req.sender.displayName} · ${req.sender.marga}',
+                                style: typo.bodyStrong,
                               ),
-                              const SizedBox(width: AppSpacing.sm),
-                              Expanded(
-                                child: Text(
-                                  AppStrings.psn03ScamWarningBanner,
-                                  style: typo.caption.copyWith(
-                                    color: colors.danger,
-                                  ),
+                              Text(
+                                req.sharedContextDescription,
+                                style: typo.caption.copyWith(
+                                  color: colors.textMuted,
                                 ),
                               ),
                             ],
                           ),
                         ),
+                        if (req.sender.partuturan != null)
+                          PartuturanBadge(result: req.sender.partuturan!),
                       ],
-                      const SizedBox(height: AppSpacing.md),
+                    ),
+                    if (req.firstMessage.hasScamWarning) ...<Widget>[
+                      const SizedBox(height: AppSpacing.sm),
                       Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(AppSpacing.md),
+                        padding: const EdgeInsets.all(AppSpacing.sm),
                         decoration: BoxDecoration(
-                          color: colors.chipInactive,
+                          color: colors.danger.withValues(alpha: 0.12),
                           borderRadius: AppRadius.cardRadius,
+                          border: Border.all(color: colors.danger),
                         ),
-                        child: Text(req.firstMessage.text, style: typo.body),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      Row(
-                        children: <Widget>[
-                          Expanded(
-                            child: AppButton(
-                              label: AppStrings.psn02AcceptBtn,
-                              onPressed: () =>
-                                  _respond(req, MessageRequestStatus.accepted),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Icon(
+                              Icons.warning_amber_rounded,
+                              color: colors.danger,
+                              size: 16,
                             ),
-                          ),
-                          const SizedBox(width: AppSpacing.sm),
-                          Expanded(
-                            child: AppButton(
-                              label: AppStrings.psn02DeleteBtn,
-                              variant: AppButtonVariant.secondary,
-                              onPressed: () =>
-                                  _respond(req, MessageRequestStatus.deleted),
+                            const SizedBox(width: AppSpacing.xs),
+                            Expanded(
+                              child: Text(
+                                AppStrings.psn03ScamWarningBanner,
+                                style: typo.caption.copyWith(
+                                  color: colors.danger,
+                                ),
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: AppSpacing.sm),
-                          Expanded(
-                            child: AppButton(
-                              label: AppStrings.psn02BlockBtn,
-                              variant: AppButtonVariant.secondary,
-                              isDestructive: true,
-                              onPressed: () =>
-                                  _respond(req, MessageRequestStatus.blocked),
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ],
-                  ),
+                    const SizedBox(height: AppSpacing.sm),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
+                        vertical: AppSpacing.sm,
+                      ),
+                      decoration: BoxDecoration(
+                        color: colors.chipInactive,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Text(req.firstMessage.text, style: typo.body),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    Row(
+                      children: <Widget>[
+                        Expanded(
+                          child: AppButton(
+                            label: AppStrings.psn02AcceptBtn,
+                            onPressed: () =>
+                                _respond(req, MessageRequestStatus.accepted),
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.xs),
+                        Expanded(
+                          child: AppButton(
+                            label: AppStrings.psn02DeleteBtn,
+                            variant: AppButtonVariant.secondary,
+                            onPressed: () =>
+                                _respond(req, MessageRequestStatus.deleted),
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.xs),
+                        Expanded(
+                          child: AppButton(
+                            label: AppStrings.psn02BlockBtn,
+                            variant: AppButtonVariant.secondary,
+                            isDestructive: true,
+                            onPressed: () =>
+                                _respond(req, MessageRequestStatus.blocked),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               );
             }),

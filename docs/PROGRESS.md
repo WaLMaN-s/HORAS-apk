@@ -173,3 +173,6 @@ Seluruh flag di `lib/core/config/feature_flags.dart` bernilai `false` secara baw
 - Seluruh 23 antarmuka repository (`lib/data/supabase/*`) terpasang di `repository_providers.dart` melalui `--dart-define=USE_MOCK_BACKEND=false`, `SUPABASE_URL`, dan `SUPABASE_ANON_KEY`.
 - Token di `flutter_secure_storage`, unggahan media terkompres & bebas EXIF via `process-image` (backoff + resume), Realtime chat & notifikasi (auto-reconnect + outbox offline), cache offline (`AC-15`), Partuturan cache-first (`< 200ms`) + RPC `generation_delta`, serta `PushNotificationService` FCM dengan graceful fallback saat `google-services.json` belum tersedia.
 - Migrasi `0007_contract_parity.sql` + contract test suite (`test/contract/repository_contract_test.dart`) memverifikasi paritas Mock vs Supabase lokal.
+
+## Penyempurnaan UI Chat (`PSN-01`..`PSN-04`)
+- Menata ulang menu pesan (`psn01_conversations_page.dart`), permintaan pesan (`psn02_message_requests_page.dart`), gelembung obrolan & bilah ketik (`chat_thread_widgets.dart`), serta ruang obrolan privat/grup (`psn03_private_chat_page.dart`, `psn04_group_chat_page.dart`) menjadi tata letak rapat bergaya Instagram DM tanpa kartu dan jarak berlebih, dengan pengelompokan gelembung pesan pengirim yang sama (< 5 menit).

@@ -12,7 +12,7 @@ import 'package:horas/domain/models/models.dart';
 import 'package:horas/features/messages/presentation/messages_controller.dart';
 import 'package:material_ui/material_ui.dart';
 
-/// PSN-01 Daftar Pesan (`PSN-R1`..`PSN-R6`, `PSN-R9`).
+/// PSN-01 Daftar Pesan ala Instagram DM (`PSN-R1`..`PSN-R6`, `PSN-R9`).
 ///
 /// Grup buatan pengguna adalah Fase 2 (`FeatureFlags.userGroups == false`) dan
 /// disembunyikan dari layar ini pada MVP.
@@ -56,44 +56,71 @@ class Psn01ConversationsPage extends ConsumerWidget {
         onRefresh: controller.loadInitial,
         child: ListView(
           controller: scrollController,
-          padding: const EdgeInsets.all(AppSpacing.lg),
+          padding: const EdgeInsets.only(bottom: AppSpacing.lg),
           children: <Widget>[
-            // Pintu masuk Permintaan Pesan (PSN-02)
-            Card(
-              margin: const EdgeInsets.only(bottom: AppSpacing.md),
-              child: ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: colors.confidenceAmberSurface,
-                  child: Icon(
-                    Icons.mark_email_unread_outlined,
-                    color: colors.confidenceAmber,
+            // Baris header Pesan | Permintaan (gaya DM Instagram)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                AppSpacing.xs,
+                AppSpacing.lg,
+                AppSpacing.xs,
+              ),
+              child: Row(
+                children: <Widget>[
+                  Text(AppStrings.psn01Title, style: typo.bodyStrong),
+                  const Spacer(),
+                  InkWell(
+                    borderRadius: AppRadius.pillRadius,
+                    onTap: () async {
+                      await context.push(AppPages.psn02.routePath);
+                      await controller.loadInitial();
+                    },
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(
+                        minHeight: AppSizes.minTouchTarget,
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.sm,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                            Text(
+                              AppStrings.psn01RequestsBannerTitle,
+                              style: typo.captionStrong.copyWith(
+                                color: state.pendingRequestsCount > 0
+                                    ? colors.primary
+                                    : colors.textMuted,
+                              ),
+                            ),
+                            if (state.pendingRequestsCount > 0) ...<Widget>[
+                              const SizedBox(width: AppSpacing.xs),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.sm,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: colors.primary,
+                                  borderRadius: AppRadius.pillRadius,
+                                ),
+                                child: Text(
+                                  '${state.pendingRequestsCount}',
+                                  style: typo.micro.copyWith(
+                                    color: colors.onPrimary,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-                title: Text(
-                  AppStrings.psn01RequestsBannerTitle,
-                  style: typo.bodyStrong,
-                ),
-                subtitle: Text(
-                  state.pendingRequestsCount > 0
-                      ? AppStrings.psn01RequestsCountLabel(
-                          state.pendingRequestsCount,
-                        )
-                      : AppStrings.psn02EmptyMessage,
-                  style: typo.caption.copyWith(color: colors.textMuted),
-                ),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    if (state.pendingRequestsCount > 0)
-                      Badge(label: Text('${state.pendingRequestsCount}')),
-                    const SizedBox(width: AppSpacing.xs),
-                    const Icon(Icons.chevron_right_rounded),
-                  ],
-                ),
-                onTap: () async {
-                  await context.push(AppPages.psn02.routePath);
-                  await controller.loadInitial();
-                },
+                ],
               ),
             ),
 
@@ -103,6 +130,7 @@ class Psn01ConversationsPage extends ConsumerWidget {
             ...state.conversations.map((conv) {
               final isMuted =
                   conv.mutedUntil != null && conv.mutedUntil!.isAfter(now);
+              final isUnread = conv.unreadCount > 0;
               final lastMsg = conv.lastMessage;
               final preview = lastMsg == null
                   ? ''
@@ -111,83 +139,133 @@ class Psn01ConversationsPage extends ConsumerWidget {
                   : lastMsg.text.isNotEmpty
                   ? lastMsg.text
                   : AppStrings.psn01PhotoPreview;
+              final shortTime = ChatFormatters.formatShortTime(
+                conv.updatedAt,
+                now,
+              );
 
               final targetRoute = conv.type == ConversationType.direct
                   ? '${AppPages.psn03.routePath}?conversationId=${conv.id}'
                   : '${AppPages.psn04.routePath}?conversationId=${conv.id}';
 
-              return Card(
-                margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-                child: ListTile(
-                  leading: conv.type == ConversationType.direct
-                      ? AppAvatar(name: conv.title, seed: conv.id)
-                      : CircleAvatar(
-                          backgroundColor: colors.primary.withValues(
-                            alpha: 0.12,
-                          ),
-                          child: Icon(
-                            conv.type == ConversationType.sessionGroup
-                                ? Icons.sports_tennis_outlined
-                                : Icons.groups_outlined,
+              return InkWell(
+                onTap: () async {
+                  await context.push(targetRoute);
+                  await controller.loadInitial();
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.lg,
+                    vertical: AppSpacing.sm,
+                  ),
+                  child: Row(
+                    children: <Widget>[
+                      conv.type == ConversationType.direct
+                          ? AppAvatar(
+                              name: conv.title,
+                              seed: conv.id,
+                              size: AppSizes.avatarLg,
+                            )
+                          : Container(
+                              width: AppSizes.avatarLg,
+                              height: AppSizes.avatarLg,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: colors.chipInactive,
+                              ),
+                              alignment: Alignment.center,
+                              child: Icon(
+                                conv.type == ConversationType.sessionGroup
+                                    ? Icons.sports_tennis_outlined
+                                    : Icons.groups_outlined,
+                                color: colors.primary,
+                              ),
+                            ),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Row(
+                              children: <Widget>[
+                                Expanded(
+                                  child: Text(
+                                    conv.title,
+                                    style: isUnread
+                                        ? typo.bodyStrong
+                                        : typo.bodyStrong.copyWith(
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                if (isMuted)
+                                  Padding(
+                                    padding: const EdgeInsets.only(
+                                      left: AppSpacing.xs,
+                                    ),
+                                    child: Tooltip(
+                                      message: AppStrings.psn01MutedTooltip,
+                                      child: Icon(
+                                        Icons.volume_off_rounded,
+                                        size: 14,
+                                        color: colors.textMuted,
+                                      ),
+                                    ),
+                                  ),
+                                if (conv.isReadOnly)
+                                  Padding(
+                                    padding: const EdgeInsets.only(
+                                      left: AppSpacing.xs,
+                                    ),
+                                    child: Text(
+                                      AppStrings.psn01ReadOnlyBadge,
+                                      style: typo.micro.copyWith(
+                                        color: colors.textMuted,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 2),
+                            Row(
+                              children: <Widget>[
+                                Expanded(
+                                  child: Text(
+                                    preview.isNotEmpty
+                                        ? '$preview · $shortTime'
+                                        : shortTime,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: typo.caption.copyWith(
+                                      color: isUnread
+                                          ? colors.text
+                                          : colors.textMuted,
+                                      fontWeight: isUnread
+                                          ? FontWeight.w600
+                                          : FontWeight.w400,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (isUnread) ...<Widget>[
+                        const SizedBox(width: AppSpacing.sm),
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
                             color: colors.primary,
                           ),
                         ),
-                  title: Row(
-                    children: <Widget>[
-                      Expanded(
-                        child: Text(
-                          conv.title,
-                          style: typo.bodyStrong,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      if (isMuted)
-                        Padding(
-                          padding: const EdgeInsets.only(left: AppSpacing.xs),
-                          child: Tooltip(
-                            message: AppStrings.psn01MutedTooltip,
-                            child: Icon(
-                              Icons.volume_off_rounded,
-                              size: 16,
-                              color: colors.textMuted,
-                            ),
-                          ),
-                        ),
-                      if (conv.isReadOnly)
-                        Padding(
-                          padding: const EdgeInsets.only(left: AppSpacing.xs),
-                          child: Text(
-                            AppStrings.psn01ReadOnlyBadge,
-                            style: typo.micro.copyWith(color: colors.textMuted),
-                          ),
-                        ),
-                    ],
-                  ),
-                  subtitle: Text(
-                    preview,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: typo.caption.copyWith(color: colors.textMuted),
-                  ),
-                  trailing: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: <Widget>[
-                      Text(
-                        ChatFormatters.formatShortTime(conv.updatedAt, now),
-                        style: typo.micro.copyWith(color: colors.textMuted),
-                      ),
-                      if (conv.unreadCount > 0) ...<Widget>[
-                        const SizedBox(height: AppSpacing.xs),
-                        Badge(label: Text('${conv.unreadCount}')),
                       ],
                     ],
                   ),
-                  onTap: () async {
-                    await context.push(targetRoute);
-                    await controller.loadInitial();
-                  },
                 ),
               );
             }),

@@ -494,6 +494,47 @@ final class PersonSummary {
     'isConnected': isConnected,
     'canMessage': canMessage,
   };
+
+  factory PersonSummary.fromJson(Map<String, Object?> json) {
+    SubEthnic parseSubEthnic(String? raw) {
+      for (final s in SubEthnic.values) {
+        if (s.name == raw) return s;
+      }
+      return SubEthnic.toba;
+    }
+
+    return PersonSummary(
+      id: (json['id'] as String?) ?? '',
+      displayName: (json['displayName'] as String?) ?? '',
+      gender: UserGender.fromJson(json['gender'] as String?),
+      marga: (json['marga'] as String?) ?? '',
+      subEthnic: parseSubEthnic(json['subEthnic'] as String?),
+      city: (json['city'] as String?) ?? '',
+      proximity: AreaProximity.fromJson(json['proximity'] as String?),
+      avatarSeed: (json['avatarSeed'] as String?) ?? '',
+      sharedCommunitiesCount: (json['sharedCommunitiesCount'] as int?) ?? 0,
+      isSameMarga: (json['isSameMarga'] as bool?) ?? false,
+      partuturan: json['partuturan'] is Map<String, Object?>
+          ? PartuturanResult.fromJson(
+              json['partuturan'] as Map<String, Object?>,
+            )
+          : null,
+      visibleMotherMarga: json['visibleMotherMarga'] as String?,
+      visibleSubdistrict: json['visibleSubdistrict'] as String?,
+      visibleAgeGroup: json['visibleAgeGroup'] as String?,
+      visibleHomeChurch: json['visibleHomeChurch'] as String?,
+      bio: (json['bio'] as String?) ?? '',
+      hobbies: ((json['hobbies'] as List<Object?>?) ?? const <Object?>[])
+          .whereType<String>()
+          .toList(growable: false),
+      campusOrOffice: json['campusOrOffice'] as String?,
+      websiteUrl: json['websiteUrl'] as String?,
+      isPrivateAccount: (json['isPrivateAccount'] as bool?) ?? false,
+      isFollowing: (json['isFollowing'] as bool?) ?? false,
+      isConnected: (json['isConnected'] as bool?) ?? false,
+      canMessage: (json['canMessage'] as bool?) ?? false,
+    );
+  }
 }
 
 /// Perangkat aktif pengguna (AUT-R9, AKN-R4).

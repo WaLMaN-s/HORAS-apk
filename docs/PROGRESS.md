@@ -16,14 +16,14 @@ Keterangan status:
 | Modul | Kode | Jumlah Halaman | Fase 1 | Fase 2 | Selesai |
 | --- | --- | --- | --- | --- | --- |
 | Autentikasi | AUT | 7 | 7 | 0 | 7 |
-| Beranda | BER | 10 | 8 | 2 | 0 |
+| Beranda | BER | 10 | 8 | 2 | 8 |
 | Sekitar | SEK | 12 | 9 | 3 | 0 |
 | Tarombo | TAR | 8 | 7 | 1 | 0 |
 | Main | MAN | 9 | 9 | 0 | 0 |
 | Pesan | PSN | 6 | 6 | 0 | 0 |
 | Akun | AKN | 15 | 15 | 0 | 0 |
 | Sistem | SIS | 8 | 8 | 0 | 0 |
-| **Total** |  | **75** | **69** | **6** | **7** |
+| **Total** |  | **75** | **69** | **6** | **15** |
 
 ---
 
@@ -43,16 +43,16 @@ Keterangan status:
 ### 2. Beranda (BER)
 | ID | Nama Halaman | Tujuan | Fase | Rute | Status |
 | --- | --- | --- | --- | --- | --- |
-| BER-01 | Feed | Daftar postingan dan baris story | 1 | `/beranda` | Belum |
-| BER-02 | Penampil story | Menonton story | 2 | `/beranda/story-lihat` | Belum |
-| BER-03 | Buat story | Membuat story foto/video | 2 | `/beranda/story-buat` | Belum |
-| BER-04 | Buat postingan | Teks, foto, visibilitas | 1 | `/beranda/postingan-buat` | Belum |
-| BER-05 | Pilih dan edit media | Pangkas dan urutkan foto (video di fase 2) | 1 | `/beranda/media-edit` | Belum |
-| BER-06 | Detail postingan | Satu postingan lengkap | 1 | `/beranda/postingan-detail` | Belum |
-| BER-07 | Komentar | Daftar dan tulis komentar | 1 | `/beranda/komentar` | Belum |
-| BER-08 | Daftar suka | Siapa yang menyukai | 1 | `/beranda/suka` | Belum |
-| BER-09 | Pencarian | Kolom cari, riwayat, saran | 1 | `/beranda/cari` | Belum |
-| BER-10 | Hasil pencarian | Tab Orang, Komunitas, Gereja, Postingan | 1 | `/beranda/cari-hasil` | Belum |
+| BER-01 | Feed | Daftar postingan (tanpa baris story, Fase 2 off) | 1 | `/beranda` | Selesai |
+| BER-02 | Penampil story | Menonton story (Fase 2) | 2 | `/beranda/story-lihat` | Belum |
+| BER-03 | Buat story | Membuat story foto/video (Fase 2) | 2 | `/beranda/story-buat` | Belum |
+| BER-04 | Buat postingan | Teks, foto, visibilitas | 1 | `/beranda/postingan-buat` | Selesai |
+| BER-05 | Pilih dan edit media | Pangkas dan urutkan foto (video di fase 2) | 1 | `/beranda/media-edit` | Selesai |
+| BER-06 | Detail postingan | Satu postingan lengkap | 1 | `/beranda/postingan-detail` | Selesai |
+| BER-07 | Komentar | Daftar dan tulis komentar | 1 | `/beranda/komentar` | Selesai |
+| BER-08 | Daftar suka | Siapa yang menyukai | 1 | `/beranda/suka` | Selesai |
+| BER-09 | Pencarian | Kolom cari, riwayat, saran | 1 | `/beranda/cari` | Selesai |
+| BER-10 | Hasil pencarian | Tab Orang dan Komunitas (Gereja/Postingan Fase 2 off) | 1 | `/beranda/cari-hasil` | Selesai |
 
 ### 3. Sekitar (SEK)
 | ID | Nama Halaman | Tujuan | Fase | Rute | Status |
@@ -139,8 +139,8 @@ Keterangan status:
 ---
 
 ## Bagian Placeholder (`SegeraPage`)
-Halaman yang masih dirender menggunakan `SegeraPage` (68 halaman; `AUT-01` .. `AUT-07` telah selesai di Prompt 3):
-- `BER-01` .. `BER-10` (`HomeModulePlaceholderPage`)
+Halaman yang masih dirender menggunakan `SegeraPage` (60 halaman; `AUT-01` .. `AUT-07` selesai di Prompt 3, `BER-01` dan `BER-04` .. `BER-10` selesai di Prompt 4):
+- `BER-02` .. `BER-03` (`HomeModulePageRouter` - Fase 2 belum diaktifkan)
 - `SEK-01` .. `SEK-12` (`NearbyModulePlaceholderPage`)
 - `TAR-01` .. `TAR-08` (`TaromboModulePlaceholderPage`)
 - `MAN-01` .. `MAN-09` (`PlayModulePlaceholderPage`)

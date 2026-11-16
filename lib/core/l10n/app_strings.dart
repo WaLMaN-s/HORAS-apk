@@ -340,24 +340,124 @@ abstract final class AppStrings {
   // Beranda (BER-01 .. BER-10)
   static const String ber01Title = 'Beranda';
   static const String ber01Purpose = 'Daftar postingan dari lingkaranmu';
+  static const String ber01EmptyMessage =
+      'Belum ada postingan di berandamu. Ikuti orang dan gabung komunitas untuk melihat kabar terbaru.';
+  static const String ber01EmptyAction = 'Jelajahi Sekitar';
+  static const String ber01LoadMoreBtn = 'Muat lebih banyak';
+  static const String ber01UnderReviewBadge = 'Sedang ditinjau';
+  static const String ber01EditedBadge = 'Diedit';
+  static const String ber01LikeAction = 'Suka';
+  static const String ber01CommentAction = 'Komentar';
+  static const String ber01SaveAction = 'Simpan';
+  static const String ber01SavedAction = 'Tersimpan';
+  static const String ber01ShareAction = 'Bagikan';
+  static const String ber01ShareCopiedToast =
+      'Tautan postingan disalin ke papan klip.';
+  static const String ber01MenuTooltip = 'Menu opsi postingan';
+  static const String ber01MenuReport = 'Laporkan';
+  static const String ber01MenuMute = 'Bisukan akun';
+  static const String ber01MenuBlock = 'Blokir akun';
+  static const String ber01MenuEdit = 'Edit teks postingan';
+  static const String ber01MenuDelete = 'Hapus postingan';
+  static const String ber01MuteConfirmTitle = 'Bisukan Akun Ini?';
+  static const String ber01MuteConfirmMessage =
+      'Postingan dari akun ini tidak akan tampil lagi di berandamu.';
+  static const String ber01BlockConfirmTitle = 'Blokir Pengguna Ini?';
+  static const String ber01BlockConfirmMessage =
+      'Kalian tidak akan saling melihat profil, postingan, maupun pesan. Koneksi dan ikuti akan dihapus.';
+  static const String ber01DeleteConfirmTitle = 'Hapus Postingan Ini?';
+  static const String ber01DeleteConfirmMessage =
+      'Postingan beserta seluruh komentarnya akan dihapus secara langsung.';
+  static const String ber01AccountMutedToast = 'Akun berhasil dibisukan.';
+  static const String ber01AccountBlockedToast = 'Pengguna berhasil diblokir.';
+  static const String ber01PostDeletedToast = 'Postingan telah dihapus.';
+
   static const String ber02Title = 'Penampil Story';
   static const String ber02Purpose = 'Menonton story';
   static const String ber03Title = 'Buat Story';
   static const String ber03Purpose = 'Membuat story foto/video';
+
   static const String ber04Title = 'Buat Postingan';
   static const String ber04Purpose = 'Teks, foto, visibilitas';
+  static const String ber04TextHint =
+      'Bagikan kabar, cerita komunitas, atau informasi kegiatan di kotamu...';
+  static const String ber04AddMediaBtn = 'Pilih / Edit Foto';
+  static const String ber04VisibilityLabel = 'Siapa yang dapat melihat';
+  static const String ber04VisibilityPublic = 'Publik';
+  static const String ber04VisibilityFollowers = 'Pengikut saja';
+  static const String ber04VisibilityCommunities = 'Komunitas tertentu';
+  static const String ber04SelectCommunitiesLabel = 'Pilih Komunitas';
+  static const String ber04CityTagLabel =
+      'Tag Lokasi (Hanya Level Kota · Opsional)';
+  static const String ber04NoCityTag = 'Tanpa tag lokasi';
+  static const String ber04SubmitBtn = 'Posting';
+  static const String ber04DraftRestoredNotice =
+      'Draf postingan sebelumnya dipulihkan.';
+  static const String ber04DraftSavedOnFailToast =
+      'Gagal mengunggah. Draf postingan disimpan agar bisa dicoba lagi.';
+  static const String ber04UnderReviewToast =
+      'Postingan tersimpan dengan status "Sedang ditinjau" dan sementara hanya terlihat olehmu.';
+  static const String ber04PublishedToast = 'Postingan berhasil diterbitkan!';
+
   static const String ber05Title = 'Pilih dan Edit Media';
   static const String ber05Purpose = 'Pangkas dan urutkan foto';
+  static const String ber05PickFromGalleryBtn = 'Pilih dari Galeri';
+  static const String ber05AddSamplePhotoBtn = 'Tambah Foto Contoh';
+  static const String ber05PermissionBenefit =
+      'Izinkan akses galeri untuk memilih foto hingga 10 gambar. HORAS otomatis menghapus metadata lokasi (EXIF) sebelum foto dikirim.';
+  static const String ber05CropLabel = 'Rasio Pangkas';
+  static const String ber05CropSquare = '1:1';
+  static const String ber05Crop4x3 = '4:3';
+  static const String ber05Crop16x9 = '16:9';
+  static const String ber05ReorderHint =
+      'Seret gagang di kanan untuk mengurutkan foto. Semua foto dikompres dan dibersihkan EXIF.';
+  static const String ber05ApplyBtn = 'Gunakan Foto';
+  static const String ber05RemovePhotoTooltip = 'Hapus foto';
+  static String ber05PhotoCounter(int count, int max) => '$count/$max foto';
+
   static const String ber06Title = 'Detail Postingan';
   static const String ber06Purpose = 'Satu postingan lengkap';
+  static const String ber06EditTextTitle = 'Edit Teks Postingan';
+  static const String ber06ViewLikesAction = 'Lihat daftar suka';
+
   static const String ber07Title = 'Komentar';
   static const String ber07Purpose = 'Daftar dan tulis komentar';
+  static const String ber07InputHint =
+      'Tulis komentar sopan (maks. 1.000 karakter)...';
+  static const String ber07SendTooltip = 'Kirim komentar';
+  static const String ber07ReplyAction = 'Balas';
+  static String ber07ReplyingTo(String name) => 'Membalas $name';
+  static const String ber07CommentsDisabledBanner =
+      'Pembuat postingan menonaktifkan komentar pada postingan ini.';
+  static const String ber07DisableComments = 'Matikan komentar';
+  static const String ber07EnableComments = 'Aktifkan komentar';
+  static const String ber07DeleteCommentTitle = 'Hapus Komentar?';
+  static const String ber07DeleteCommentMessage =
+      'Komentar ini akan dihapus dari postingan.';
+  static const String ber07EmptyMessage =
+      'Belum ada komentar. Jadilah yang pertama menyapa!';
+
   static const String ber08Title = 'Daftar Suka';
   static const String ber08Purpose = 'Siapa yang menyukai';
+  static const String ber08EmptyMessage =
+      'Belum ada yang menyukai postingan ini.';
+
   static const String ber09Title = 'Pencarian';
   static const String ber09Purpose = 'Kolom cari, riwayat, saran';
+  static const String ber09SearchHint = 'Cari nama, marga, atau komunitas...';
+  static const String ber09HistoryHeader = 'Riwayat Pencarian';
+  static const String ber09ClearAllHistory = 'Hapus semua';
+  static const String ber09SuggestionsHeader = 'Saran Pencarian';
+  static const String ber09DeleteHistoryItemTooltip = 'Hapus dari riwayat';
+
   static const String ber10Title = 'Hasil Pencarian';
-  static const String ber10Purpose = 'Tab Orang, Komunitas, Gereja, Postingan';
+  static const String ber10Purpose = 'Tab Orang dan Komunitas';
+  static const String ber10TabPeople = 'Orang';
+  static const String ber10TabCommunities = 'Komunitas';
+  static const String ber10EmptyPeople =
+      'Tidak ditemukan pengguna yang cocok dengan kata kunci tersebut.';
+  static const String ber10EmptyCommunities =
+      'Tidak ditemukan komunitas yang cocok dengan kata kunci tersebut.';
 
   // Sekitar (SEK-01 .. SEK-12)
   static const String sek01Title = 'Sekitar';

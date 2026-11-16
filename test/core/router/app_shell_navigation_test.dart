@@ -1,16 +1,20 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:horas/app.dart';
+import 'package:horas/core/config/repository_providers.dart';
 import 'package:horas/core/l10n/app_strings.dart';
 import 'package:horas/core/router/app_pages.dart';
 import 'package:horas/core/router/app_router.dart';
 import 'package:horas/core/router/shell_navigation_controller.dart';
+import 'package:horas/features/home/presentation/ber01_feed_page.dart';
 
 void main() {
   testWidgets(
     'Membuka aplikasi HORAS dan berpindah antar 5 tab serta ketuk ulang tab',
     (tester) async {
-      final container = ProviderContainer();
+      final container = ProviderContainer(
+        overrides: [enableMockNetworkLatencyProvider.overrideWithValue(false)],
+      );
       addTearDown(container.dispose);
 
       await tester.pumpWidget(
@@ -21,9 +25,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Tab 0 (bawaan): Beranda (BER-01)
-      expect(find.text(AppPages.ber01.id), findsOneWidget);
-      expect(find.text(AppStrings.ber01Purpose), findsOneWidget);
+      // Tab 0 (bawaan): Beranda (BER-01 Feed)
+      expect(find.byType(Ber01FeedPage), findsOneWidget);
       expect(container.read(shellNavigationProvider).lastTabIndex, 0);
 
       // Pindah ke Tab 1: Sekitar (SEK-01)
@@ -51,8 +54,7 @@ void main() {
       expect(container.read(shellNavigationProvider).lastTabIndex, 4);
 
       // Gulung ke bawah lalu buka subhalaman AKN-02 Edit Profil di dalam tab Akun,
-      // kemudian ketuk ulang tab Akun untuk memastikan kembali ke halaman awal tab (AKN-01)
-      // dan menggulung ke atas.
+      // kemudian ketuk ulang tab Akun untuk memastikan kembali ke halaman awal tab (AKN-01).
       await tester.ensureVisible(find.text(AppStrings.akn02Title));
       await tester.pumpAndSettle();
       await tester.tap(find.text(AppStrings.akn02Title));
@@ -63,10 +65,10 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text(AppPages.akn01.id), findsOneWidget);
 
-      // Kembali ke Tab 0: Beranda (BER-01)
+      // Kembali ke Tab 0: Beranda (BER-01 Feed)
       await tester.tap(find.text(AppStrings.tabBeranda));
       await tester.pumpAndSettle();
-      expect(find.text(AppPages.ber01.id), findsOneWidget);
+      expect(find.byType(Ber01FeedPage), findsOneWidget);
       expect(container.read(shellNavigationProvider).lastTabIndex, 0);
     },
   );

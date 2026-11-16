@@ -1100,8 +1100,28 @@ final class MockPostRepository implements PostRepository {
 
   final MockStore _store;
 
+  bool _canViewerSeePost(Post p, Profil? viewer) {
+    if (p.moderationStatus == PostModerationStatus.removed) return false;
+    if (viewer == null) return p.visibility == PostVisibility.publicPost;
+    if (_store.isBlockedBetween(viewer.id, p.author.id)) return false;
+    if (p.author.id == viewer.id) return true;
+    // BER-R11: sedang ditinjau hanya terlihat oleh pembuatnya
+    if (p.moderationStatus == PostModerationStatus.underReview) return false;
+
+    return switch (p.visibility) {
+      PostVisibility.publicPost => true,
+      PostVisibility.followersOnly => _store.isFollowingUser(
+        viewer.id,
+        p.author.id,
+      ),
+      PostVisibility.specificCommunities => p.communityIds.any(
+        _store.communityIdsForUser(viewer.id).contains,
+      ),
+    };
+  }
+
   @override
-  Future<Result<List<Post>>> getFeed() async {
+  Future<Result<List<Post>>> getFeed({int page = 1, int pageSize = 8}) async {
     final net = await _store.simulateNetworkCall();
     if (net is Err<void>) return Err<List<Post>>(net.failure);
     if (_store.isEmptyState) return const Ok<List<Post>>(<Post>[]);
@@ -1117,19 +1137,52 @@ final class MockPostRepository implements PostRepository {
 
     // BER-R1: Feed kronologis menurun dari akun yang diikuti, komunitas diikuti, dan diri sendiri.
     final visible = _store.posts.where((p) {
-      if (_store.isBlockedBetween(me.id, p.author.id)) return false;
-      if (p.moderationStatus == PostModerationStatus.removed) return false;
-      if (p.moderationStatus == PostModerationStatus.underReview &&
-          p.author.id != me.id) {
-        return false; // BER-R11: sedang ditinjau hanya terlihat oleh pembuatnya
-      }
+      if (!_canViewerSeePost(p, me)) return false;
       final isMine = p.author.id == me.id;
       final isFollowedAuthor = followedUserIds.contains(p.author.id);
       final isFromJoinedCommunity = p.communityIds.any(joinedCommIds.contains);
+      if (p.visibility == PostVisibility.specificCommunities) {
+        return isMine || isFromJoinedCommunity;
+      }
       return isMine || isFollowedAuthor || isFromJoinedCommunity;
     }).toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
-    return Ok<List<Post>>(visible);
+    final safePage = page < 1 ? 1 : page;
+    final start = ((safePage - 1) * pageSize).clamp(0, visible.length);
+    final end = (start + pageSize).clamp(0, visible.length);
+    final pageItems = visible.sublist(start, end);
+
+    // AC-15: Simpan cache halaman pertama feed di penyimpanan lokal
+    if (safePage == 1) {
+      _store.cachedFeedPage1 = List<Post>.unmodifiable(pageItems);
+      await _store.prefs?.setString(
+        kMockFeedCachePrefsKey,
+        jsonEncode(pageItems.map((p) => p.toJson()).toList(growable: false)),
+      );
+    }
+
+    return Ok<List<Post>>(pageItems);
+  }
+
+  @override
+  List<Post> getCachedFeedPage1() => _store.cachedFeedPage1;
+
+  @override
+  PostDraft? getSavedPostDraft() => _store.savedPostDraft;
+
+  @override
+  Future<void> savePostDraft(PostDraft draft) async {
+    _store.savedPostDraft = draft;
+    await _store.prefs?.setString(
+      kMockPostDraftPrefsKey,
+      jsonEncode(draft.toJson()),
+    );
+  }
+
+  @override
+  Future<void> clearPostDraft() async {
+    _store.savedPostDraft = null;
+    await _store.prefs?.remove(kMockPostDraftPrefsKey);
   }
 
   @override
@@ -1139,9 +1192,8 @@ final class MockPostRepository implements PostRepository {
 
     final me = _store.activeProfile;
     final post = _store.posts.where((p) => p.id == postId).firstOrNull;
-    if (post == null ||
-        post.moderationStatus == PostModerationStatus.removed ||
-        (me != null && _store.isBlockedBetween(me.id, post.author.id))) {
+    if (post == null || !_canViewerSeePost(post, me)) {
+      // BER-R9 & PRD 5.2: Tautan ke postingan terbatas / diblokir / dihapus tidak terbuka tanpa hak
       return const Err<Post>(
         UnavailableError(message: AppStrings.stateContentUnavailableMessage),
       );
@@ -1189,6 +1241,7 @@ final class MockPostRepository implements PostRepository {
     required PostVisibility visibility,
     List<String> mediaSeeds = const <String>[],
     List<int> mediaSizesBytes = const <int>[],
+    List<double> mediaAspectRatios = const <double>[],
     List<Map<String, String>> rawExifPerMedia = const <Map<String, String>>[],
     List<String> communityIds = const <String>[],
     String? cityTag,
@@ -1244,12 +1297,14 @@ final class MockPostRepository implements PostRepository {
           if (!forbiddenExifKeys.contains(entry.key.toLowerCase()))
             entry.key: entry.value,
       };
+      final ratio = i < mediaAspectRatios.length ? mediaAspectRatios[i] : 1.0;
       mediaItems.add(
         PostMedia(
           id: '$postId-m$i',
           postId: postId,
           seed: mediaSeeds[i],
           orderIndex: i,
+          aspectRatio: ratio,
           exifLocationStripped: true,
           metadata: Map<String, String>.unmodifiable(sanitizedMetadata),
         ),
@@ -1263,11 +1318,14 @@ final class MockPostRepository implements PostRepository {
       media: mediaItems,
       visibility: visibility,
       communityIds: communityIds,
-      cityTag: cityTag?.trim(),
+      cityTag: (cityTag != null && cityTag.trim().isNotEmpty)
+          ? cityTag.trim()
+          : null,
       moderationStatus: modStatus,
       createdAt: _store.now,
     );
     _store.posts.insert(0, post);
+    await clearPostDraft();
     return Ok<Post>(post);
   }
 
@@ -1490,10 +1548,21 @@ final class MockCommentRepository implements CommentRepository {
       _store.now,
     ];
 
+    // BER-R5: Pastikan balasan maksimal satu tingkat
+    String? effectiveParentId = parentCommentId;
+    if (effectiveParentId != null) {
+      final parentObj = _store.comments
+          .where((c) => c.id == effectiveParentId)
+          .firstOrNull;
+      if (parentObj?.parentCommentId != null) {
+        effectiveParentId = parentObj!.parentCommentId;
+      }
+    }
+
     final comment = Comment(
       id: _store.nextId('cmt'),
       postId: postId,
-      parentCommentId: parentCommentId,
+      parentCommentId: effectiveParentId,
       author: _store.toPersonSummary(me),
       text: text.trim(),
       createdAt: _store.now,
@@ -1517,9 +1586,35 @@ final class MockCommentRepository implements CommentRepository {
   Future<Result<void>> deleteComment(String commentId) async {
     final net = await _store.simulateNetworkCall();
     if (net.isErr) return net;
+    final uid = _store.currentUserId;
+    final target = _store.comments.where((c) => c.id == commentId).firstOrNull;
+    if (target == null) return const Ok<void>(null);
+
+    final postIdx = _store.posts.indexWhere((p) => p.id == target.postId);
+    final post = postIdx >= 0 ? _store.posts[postIdx] : null;
+    // BER-R5: Pembuat komentar atau pembuat postingan dapat menghapus komentar
+    final canDelete =
+        uid != null &&
+        (target.author.id == uid || (post != null && post.author.id == uid));
+    if (!canDelete) {
+      return const Err<void>(
+        ValidationError(
+          message: 'Kamu tidak memiliki hak untuk menghapus komentar ini.',
+          field: 'commentId',
+        ),
+      );
+    }
+
+    final beforeCount = _store.comments.length;
     _store.comments.removeWhere(
       (c) => c.id == commentId || c.parentCommentId == commentId,
     );
+    final removedCount = beforeCount - _store.comments.length;
+    if (post != null && removedCount > 0) {
+      _store.posts[postIdx] = post.copyWith(
+        commentCount: (post.commentCount - removedCount).clamp(0, 999999),
+      );
+    }
     return const Ok<void>(null);
   }
 
@@ -1548,6 +1643,55 @@ final class MockSearchRepository implements SearchRepository {
   const MockSearchRepository(this._store);
 
   final MockStore _store;
+
+  @override
+  List<String> getSearchHistory() =>
+      List<String>.unmodifiable(_store.searchHistory);
+
+  @override
+  Future<void> addSearchHistory(String query) async {
+    final clean = query.trim();
+    if (clean.isEmpty) return;
+    _store.searchHistory
+      ..removeWhere((item) => item.toLowerCase() == clean.toLowerCase())
+      ..insert(0, clean);
+    if (_store.searchHistory.length > 10) {
+      _store.searchHistory.removeRange(10, _store.searchHistory.length);
+    }
+    await _store.prefs?.setStringList(
+      kMockSearchHistoryPrefsKey,
+      _store.searchHistory,
+    );
+  }
+
+  @override
+  Future<void> removeSearchHistory(String query) async {
+    _store.searchHistory.remove(query);
+    await _store.prefs?.setStringList(
+      kMockSearchHistoryPrefsKey,
+      _store.searchHistory,
+    );
+  }
+
+  @override
+  Future<void> clearSearchHistory() async {
+    _store.searchHistory.clear();
+    await _store.prefs?.setStringList(
+      kMockSearchHistoryPrefsKey,
+      _store.searchHistory,
+    );
+  }
+
+  @override
+  List<String> getSearchSuggestions() => const <String>[
+    'Simanjuntak',
+    'Sitorus',
+    'Nainggolan',
+    'Medan',
+    'Jakarta Selatan',
+    'Bandung',
+    'Punguan',
+  ];
 
   @override
   Future<Result<List<PersonSummary>>> searchPeople({

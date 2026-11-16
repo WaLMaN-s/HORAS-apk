@@ -333,7 +333,8 @@ abstract final class HorasPolicies {
       }
     }
 
-    // BER-R10 & BER-R11: tautan eksternal dari akun berusia < 7 hari ditahan untuk tinjauan.
+    // BER-R10 & BER-R11: tautan eksternal dari akun berusia < 7 hari, atau filter kata/spam
+    // menahan postingan untuk ditinjau (terlihat oleh pembuatnya sebagai Sedang ditinjau).
     final hasExternalLink = RegExp(
       r'(https?://|www\.)\S+',
       caseSensitive: false,
@@ -342,7 +343,20 @@ abstract final class HorasPolicies {
         now.difference(accountCreatedAt).inDays <
         AppLimits.newAccountExternalLinkHoldDays;
 
-    if (hasExternalLink && isNewAccount) {
+    final lowerText = cleanText.toLowerCase();
+    final hasFilteredWords = RegExp(
+      r'\b(slot\s*gacor|judi\s*online|pinjol\s*ilegal|taruhan\s*bola|promo\s*togel|kasar_sara)\b',
+    ).hasMatch(lowerText);
+    final linkCount = RegExp(
+      r'(https?://|www\.)\S+',
+      caseSensitive: false,
+    ).allMatches(cleanText).length;
+    final hasSpamPattern =
+        linkCount >= 3 || RegExp(r'(.)\1{9,}').hasMatch(cleanText);
+
+    if ((hasExternalLink && isNewAccount) ||
+        hasFilteredWords ||
+        hasSpamPattern) {
       return const Ok<PostModerationStatus>(PostModerationStatus.underReview);
     }
     return const Ok<PostModerationStatus>(PostModerationStatus.published);

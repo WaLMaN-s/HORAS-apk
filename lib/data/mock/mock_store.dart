@@ -20,6 +20,9 @@ const String kMockOwnProfilePrefsKey = 'horas.mock.own_profile';
 const String kMockOwnPrivacyPrefsKey = 'horas.mock.own_privacy';
 const String kMockLegalConsentPrefsKey = 'horas.mock.legal_consent';
 const String kMockOnboardingDraftPrefsKey = 'horas.mock.onboarding_draft';
+const String kMockFeedCachePrefsKey = 'horas.mock.feed_cache_page1';
+const String kMockPostDraftPrefsKey = 'horas.mock.post_draft';
+const String kMockSearchHistoryPrefsKey = 'horas.mock.search_history';
 const String kSecureAuthTokenKey = 'horas.auth.access_token';
 
 /// Penyimpanan in-memory pusat untuk seluruh repository tiruan (Prompt 2 Bagian C & D).
@@ -62,6 +65,13 @@ final class MockStore {
   LegalConsentRecord? savedLegalConsent;
   OnboardingDraft onboardingDraft = const OnboardingDraft();
   AccountRecoverySubmission? latestRecoverySubmission;
+  List<Post> cachedFeedPage1 = <Post>[];
+  PostDraft? savedPostDraft;
+  final List<String> searchHistory = <String>[
+    'Simanjuntak',
+    'Medan',
+    'Punguan',
+  ];
 
   final Map<String, Profil> usersById = <String, Profil>{};
   final List<MargaEntry> margas = <MargaEntry>[];
@@ -274,6 +284,33 @@ final class MockStore {
         // Abaikan bila data lama korup.
       }
     }
+    final savedFeedCacheJson = p.getString(kMockFeedCachePrefsKey);
+    if (savedFeedCacheJson != null) {
+      try {
+        final decoded = jsonDecode(savedFeedCacheJson) as List<Object?>;
+        cachedFeedPage1 = decoded
+            .whereType<Map<String, Object?>>()
+            .map(Post.fromJson)
+            .toList();
+      } on Object {
+        // Abaikan bila cache lama korup.
+      }
+    }
+    final savedPostDraftJson = p.getString(kMockPostDraftPrefsKey);
+    if (savedPostDraftJson != null) {
+      try {
+        final decoded = jsonDecode(savedPostDraftJson) as Map<String, Object?>;
+        savedPostDraft = PostDraft.fromJson(decoded);
+      } on Object {
+        // Abaikan bila draf lama korup.
+      }
+    }
+    final savedHistory = p.getStringList(kMockSearchHistoryPrefsKey);
+    if (savedHistory != null) {
+      searchHistory
+        ..clear()
+        ..addAll(savedHistory);
+    }
   }
 
   void currentSpatialCitySync(String city) {
@@ -293,6 +330,11 @@ final class MockStore {
     savedLegalConsent = null;
     onboardingDraft = const OnboardingDraft();
     latestRecoverySubmission = null;
+    cachedFeedPage1 = <Post>[];
+    savedPostDraft = null;
+    searchHistory
+      ..clear()
+      ..addAll(const <String>['Simanjuntak', 'Medan', 'Punguan']);
 
     usersById.clear();
     margas.clear();
@@ -1199,6 +1241,41 @@ final class MockStore {
           text: 'Horas! Mantap sekali kegiatannya di ${authorProfile.city}.',
           createdAt: createdAt.add(const Duration(minutes: 25)),
         ),
+      );
+      if (i < 10) {
+        final replier =
+            usersById['u-${(((i + 5) % 25) + 1).toString().padLeft(2, '0')}']!;
+        comments.add(
+          Comment(
+            id: 'cmt-$postId-2',
+            postId: postId,
+            parentCommentId: 'cmt-$postId-1',
+            author: toPersonSummary(replier, viewer: usersById['u-01']),
+            text:
+                'Setuju! Ditunggu agenda berikutnya di ${authorProfile.city}.',
+            createdAt: createdAt.add(const Duration(minutes: 40)),
+          ),
+        );
+      }
+
+      // Seed likes untuk BER-08 Daftar suka
+      final likeTargetCount = 4 + (i % 6);
+      for (var k = 0; k < likeTargetCount; k++) {
+        final liker =
+            usersById['u-${(((i + k + 2) % 25) + 1).toString().padLeft(2, '0')}']!;
+        likes.add(
+          Like(
+            id: 'like-$postId-$k',
+            postId: postId,
+            user: toPersonSummary(liker, viewer: usersById['u-01']),
+            createdAt: createdAt.add(Duration(minutes: 5 + k)),
+          ),
+        );
+      }
+      final idxLast = posts.length - 1;
+      posts[idxLast] = posts[idxLast].copyWith(
+        likeCount: likeTargetCount,
+        commentCount: i < 10 ? 2 : 1,
       );
     }
 

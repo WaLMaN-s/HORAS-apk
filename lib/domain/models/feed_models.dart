@@ -1,4 +1,6 @@
+import 'package:horas/domain/models/sub_ethnic.dart';
 import 'package:horas/domain/models/user_models.dart';
+import 'package:horas/domain/partuturan/partuturan_confidence.dart';
 
 /// Visibilitas postingan Beranda (BER-R3).
 enum PostVisibility { publicPost, followersOnly, specificCommunities }
@@ -35,6 +37,25 @@ final class PostMedia {
     'exifLocationStripped': exifLocationStripped,
     'metadata': metadata,
   };
+
+  factory PostMedia.fromJson(Map<String, Object?> json) {
+    final rawMeta = json['metadata'];
+    final safeMeta = <String, String>{};
+    if (rawMeta is Map<Object?, Object?>) {
+      for (final e in rawMeta.entries) {
+        safeMeta[e.key.toString()] = e.value.toString();
+      }
+    }
+    return PostMedia(
+      id: (json['id'] as String?) ?? '',
+      postId: (json['postId'] as String?) ?? '',
+      seed: (json['seed'] as String?) ?? '',
+      orderIndex: (json['orderIndex'] as int?) ?? 0,
+      aspectRatio: (json['aspectRatio'] as num?)?.toDouble() ?? 1.0,
+      exifLocationStripped: (json['exifLocationStripped'] as bool?) ?? true,
+      metadata: safeMeta,
+    );
+  }
 }
 
 /// Postingan di Beranda (BER-R1 .. BER-R11).
@@ -131,6 +152,126 @@ final class Post {
     'createdAt': createdAt.toIso8601String(),
     'updatedAt': updatedAt?.toIso8601String(),
   };
+
+  factory Post.fromJson(Map<String, Object?> json) {
+    PostVisibility parseVis(String? raw) {
+      for (final v in PostVisibility.values) {
+        if (v.name == raw) return v;
+      }
+      return PostVisibility.publicPost;
+    }
+
+    PostModerationStatus parseMod(String? raw) {
+      for (final m in PostModerationStatus.values) {
+        if (m.name == raw) return m;
+      }
+      return PostModerationStatus.published;
+    }
+
+    return Post(
+      id: (json['id'] as String?) ?? '',
+      author: json['author'] is Map<String, Object?>
+          ? PersonSummary.fromJson(json['author'] as Map<String, Object?>)
+          : const PersonSummary(
+              id: '',
+              displayName: '',
+              gender: UserGender.male,
+              marga: '',
+              subEthnic: SubEthnic.toba,
+              city: '',
+              proximity: AreaProximity.diKotamu,
+              avatarSeed: '',
+            ),
+      text: (json['text'] as String?) ?? '',
+      media: ((json['media'] as List<Object?>?) ?? const <Object?>[])
+          .whereType<Map<String, Object?>>()
+          .map(PostMedia.fromJson)
+          .toList(growable: false),
+      visibility: parseVis(json['visibility'] as String?),
+      communityIds:
+          ((json['communityIds'] as List<Object?>?) ?? const <Object?>[])
+              .whereType<String>()
+              .toList(growable: false),
+      cityTag: json['cityTag'] as String?,
+      isEdited: (json['isEdited'] as bool?) ?? false,
+      commentsDisabled: (json['commentsDisabled'] as bool?) ?? false,
+      moderationStatus: parseMod(json['moderationStatus'] as String?),
+      likeCount: (json['likeCount'] as int?) ?? 0,
+      commentCount: (json['commentCount'] as int?) ?? 0,
+      isLikedByMe: (json['isLikedByMe'] as bool?) ?? false,
+      isSavedByMe: (json['isSavedByMe'] as bool?) ?? false,
+      createdAt:
+          DateTime.tryParse((json['createdAt'] as String?) ?? '') ??
+          DateTime.utc(2026, 11, 16),
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.tryParse(json['updatedAt'] as String)
+          : null,
+    );
+  }
+}
+
+/// Draf postingan yang tersimpan bila unggahan gagal (Alur A6, BER-04).
+final class PostDraft {
+  const PostDraft({
+    this.text = '',
+    this.mediaSeeds = const <String>[],
+    this.mediaSizesBytes = const <int>[],
+    this.mediaAspectRatios = const <double>[],
+    this.visibility = PostVisibility.publicPost,
+    this.communityIds = const <String>[],
+    this.cityTag,
+  });
+
+  final String text;
+  final List<String> mediaSeeds;
+  final List<int> mediaSizesBytes;
+  final List<double> mediaAspectRatios;
+  final PostVisibility visibility;
+  final List<String> communityIds;
+  final String? cityTag;
+
+  bool get isEmpty => text.trim().isEmpty && mediaSeeds.isEmpty;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    'text': text,
+    'mediaSeeds': mediaSeeds,
+    'mediaSizesBytes': mediaSizesBytes,
+    'mediaAspectRatios': mediaAspectRatios,
+    'visibility': visibility.name,
+    'communityIds': communityIds,
+    'cityTag': cityTag,
+  };
+
+  factory PostDraft.fromJson(Map<String, Object?> json) {
+    PostVisibility parseVis(String? raw) {
+      for (final v in PostVisibility.values) {
+        if (v.name == raw) return v;
+      }
+      return PostVisibility.publicPost;
+    }
+
+    return PostDraft(
+      text: (json['text'] as String?) ?? '',
+      mediaSeeds: ((json['mediaSeeds'] as List<Object?>?) ?? const <Object?>[])
+          .whereType<String>()
+          .toList(growable: false),
+      mediaSizesBytes:
+          ((json['mediaSizesBytes'] as List<Object?>?) ?? const <Object?>[])
+              .whereType<int>()
+              .toList(growable: false),
+      mediaAspectRatios:
+          ((json['mediaAspectRatios'] as List<Object?>?) ?? const <Object?>[])
+              .whereType<num>()
+              .map((e) => e.toDouble())
+              .toList(growable: false),
+      visibility: parseVis(json['visibility'] as String?),
+      communityIds:
+          ((json['communityIds'] as List<Object?>?) ?? const <Object?>[])
+              .whereType<String>()
+              .toList(growable: false),
+      cityTag: json['cityTag'] as String?,
+    );
+  }
 }
 
 /// Komentar postingan dengan dukungan balasan satu tingkat (BER-R5).

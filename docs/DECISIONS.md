@@ -60,3 +60,11 @@ Dokumen ini mencatat seluruh keputusan teknis, asumsi produk saat PRD ambigu, da
   2. **Dokumen Legal Draf (`AUT-R4`, PRD 12):** `assets/legal/kebijakan_privasi_dan_syarat.md` dan `assets/legal/pedoman_komunitas.md` diberi label `"Draf, perlu tinjauan hukum"`. Persetujuan keduanya dan pernyataan usia 17+ disimpan di `LegalConsentRecord` lengkap dengan versi dan cap waktu.
   3. **Lokasi Perkiraan Tanpa Simpan Koordinat (`AUT-R10`):** `AndroidManifest.xml` hanya meminta `ACCESS_COARSE_LOCATION` dan secara eksplisit menghapus `ACCESS_FINE_LOCATION` (`tools:node="remove"`). Koordinat kasar dicocokkan di perangkat ke nama kota terdekat di `wilayah.json` lewat `CoarseLocationCityMatcher` lalu langsung dibuang.
   4. **Token Sesi Aman:** Token akses disimpan dan dihapus saat `logout()` melalui `flutter_secure_storage`.
+
+## D-010 · Modul Beranda v1 (16 Nov 2026)
+- **Konteks:** Prompt 4 mengimplementasikan modul Beranda (`BER-01`, `BER-04`..`BER-10`), alur A6, AC-10, dan AC-15.
+- **Keputusan:**
+  1. **Cache Feed Offline Halaman Pertama (`AC-15`):** Halaman pertama feed (`BER-01`) beserta `PersonSummary` minimal (tanpa field sensitif) disimpan lokal via `SharedPreferences` (`kMockFeedCachePrefsKey`) untuk fallback offline beserta penanda offline dan tombol `Coba lagi`.
+  2. **Hapus EXIF Klien + Server (`AC-10`):** `BER-05` mengompres gambar di klien dengan `FlutterImageCompress(..., keepExif: false)` dan memvalidasi ukuran sebelum kompres maksimal 10 MB; lapisan mock server (`MockPostRepository`) ikut membersihkan parameter/metadata lokasi EXIF sebelum menyajikan berkas media.
+  3. **Bisukan/Blokir & Lapor (`BER-06`):** Aksi bisukan akun dan blokir pada kartu/detail postingan langsung menggunakan `BlockRepository` yang sudah ada agar konsisten dengan kebijakan moderasi. Aksi Laporkan diarahkan ke rute `/report` (alias ke placeholder `SIS-02` sampai modul Sistem dikerjakan).
+  4. **Fitur Fase 2 Disembunyikan (`FeatureFlags`):** `BER-02` dan `BER-03` (Story) tidak ditampilkan di `BER-01` dan tetap diarahkan ke `SegeraPage` saat flag `stories` bernilai `false`. Pada `BER-10`, hanya tab **Orang** dan **Komunitas** yang tampil karena flag `church` dan pencarian postingan penuh belum dibuka.

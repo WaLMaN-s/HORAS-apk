@@ -136,7 +136,12 @@ abstract interface class BlockRepository {
 
 /// 7. Repository Postingan & Feed Beranda (BER-01 .. BER-08, AKN-03, AKN-04).
 abstract interface class PostRepository {
-  Future<Result<List<Post>>> getFeed();
+  Future<Result<List<Post>>> getFeed({int page = 1, int pageSize = 8});
+  List<Post> getCachedFeedPage1();
+  PostDraft? getSavedPostDraft();
+  Future<void> savePostDraft(PostDraft draft);
+  Future<void> clearPostDraft();
+
   Future<Result<Post>> getPostById(String postId);
   Future<Result<List<Post>>> getUserPosts(String userId);
   Future<Result<List<SavedPost>>> getSavedPosts();
@@ -145,6 +150,7 @@ abstract interface class PostRepository {
     required PostVisibility visibility,
     List<String> mediaSeeds = const <String>[],
     List<int> mediaSizesBytes = const <int>[],
+    List<double> mediaAspectRatios = const <double>[],
     List<Map<String, String>> rawExifPerMedia = const <Map<String, String>>[],
     List<String> communityIds = const <String>[],
     String? cityTag,
@@ -176,6 +182,12 @@ abstract interface class CommentRepository {
 
 /// 9. Repository Pencarian (BER-09, BER-10, SEK-12, BER-R13).
 abstract interface class SearchRepository {
+  List<String> getSearchHistory();
+  Future<void> addSearchHistory(String query);
+  Future<void> removeSearchHistory(String query);
+  Future<void> clearSearchHistory();
+  List<String> getSearchSuggestions();
+
   Future<Result<List<PersonSummary>>> searchPeople({
     required String query,
     String? city,

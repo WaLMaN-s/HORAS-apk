@@ -96,16 +96,19 @@ GoRouter createAppRouter({
           return MainShellScaffold(navigationShell: navigationShell);
         },
         branches: <StatefulShellBranch>[
-          // Tab 0: Beranda (BER-01 .. BER-10)
+          // Tab 0: Beranda (BER-01, BER-04 .. BER-10 — Selesai di Prompt 4)
           StatefulShellBranch(
             routes: <RouteBase>[
-              _buildTabBranchRoute(
+              _buildTabBranchRouteWithState(
                 rootSpec: AppPages.ber01,
                 childSpecs: AppPages.homePages.skip(1).toList(),
-                rootBuilder: (spec) =>
-                    HomeModulePlaceholderPage(pageSpec: spec, tabIndex: 0),
-                childBuilder: (spec) =>
-                    HomeModulePlaceholderPage(pageSpec: spec),
+                rootBuilder: (spec, state) => HomeModulePageRouter(
+                  pageSpec: spec,
+                  routerState: state,
+                  tabIndex: 0,
+                ),
+                childBuilder: (spec, state) =>
+                    HomeModulePageRouter(pageSpec: spec, routerState: state),
               ),
             ],
           ),
@@ -185,6 +188,36 @@ GoRouter createAppRouter({
           name: spec.id,
           builder: (context, state) =>
               SystemModulePlaceholderPage(pageSpec: spec),
+        ),
+      // Alias /report menuju SIS-02 Laporkan placeholder (Prompt 4)
+      GoRoute(
+        path: '/report',
+        builder: (context, state) =>
+            const SystemModulePlaceholderPage(pageSpec: AppPages.sis02),
+      ),
+    ],
+  );
+}
+
+GoRoute _buildTabBranchRouteWithState({
+  required PageSpec rootSpec,
+  required List<PageSpec> childSpecs,
+  required Widget Function(PageSpec spec, GoRouterState state) rootBuilder,
+  required Widget Function(PageSpec spec, GoRouterState state) childBuilder,
+}) {
+  final prefix = '${rootSpec.routePath}/';
+  return GoRoute(
+    path: rootSpec.routePath,
+    name: rootSpec.id,
+    builder: (context, state) => rootBuilder(rootSpec, state),
+    routes: <RouteBase>[
+      for (final child in childSpecs)
+        GoRoute(
+          path: child.routePath.startsWith(prefix)
+              ? child.routePath.substring(prefix.length)
+              : child.routePath,
+          name: child.id,
+          builder: (context, state) => childBuilder(child, state),
         ),
     ],
   );

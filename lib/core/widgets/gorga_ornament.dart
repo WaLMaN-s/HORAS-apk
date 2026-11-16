@@ -73,7 +73,7 @@ class _GorgaGeometricPainter extends CustomPainter {
   void _paintBand(Canvas canvas, Size size, Paint paint) {
     final w = size.width;
     final h = size.height;
-    canvas.drawLine(Offset(0, 1), Offset(w, 1), paint);
+    canvas.drawLine(const Offset(0, 1), Offset(w, 1), paint);
     canvas.drawLine(Offset(0, h - 1), Offset(w, h - 1), paint);
 
     final step = h.clamp(12.0, 28.0);

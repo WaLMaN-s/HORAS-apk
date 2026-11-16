@@ -1,22 +1,11 @@
 /// Pilihan visibilitas bidang profil dan privasi bawaan sesuai PRD 7.1.
-enum FieldVisibility {
-  everyone,
-  connectedOnly,
-  onlyMe,
-}
+enum FieldVisibility { everyone, connectedOnly, onlyMe }
 
 /// Pilihan siapa yang dapat mengirim permintaan Kenalan (PRD 7.1).
-enum ConnectionRequestAllowance {
-  everyone,
-  sameCommunity,
-  noOne,
-}
+enum ConnectionRequestAllowance { everyone, sameCommunity, noOne }
 
 /// Tipe visibilitas akun (PRD 7.1).
-enum AccountVisibilityType {
-  publicAccount,
-  privateAccount,
-}
+enum AccountVisibilityType { publicAccount, privateAccount }
 
 /// Pengaturan privasi bawaan yang ketat dan aman bagi pengguna baru (PRD 1.2, 7.1).
 final class PrivacySettingsPolicy {

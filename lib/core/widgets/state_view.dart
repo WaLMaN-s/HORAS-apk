@@ -33,14 +33,12 @@ class StateView extends StatelessWidget {
   });
 
   /// 1. Memuat: kerangka (skeleton), bukan putaran layar penuh.
-  const StateView.loading({
-    Key? key,
-    int itemCount = 3,
-  }) : this._(
-         key: key,
-         variant: StateViewVariant.loading,
-         skeletonItemCount: itemCount,
-       );
+  const StateView.loading({Key? key, int itemCount = 3})
+    : this._(
+        key: key,
+        variant: StateViewVariant.loading,
+        skeletonItemCount: itemCount,
+      );
 
   /// 2. Kosong: satu kalimat penjelas dan satu tombol aksi.
   const StateView.empty({
@@ -109,17 +107,15 @@ class StateView extends StatelessWidget {
        );
 
   /// 6. Konten tidak tersedia: pesan netral tanpa membocorkan alasan (dihapus/privat/diblokir).
-  const StateView.contentUnavailable({
-    Key? key,
-    VoidCallback? onBack,
-  }) : this._(
-         key: key,
-         variant: StateViewVariant.contentUnavailable,
-         title: AppStrings.stateContentUnavailableTitle,
-         message: AppStrings.stateContentUnavailableMessage,
-         actionLabel: AppStrings.actionBackToHome,
-         onAction: onBack,
-       );
+  const StateView.contentUnavailable({Key? key, VoidCallback? onBack})
+    : this._(
+        key: key,
+        variant: StateViewVariant.contentUnavailable,
+        title: AppStrings.stateContentUnavailableTitle,
+        message: AppStrings.stateContentUnavailableMessage,
+        actionLabel: AppStrings.actionBackToHome,
+        onAction: onBack,
+      );
 
   /// 7. Akun dibatasi atau ditangguhkan: alasan umum + jalur banding (SIS-R4).
   const StateView.accountRestricted({
@@ -194,11 +190,7 @@ class StateView extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.lg),
             if (title != null) ...<Widget>[
-              Text(
-                title!,
-                textAlign: TextAlign.center,
-                style: typo.h2,
-              ),
+              Text(title!, textAlign: TextAlign.center, style: typo.h2),
               const SizedBox(height: AppSpacing.sm),
             ],
             if (message != null)
@@ -235,10 +227,7 @@ class StateView extends StatelessWidget {
             ],
             if (onAction != null && actionLabel != null) ...<Widget>[
               const SizedBox(height: AppSpacing.xl),
-              AppButton(
-                label: actionLabel!,
-                onPressed: onAction,
-              ),
+              AppButton(label: actionLabel!, onPressed: onAction),
             ],
             if (onSecondaryAction != null &&
                 secondaryActionLabel != null) ...<Widget>[
@@ -278,10 +267,7 @@ class StateView extends StatelessWidget {
                 children: <Widget>[
                   Row(
                     children: <Widget>[
-                      SkeletonBox(
-                        height: AppSizes.avatarSm,
-                        isCircle: true,
-                      ),
+                      SkeletonBox(height: AppSizes.avatarSm, isCircle: true),
                       SizedBox(width: AppSpacing.md),
                       Expanded(
                         child: Column(

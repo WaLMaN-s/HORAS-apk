@@ -82,18 +82,10 @@ abstract final class AppSizes {
 /// Bayangan sangat lembut untuk kartu dan bilah (Tahap 4).
 abstract final class AppShadows {
   static List<BoxShadow> softCard(Color shadowColor) => <BoxShadow>[
-    BoxShadow(
-      color: shadowColor,
-      blurRadius: 14,
-      offset: const Offset(0, 4),
-    ),
+    BoxShadow(color: shadowColor, blurRadius: 14, offset: const Offset(0, 4)),
   ];
 
   static List<BoxShadow> subtleBar(Color shadowColor) => <BoxShadow>[
-    BoxShadow(
-      color: shadowColor,
-      blurRadius: 10,
-      offset: const Offset(0, -2),
-    ),
+    BoxShadow(color: shadowColor, blurRadius: 10, offset: const Offset(0, -2)),
   ];
 }

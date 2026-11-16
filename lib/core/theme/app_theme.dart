@@ -5,15 +5,11 @@ import 'package:material_ui/material_ui.dart';
 
 /// Pembangun [ThemeData] Light dan Dark untuk aplikasi HORAS (Tahap 4).
 abstract final class AppTheme {
-  static ThemeData light() => _build(
-    brightness: Brightness.light,
-    colors: HorasColors.light,
-  );
+  static ThemeData light() =>
+      _build(brightness: Brightness.light, colors: HorasColors.light);
 
-  static ThemeData dark() => _build(
-    brightness: Brightness.dark,
-    colors: HorasColors.dark,
-  );
+  static ThemeData dark() =>
+      _build(brightness: Brightness.dark, colors: HorasColors.dark);
 
   static ThemeData _build({
     required Brightness brightness,
@@ -82,9 +78,7 @@ abstract final class AppTheme {
       dialogTheme: DialogThemeData(
         backgroundColor: colors.surface,
         surfaceTintColor: colors.surface,
-        shape: const RoundedRectangleBorder(
-          borderRadius: AppRadius.cardRadius,
-        ),
+        shape: const RoundedRectangleBorder(borderRadius: AppRadius.cardRadius),
         titleTextStyle: typo.h2,
         contentTextStyle: typo.body,
       ),
@@ -99,10 +93,7 @@ abstract final class AppTheme {
         labelLarge: typo.bodyStrong,
         labelSmall: typo.micro,
       ),
-      extensions: <ThemeExtension<dynamic>>[
-        colors,
-        typo,
-      ],
+      extensions: <ThemeExtension<dynamic>>[colors, typo],
     );
   }
 }

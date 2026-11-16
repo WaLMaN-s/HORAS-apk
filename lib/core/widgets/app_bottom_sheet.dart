@@ -18,19 +18,14 @@ abstract final class AppBottomSheet {
       shape: const RoundedRectangleBorder(
         borderRadius: AppRadius.sheetTopRadius,
       ),
-      builder: (sheetContext) => _BottomSheetContainer(
-        title: title,
-        child: child,
-      ),
+      builder: (sheetContext) =>
+          _BottomSheetContainer(title: title, child: child),
     );
   }
 }
 
 class _BottomSheetContainer extends StatelessWidget {
-  const _BottomSheetContainer({
-    required this.child,
-    this.title,
-  });
+  const _BottomSheetContainer({required this.child, this.title});
 
   final String? title;
   final Widget child;
@@ -65,9 +60,7 @@ class _BottomSheetContainer extends StatelessWidget {
             const SizedBox(height: AppSpacing.sm),
             Row(
               children: <Widget>[
-                Expanded(
-                  child: Text(title!, style: typo.h2),
-                ),
+                Expanded(child: Text(title!, style: typo.h2)),
                 Semantics(
                   button: true,
                   label: AppStrings.semanticsClose,

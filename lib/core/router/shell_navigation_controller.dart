@@ -3,18 +3,12 @@ import 'package:material_ui/material_ui.dart';
 
 /// State navigasi shell 5 tab selama sesi berjalan (PRD 4.5, Tahap 6).
 final class ShellNavigationState {
-  const ShellNavigationState({
-    this.lastTabIndex = 0,
-    this.reTapTick = 0,
-  });
+  const ShellNavigationState({this.lastTabIndex = 0, this.reTapTick = 0});
 
   final int lastTabIndex;
   final int reTapTick;
 
-  ShellNavigationState copyWith({
-    int? lastTabIndex,
-    int? reTapTick,
-  }) {
+  ShellNavigationState copyWith({int? lastTabIndex, int? reTapTick}) {
     return ShellNavigationState(
       lastTabIndex: lastTabIndex ?? this.lastTabIndex,
       reTapTick: reTapTick ?? this.reTapTick,

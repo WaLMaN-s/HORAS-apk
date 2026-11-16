@@ -1,0 +1,88 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:horas/app.dart';
+import 'package:horas/core/l10n/app_strings.dart';
+import 'package:horas/core/router/app_pages.dart';
+import 'package:horas/core/router/app_router.dart';
+import 'package:horas/core/router/shell_navigation_controller.dart';
+
+void main() {
+  testWidgets(
+    'Membuka aplikasi HORAS dan berpindah antar 5 tab serta ketuk ulang tab',
+    (tester) async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const HorasApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Tab 0 (bawaan): Beranda (BER-01)
+      expect(find.text(AppPages.ber01.id), findsOneWidget);
+      expect(find.text(AppStrings.ber01Purpose), findsOneWidget);
+      expect(container.read(shellNavigationProvider).lastTabIndex, 0);
+
+      // Pindah ke Tab 1: Sekitar (SEK-01)
+      await tester.tap(find.text(AppStrings.tabSekitar));
+      await tester.pumpAndSettle();
+      expect(find.text(AppPages.sek01.id), findsOneWidget);
+      expect(container.read(shellNavigationProvider).lastTabIndex, 1);
+
+      // Pindah ke Tab 2: Tarombo (TAR-01)
+      await tester.tap(find.text(AppStrings.tabTarombo));
+      await tester.pumpAndSettle();
+      expect(find.text(AppPages.tar01.id), findsOneWidget);
+      expect(container.read(shellNavigationProvider).lastTabIndex, 2);
+
+      // Pindah ke Tab 3: Main (MAN-01)
+      await tester.tap(find.text(AppStrings.tabMain));
+      await tester.pumpAndSettle();
+      expect(find.text(AppPages.man01.id), findsOneWidget);
+      expect(container.read(shellNavigationProvider).lastTabIndex, 3);
+
+      // Pindah ke Tab 4: Akun (AKN-01)
+      await tester.tap(find.text(AppStrings.tabAkun));
+      await tester.pumpAndSettle();
+      expect(find.text(AppPages.akn01.id), findsOneWidget);
+      expect(container.read(shellNavigationProvider).lastTabIndex, 4);
+
+      // Gulung ke bawah lalu buka subhalaman AKN-02 Edit Profil di dalam tab Akun,
+      // kemudian ketuk ulang tab Akun untuk memastikan kembali ke halaman awal tab (AKN-01)
+      // dan menggulung ke atas.
+      await tester.ensureVisible(find.text(AppStrings.akn02Title));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(AppStrings.akn02Title));
+      await tester.pumpAndSettle();
+      expect(find.text(AppPages.akn02.id), findsOneWidget);
+
+      await tester.tap(find.text(AppStrings.tabAkun));
+      await tester.pumpAndSettle();
+      expect(find.text(AppPages.akn01.id), findsOneWidget);
+
+      // Kembali ke Tab 0: Beranda (BER-01)
+      await tester.tap(find.text(AppStrings.tabBeranda));
+      await tester.pumpAndSettle();
+      expect(find.text(AppPages.ber01.id), findsOneWidget);
+      expect(container.read(shellNavigationProvider).lastTabIndex, 0);
+    },
+  );
+
+  test('Skema deep link horas:// dinormalkan ke rute internal', () {
+    expect(
+      normalizeHorasDeepLink(Uri.parse('horas://app/sekitar')),
+      AppPages.sekitarPath,
+    );
+    expect(
+      normalizeHorasDeepLink(Uri.parse('horas://tarombo/pohon')),
+      AppPages.tar02.routePath,
+    );
+    expect(
+      normalizeHorasDeepLink(Uri.parse('horas://app')),
+      AppPages.berandaPath,
+    );
+  });
+}

@@ -59,10 +59,7 @@ const List<_BottomNavTabSpec> _kBottomTabs = <_BottomNavTabSpec>[
 /// - Mengingat tab terakhir selama sesi.
 /// - Ketuk ulang tab aktif = kembali ke halaman awal tab dan menggulung ke atas.
 class MainShellScaffold extends ConsumerWidget {
-  const MainShellScaffold({
-    required this.navigationShell,
-    super.key,
-  });
+  const MainShellScaffold({required this.navigationShell, super.key});
 
   final StatefulNavigationShell navigationShell;
 

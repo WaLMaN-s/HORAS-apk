@@ -61,8 +61,7 @@ abstract final class AppStrings {
   static const String semanticsUnverified = 'Lencana Belum diverifikasi';
   static const String semanticsLoading = 'Sedang memuat konten';
   static String semanticsAvatarFor(String name) => 'Foto profil $name';
-  static String semanticsAvatarOverflow(int count) =>
-      '$count anggota lainnya';
+  static String semanticsAvatarOverflow(int count) => '$count anggota lainnya';
   static String semanticsTab(String label, String sublabel) =>
       'Tab $label ($sublabel)';
   static String semanticsUnreadBadge(int count) => '$count belum dibaca';
@@ -76,8 +75,7 @@ abstract final class AppStrings {
   static const String actionClose = 'Tutup';
   static const String actionSeeAll = 'Lihat Semua';
   static const String actionOpenSettings = 'Buka Pengaturan';
-  static const String actionContinueWithoutPermission =
-      'Lanjutkan tanpa izin';
+  static const String actionContinueWithoutPermission = 'Lanjutkan tanpa izin';
   static const String actionSubmitAppeal = 'Ajukan Banding';
   static const String actionBackToHome = 'Kembali ke Beranda';
   static const String actionExploreNearby = 'Jelajahi Sekitar';
@@ -179,7 +177,8 @@ abstract final class AppStrings {
 
   // Sekitar (SEK-01 .. SEK-12)
   static const String sek01Title = 'Sekitar';
-  static const String sek01Purpose = 'Temukan kerabat, dongan sahuta, dan komunitas di kotamu';
+  static const String sek01Purpose =
+      'Temukan kerabat, dongan sahuta, dan komunitas di kotamu';
   static const String sek02Title = 'Daftar Orang Sekitar';
   static const String sek02Purpose = 'Kartu orang dengan badge partuturan';
   static const String sek03Title = 'Filter Orang';
@@ -203,7 +202,8 @@ abstract final class AppStrings {
   static const String sek11Purpose =
       'Jadwal, kontak, kegiatan, jemaat di HORAS';
   static const String sek12Title = 'Pencarian Sekitar';
-  static const String sek12Purpose = 'Cari orang dan komunitas di area terpilih';
+  static const String sek12Purpose =
+      'Cari orang dan komunitas di area terpilih';
 
   // Tarombo (TAR-01 .. TAR-08)
   static const String tar01Title = 'Tarombo';
@@ -227,7 +227,8 @@ abstract final class AppStrings {
 
   // Main (MAN-01 .. MAN-09)
   static const String man01Title = 'Main Bareng';
-  static const String man01Purpose = 'Daftar sesi olahraga dan aktivitas bersama di sekitar';
+  static const String man01Purpose =
+      'Daftar sesi olahraga dan aktivitas bersama di sekitar';
   static const String man02Title = 'Filter Sesi';
   static const String man02Purpose = 'Olahraga, hari, level, area, biaya';
   static const String man03Title = 'Buat Sesi';
@@ -261,7 +262,8 @@ abstract final class AppStrings {
 
   // Akun (AKN-01 .. AKN-15)
   static const String akn01Title = 'Profil Saya';
-  static const String akn01Purpose = 'Tampilan profil sendiri, kenalan, dan pengaturan akun';
+  static const String akn01Purpose =
+      'Tampilan profil sendiri, kenalan, dan pengaturan akun';
   static const String akn02Title = 'Edit Profil';
   static const String akn02Purpose = 'Ubah bio, foto, domisili, hobi';
   static const String akn03Title = 'Postingan Saya';
@@ -287,7 +289,8 @@ abstract final class AppStrings {
   static const String akn13Title = 'Data Saya';
   static const String akn13Purpose = 'Unduh arsip data pribadi';
   static const String akn14Title = 'Hapus Akun';
-  static const String akn14Purpose = 'Alur penghapusan akun dengan masa tunggu 30 hari';
+  static const String akn14Purpose =
+      'Alur penghapusan akun dengan masa tunggu 30 hari';
   static const String akn15Title = 'Tentang HORAS';
   static const String akn15Purpose = 'Versi, lisensi, kebijakan';
 

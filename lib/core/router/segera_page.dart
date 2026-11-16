@@ -18,11 +18,7 @@ import 'package:material_ui/material_ui.dart';
 /// - Halaman Fase 2 tidak boleh menampilkan UI Fase 2 bila `FeatureFlags` terkait bernilai `false`.
 /// - Berbicara ke antarmuka repository lewat provider (`navigationBadgeRepositoryProvider`).
 class SegeraPage extends ConsumerWidget {
-  const SegeraPage({
-    required this.pageSpec,
-    super.key,
-    this.tabIndex,
-  });
+  const SegeraPage({required this.pageSpec, super.key, this.tabIndex});
 
   final PageSpec pageSpec;
   final int? tabIndex;
@@ -82,10 +78,7 @@ class SegeraPage extends ConsumerWidget {
           vertical: AppSpacing.md,
         ),
         children: <Widget>[
-          const GorgaOrnament(
-            width: double.infinity,
-            height: 20,
-          ),
+          const GorgaOrnament(width: double.infinity, height: 20),
           const SizedBox(height: AppSpacing.md),
           Container(
             padding: const EdgeInsets.all(AppSpacing.lg),
@@ -103,17 +96,9 @@ class SegeraPage extends ConsumerWidget {
                   runSpacing: AppSpacing.sm,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: <Widget>[
-                    AppChip(
-                      label: pageSpec.id,
-                      isSelected: true,
-                    ),
-                    AppChip(
-                      label: _phaseLabel(pageSpec.phase),
-                    ),
-                    const VerifiedBadge(
-                      isVerified: true,
-                      showLabel: true,
-                    ),
+                    AppChip(label: pageSpec.id, isSelected: true),
+                    AppChip(label: _phaseLabel(pageSpec.phase)),
+                    const VerifiedBadge(isVerified: true, showLabel: true),
                   ],
                 ),
                 const SizedBox(height: AppSpacing.md),
@@ -131,18 +116,13 @@ class SegeraPage extends ConsumerWidget {
                   caption: '${pageSpec.module.label} · ${pageSpec.title}',
                 ),
                 const SizedBox(height: AppSpacing.md),
-                Text(
-                  AppStrings.segeraInfoDescription,
-                  style: typo.caption,
-                ),
+                Text(AppStrings.segeraInfoDescription, style: typo.caption),
               ],
             ),
           ),
           if (relatedPages.isNotEmpty) ...<Widget>[
             const SizedBox(height: AppSpacing.xl),
-            const SectionHeader(
-              title: AppStrings.segeraSectionSubpages,
-            ),
+            const SectionHeader(title: AppStrings.segeraSectionSubpages),
             const SizedBox(height: AppSpacing.sm),
             for (final subpage in relatedPages)
               Padding(

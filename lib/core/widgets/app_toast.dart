@@ -54,10 +54,7 @@ abstract final class AppToast {
               Icon(icon, size: AppSizes.iconMd, color: fgColor),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
-                child: Text(
-                  message,
-                  style: typo.body.copyWith(color: fgColor),
-                ),
+                child: Text(message, style: typo.body.copyWith(color: fgColor)),
               ),
             ],
           ),

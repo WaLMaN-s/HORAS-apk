@@ -160,3 +160,11 @@ Seluruh flag di `lib/core/config/feature_flags.dart` bernilai `false` secara baw
 | `userGroups` | Grup chat buatan pengguna di luar komunitas/sesi otomatis (`PSN-R5`) | `false` |
 | `recurringSessions` | Opsi sesi berulang di `MAN-03` | `false` |
 | `courtMap` | Tampilan peta lapangan di `MAN-07` | `false` |
+
+---
+
+## Backend Supabase (Lokal & Siap Cloud)
+- **Skema & RLS:** 6 migrasi bernomor (`supabase/migrations/0001..0006`) + `supabase/seed.sql` (43 wilayah, 67 entri marga baku + sub-suku, ruleset Partuturan Toba v0, 5 FAQ, 10 lapangan, 12 pengguna sampel, 10/sampel komunitas termasuk komunitas tertutup).
+- **Edge Functions:** `auth-otp-guard` (`AUT-R2` 5/jam & 60s cooldown, `AUT-R3` kunci 1 jam setelah 5x salah, `AUT-R9` maks 3 perangkat aktif) dan `process-image` (re-encode piksel & hapus metadata EXIF/GPS).
+- **Jadwal (`pg_cron`):** Lifecycle sesi (+2j selesai, +24j chat read-only), kedaluwarsa kenalan/komunitas/ekspor, purge akun hari ke-30 (`AC-12`), serta retensi PRD bagian 10.
+- **Dokumentasi & Pengujian:** `docs/API.md` memetakan seluruh 23 repository Flutter; diuji dengan `supabase test db` (15/15 lulus) dan `deno test` (`process-image` strip EXIF/GPS, OTP guard, AC-12 purge: 3/3 lulus).

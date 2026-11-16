@@ -58,3 +58,7 @@ key.properties
 
 # Lain-lain
 /android/.kotlin/
+
+# Supabase local temp/branches
+supabase/.branches
+supabase/.temp

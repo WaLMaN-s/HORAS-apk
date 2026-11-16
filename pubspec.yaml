@@ -42,6 +42,10 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
+  assets:
+    - assets/data/wilayah.json
+    - assets/partuturan/toba.v0.json
+
   # Font dibundel dari Google Fonts (lisensi OFL, lihat assets/fonts/OFL-*.txt).
   fonts:
     - family: PlusJakartaSans

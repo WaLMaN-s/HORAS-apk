@@ -30,7 +30,31 @@ abstract final class AppStrings {
   static const String partuturanLowPrompt =
       'Lengkapi marga ibu dan tahun lahir untuk memperjelas jalur partuturan.';
   static const String semargaDescription =
-      'Dongan tubu (satu marga / kelompok marga serumpun).';
+      'Dongan tubu (satu marga / kelompok marga serumpun). Ini informasi kekerabatan, bukan pembatasan interaksi.';
+  static const String semargaFullLabel = 'Semarga (dongan tubu)';
+  static const String partuturanDraftRuleBadge = 'Aturan draf';
+
+  // ── Panel Debug Non-Prod (Prompt 2 - Bagian D) ──────────────────────────────
+  static const String debugPanelTitle = 'Panel Debug HORAS (Non-Prod)';
+  static const String debugSectionScenarios = 'Skenario Jaringan & Status';
+  static const String debugToggleOffline = 'Simulasi Tanpa Koneksi (Offline)';
+  static const String debugToggleServerError = 'Simulasi Error Server';
+  static const String debugToggleEmpty = 'Simulasi Status Kosong';
+  static const String debugToggleSlow = 'Simulasi Jaringan Lambat (+1.2 dtk)';
+  static const String debugSectionClock = 'Simulasi Waktu (Clock)';
+  static const String debugClockAdvance1Hour = '+1 Jam';
+  static const String debugClockAdvance1Day = '+1 Hari';
+  static const String debugClockAdvance14Days = '+14 Hari';
+  static const String debugClockAdvance30Days = '+30 Hari';
+  static const String debugClockReset = 'Reset Waktu';
+  static const String debugSectionUser = 'Ganti Pengguna Tiruan Aktif';
+  static const String debugSectionModeration = 'Simulasi Moderasi & Data';
+  static const String debugAddStrike = 'Tambah 1 Strike ke Akun Aktif';
+  static const String debugSuspendAccount = 'Tangguhkan Akun Aktif (Suspend)';
+  static const String debugClearSanctions = 'Bersihkan Sanksi Akun';
+  static const String debugResetAllData = 'Reset Seluruh Data Tiruan';
+  static const String debugTapHintOnAbout =
+      'Tekan lama logo HORAS di bawah untuk membuka Panel Debug (khusus build dev/beta).';
 
   // ── Navigasi Utama: 5 Tab (PRD 4) ───────────────────────────────────────────
   static const String tabBeranda = 'Beranda';

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:horas/core/config/app_config.dart';
 import 'package:horas/core/config/feature_flags.dart';
 import 'package:horas/core/config/repository_providers.dart';
 import 'package:horas/core/l10n/app_strings.dart';
@@ -117,6 +118,31 @@ class SegeraPage extends ConsumerWidget {
                 ),
                 const SizedBox(height: AppSpacing.md),
                 Text(AppStrings.segeraInfoDescription, style: typo.caption),
+                if (pageSpec.id == AppPages.akn15.id &&
+                    !ref.watch(appConfigProvider).isProd) ...<Widget>[
+                  const SizedBox(height: AppSpacing.lg),
+                  Center(
+                    child: Column(
+                      children: <Widget>[
+                        Text(
+                          AppStrings.debugTapHintOnAbout,
+                          textAlign: TextAlign.center,
+                          style: typo.micro,
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        GestureDetector(
+                          onLongPress: () =>
+                              DebugPanelSheet.showIfNonProd(context, ref),
+                          child: const HorasLogo(
+                            showRoof: true,
+                            showTagline: true,
+                            wordmarkFontSize: 28,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

@@ -1,25 +1,32 @@
-/// Kegagalan domain/aplikasi yang dipetakan langsung ke status standar PRD 5.2.
-sealed class AppFailure {
-  const AppFailure({required this.message});
+/// Kegagalan domain/aplikasi bertipe yang dipetakan langsung ke [StateView] (PRD 5.2, Prompt 2 Bagian B).
+sealed class AppError {
+  const AppError({required this.message});
 
   final String message;
 }
 
-/// Tanpa koneksi internet (PRD 5.2).
-final class NetworkFailure extends AppFailure {
-  const NetworkFailure({required super.message});
+/// Alias kompatibilitas untuk [AppError].
+typedef AppFailure = AppError;
+
+/// 1. Offline: tanpa koneksi internet (PRD 5.2).
+final class OfflineError extends AppError {
+  const OfflineError({required super.message});
 }
 
-/// Error server dengan kode referensi untuk dukungan (PRD 5.2).
-final class ServerFailure extends AppFailure {
-  const ServerFailure({required super.message, required this.referenceCode});
+typedef NetworkFailure = OfflineError;
+
+/// 2. Server: error server dengan kode referensi untuk dukungan (PRD 5.2).
+final class ServerError extends AppError {
+  const ServerError({required super.message, required this.referenceCode});
 
   final String referenceCode;
 }
 
-/// Izin sistem ditolak (PRD 5.2, AUT-R10).
-final class PermissionDeniedFailure extends AppFailure {
-  const PermissionDeniedFailure({
+typedef ServerFailure = ServerError;
+
+/// 3. PermissionDenied: izin sistem ditolak (PRD 5.2, AUT-R10).
+final class PermissionDeniedError extends AppError {
+  const PermissionDeniedError({
     required super.message,
     required this.permissionName,
   });
@@ -27,31 +34,43 @@ final class PermissionDeniedFailure extends AppFailure {
   final String permissionName;
 }
 
-/// Konten tidak tersedia: dihapus, privat, atau diblokir — netral tanpa bocor alasan (PRD 5.2).
-final class ContentUnavailableFailure extends AppFailure {
-  const ContentUnavailableFailure({required super.message});
+typedef PermissionDeniedFailure = PermissionDeniedError;
+
+/// 4. Unavailable: konten tidak tersedia secara netral tanpa membocorkan alasan (PRD 5.2).
+final class UnavailableError extends AppError {
+  const UnavailableError({required super.message});
 }
 
-/// Akun dibatasi atau ditangguhkan beserta alasan umum (PRD 5.2, SIS-R4).
-final class AccountRestrictedFailure extends AppFailure {
-  const AccountRestrictedFailure({
-    required super.message,
-    this.canAppeal = true,
-  });
+typedef ContentUnavailableFailure = UnavailableError;
+
+/// 5. Suspended: akun dibatasi atau ditangguhkan beserta alasan umum (PRD 5.2, SIS-R4).
+final class SuspendedError extends AppError {
+  const SuspendedError({required super.message, this.canAppeal = true});
 
   final bool canAppeal;
 }
 
-/// Batas kuota / rate limit terlampaui (PRD 7.2).
-final class RateLimitFailure extends AppFailure {
-  const RateLimitFailure({required super.message, this.retryAfter});
+typedef AccountRestrictedFailure = SuspendedError;
 
+/// 6. RateLimited: batas kuota terlampaui beserta waktu kapan boleh mencoba lagi (PRD 7.2).
+final class RateLimitedError extends AppError {
+  const RateLimitedError({
+    required super.message,
+    required this.retryAt,
+    this.retryAfter,
+  });
+
+  final DateTime retryAt;
   final Duration? retryAfter;
 }
 
-/// Validasi input tidak memenuhi aturan bisnis (PRD bagian 6).
-final class ValidationFailure extends AppFailure {
-  const ValidationFailure({required super.message, this.field});
+typedef RateLimitFailure = RateLimitedError;
+
+/// 7. Validation: input tidak memenuhi aturan bisnis (PRD bagian 6).
+final class ValidationError extends AppError {
+  const ValidationError({required super.message, this.field});
 
   final String? field;
 }
+
+typedef ValidationFailure = ValidationError;

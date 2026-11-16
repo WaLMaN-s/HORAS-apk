@@ -5,6 +5,13 @@ Keterangan status:
 - **Berjalan**: sedang dikerjakan.
 - **Selesai**: halaman dan seluruh status standar PRD 5.2 telah diimplementasikan serta diuji.
 
+## Lapisan Domain, Kebijakan, Mesin Partuturan & Data Tiruan (Prompt 2 — Selesai)
+- **Model Domain (`lib/domain/models/`):** 35+ model immutable manual; pemisahan tegas `Profil` (milik sendiri) dan `PersonSummary` (dilihat orang lain, bebas nomor HP/tahun lahir/koordinat/jarak km).
+- **Antarmuka Repository (`lib/domain/repositories/`):** 23 kontrak abstrak + pemetaan `AppError` ke `StateView.fromError`.
+- **Kebijakan (`lib/domain/policies/horas_policies.dart`):** Fungsi murni berbasis `Clock` untuk seluruh batas angka PRD 7.2.
+- **Mesin Partuturan (`lib/domain/partuturan/` & `assets/partuturan/toba.v0.json`):** Data-driven, `GenerationResolver`, `PartuturanBadge`, `SemargaLabel`.
+- **Data Tiruan & Wilayah (`lib/data/mock/` & `assets/data/wilayah.json`):** 42 pengguna fiktif, 65 marga baku, 43 kota, 10 komunitas, 12 sesi, 10 lapangan, 30 postingan, stream chat & notifikasi otomatis, serta `DebugPanelSheet` non-prod.
+
 ## Ringkasan Modul
 | Modul | Kode | Jumlah Halaman | Fase 1 | Fase 2 | Selesai |
 | --- | --- | --- | --- | --- | --- |

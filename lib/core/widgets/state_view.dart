@@ -1,3 +1,4 @@
+import 'package:horas/core/errors/app_failure.dart';
 import 'package:horas/core/l10n/app_strings.dart';
 import 'package:horas/core/theme/app_theme.dart';
 import 'package:horas/core/theme/app_tokens.dart';
@@ -31,6 +32,60 @@ class StateView extends StatelessWidget {
     this.cachedChild,
     this.skeletonItemCount = 3,
   });
+
+  /// Memetakan [AppError] secara langsung ke varian [StateView] yang sesuai (Prompt 2 Bagian B).
+  factory StateView.fromError(
+    AppError error, {
+    Key? key,
+    VoidCallback? onRetry,
+    VoidCallback? onOpenSettings,
+    VoidCallback? onAppeal,
+    VoidCallback? onBack,
+    Widget? cachedChild,
+  }) {
+    return switch (error) {
+      OfflineError(:final message) => StateView.offline(
+        key: key,
+        message: message,
+        onRetry: onRetry ?? () {},
+        cachedChild: cachedChild,
+      ),
+      ServerError(:final message, :final referenceCode) =>
+        StateView.serverError(
+          key: key,
+          message: message,
+          referenceCode: referenceCode,
+          onRetry: onRetry,
+        ),
+      PermissionDeniedError(:final message) => StateView.permissionDenied(
+        key: key,
+        benefitMessage: message,
+        onOpenSettings: onOpenSettings ?? () {},
+        onContinueWithoutPermission: onBack,
+      ),
+      UnavailableError() => StateView.contentUnavailable(
+        key: key,
+        onBack: onBack,
+      ),
+      SuspendedError(:final message) => StateView.accountRestricted(
+        key: key,
+        generalReason: message,
+        onAppeal: onAppeal ?? () {},
+      ),
+      RateLimitedError(:final message) => StateView.empty(
+        key: key,
+        message: message,
+        actionLabel: AppStrings.actionRetry,
+        onAction: onRetry ?? () {},
+      ),
+      ValidationError(:final message) => StateView.empty(
+        key: key,
+        message: message,
+        actionLabel: AppStrings.actionRetry,
+        onAction: onRetry ?? () {},
+      ),
+    };
+  }
 
   /// 1. Memuat: kerangka (skeleton), bukan putaran layar penuh.
   const StateView.loading({Key? key, int itemCount = 3})

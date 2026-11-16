@@ -41,3 +41,14 @@ Dokumen ini mencatat seluruh keputusan teknis, asumsi produk saat PRD ambigu, da
 - **Keputusan:**
   - Menyediakan token `confidenceAmber` (`#8C5300` di atas `#FFF3DC` pada Light; `#FFC266` di atas `#382812` pada Dark) yang memenuhi rasio kontras WCAG AA >= 4.5:1.
   - Menyesuaikan `textMuted` Light ke `#6B6260` di atas `#FBF7F3` (rasio kontras > 5.2:1) sambil menyimpan konstanta referensi `#7A7270` di `HorasColors.referenceLightTextMuted`.
+
+## D-007 · Persistensi Lokal Data Tiruan (16 Nov 2026)
+- **Konteks:** Prompt 2 Bagian C menetapkan aturan persistensi untuk backend tiruan (`lib/data/mock/`).
+- **Keputusan:** Persistensi lokal melalui `SharedPreferences` hanya menyimpan sesi login (`horas.mock.session_user_id`), profil milik sendiri (`horas.mock.own_profile`), dan pengaturan privasi (`horas.mock.own_privacy`). Seluruh entitas tiruan lainnya (postingan, komunitas, sesi main, chat, notifikasi, klaim) disimpan in-memory di `MockStore` dan di-reset ke data benih saat aplikasi dimulai ulang atau saat tombol Reset di Panel Debug ditekan.
+
+## D-008 · Aturan Partuturan Toba v0 Berstatus Draf (`validated: false`) (16 Nov 2026)
+- **Konteks:** Mesin partuturan (`lib/domain/partuturan/partuturan_engine.dart`) bersifat 100% data-driven dari berkas JSON berversi `assets/partuturan/toba.v0.json` tanpa istilah partuturan yang di-hardcode di kode Dart (`TAR-R6`, keputusan `K5`).
+- **Keputusan:**
+  1. Berkas `assets/partuturan/toba.v0.json` hanya memuat pola dasar Toba yang jelas (kelompok semarga/dongan tubu dan jalur marga ibu/hula-hula 1 generasi di atas atau sebaya) dan ditandai `"validated": false`, `"reviewedBy": null`.
+  2. Seluruh kasus yang belum tercakup atau datanya kurang dikembalikan sebagai keyakinan `rendah` (`"Belum bisa dipastikan"`) disertai pertanyaan pelengkap, tanpa mengarang istilah.
+  3. Aturan wajib divalidasi oleh reviewer adat Toba sebelum peluncuran publik (`ENV=prod` secara bawaan mematikan aturan draf lewat `allowDraftRules = false`, sehingga otomatis masuk ke mode netral sampai `validated: true`).

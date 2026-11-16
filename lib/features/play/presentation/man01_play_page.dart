@@ -23,9 +23,9 @@ class Man01PlayPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(playControllerProvider);
     final controller = ref.read(playControllerProvider.notifier);
-    final unreadCounts = ref
-        .watch(navigationBadgeRepositoryProvider)
-        .currentUnreadCounts();
+    final unreadCounts =
+        ref.watch(unreadCountsProvider).value ??
+        ref.read(navigationBadgeRepositoryProvider).currentUnreadCounts();
     final scrollController = ref
         .read(shellNavigationProvider.notifier)
         .scrollControllerForTab(tabIndex);

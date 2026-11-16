@@ -182,13 +182,13 @@ GoRouter createAppRouter({
           name: spec.id,
           builder: (context, state) => AuthModulePageRouter(pageSpec: spec),
         ),
-      // Rute modul Pesan (PSN-01 .. PSN-06)
+      // Rute modul Pesan (PSN-01 .. PSN-06 — Selesai di Prompt 8)
       for (final spec in AppPages.messagePages)
         GoRoute(
           path: spec.routePath,
           name: spec.id,
           builder: (context, state) =>
-              MessagesModulePlaceholderPage(pageSpec: spec),
+              MessagesModulePageRouter(pageSpec: spec, routerState: state),
         ),
       // Rute modul Sistem (SIS-01 .. SIS-08)
       for (final spec in AppPages.systemPages)

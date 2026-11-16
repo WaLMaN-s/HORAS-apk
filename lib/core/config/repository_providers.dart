@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:horas/core/config/app_config.dart';
 import 'package:horas/core/utils/session_reminder_service.dart';
@@ -14,11 +16,13 @@ final mockStoreProvider = Provider<MockStore>((ref) {
   final config = ref.watch(appConfigProvider);
   final prefs = ref.watch(sharedPreferencesProvider);
   final enableLatency = ref.watch(enableMockNetworkLatencyProvider);
-  return MockStore(
+  final store = MockStore(
     appConfig: config,
     prefs: prefs,
     enableNetworkLatency: enableLatency,
   );
+  ref.onDispose(store.dispose);
+  return store;
 });
 
 /// 1. Provider [AuthRepository].
@@ -151,4 +155,27 @@ final navigationBadgeRepositoryProvider = Provider<NavigationBadgeRepository>((
   ref,
 ) {
   return StoreBackedNavigationBadgeRepository(ref.watch(mockStoreProvider));
+});
+
+/// Stream live jumlah lencana belum dibaca (Pesan & Notifikasi) untuk bilah atas.
+final unreadCountsProvider = StreamProvider<UnreadCounts>((ref) {
+  final badges = ref.watch(navigationBadgeRepositoryProvider);
+  final chatRepo = ref.watch(chatRepositoryProvider);
+  final notifRepo = ref.watch(notificationRepositoryProvider);
+  final controller = StreamController<UnreadCounts>();
+
+  controller.add(badges.currentUnreadCounts());
+  final sub1 = chatRepo.watchConversations().listen((_) {
+    if (!controller.isClosed) controller.add(badges.currentUnreadCounts());
+  });
+  final sub2 = notifRepo.watchNotifications().listen((_) {
+    if (!controller.isClosed) controller.add(badges.currentUnreadCounts());
+  });
+
+  ref.onDispose(() {
+    sub1.cancel();
+    sub2.cancel();
+    controller.close();
+  });
+  return controller.stream;
 });

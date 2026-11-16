@@ -70,6 +70,12 @@ class _DebugPanelSheetState extends ConsumerState<DebugPanelSheet> {
             value: sim.isSlowNetwork,
             onChanged: (val) => setState(() => repo.setSlowNetwork(val)),
           ),
+          _buildSwitchTile(
+            label: AppStrings.debugToggleChatAutoReply,
+            value: sim.isChatAutoReplyEnabled,
+            onChanged: (val) =>
+                setState(() => repo.setChatAutoReplyEnabled(val)),
+          ),
           const SizedBox(height: AppSpacing.md),
 
           // 2. Majukan waktu tiruan (Clock) untuk menguji kedaluwarsa 14/30 hari & hapus akun 30 hari

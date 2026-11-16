@@ -52,6 +52,7 @@ final class MockStore {
   bool isServerError = false;
   bool isEmptyState = false;
   bool isSlowNetwork = false;
+  late bool isChatAutoReplyEnabled = !appConfig.isProd;
   Duration timeOffset = Duration.zero;
   void Function()? onDebugStateChanged;
 
@@ -121,6 +122,8 @@ final class MockStore {
   final List<Conversation> conversations = <Conversation>[];
   final Map<String, List<Message>> messagesByConversationId =
       <String, List<Message>>{};
+  final Map<String, Message> retainedReportedMessages = <String, Message>{};
+  final Set<Timer> pendingAutoReplyTimers = <Timer>{};
   final List<MessageRequest> messageRequests = <MessageRequest>[];
   final Map<String, List<DateTime>> firstMessageTimestampsByUser =
       <String, List<DateTime>>{};
@@ -383,6 +386,12 @@ final class MockStore {
     verificationRequests.clear();
     dataExportJobs.clear();
     accountDeletionsByUser.clear();
+    retainedReportedMessages.clear();
+    for (final timer in pendingAutoReplyTimers) {
+      timer.cancel();
+    }
+    pendingAutoReplyTimers.clear();
+    isChatAutoReplyEnabled = !appConfig.isProd;
 
     currentUserId = 'u-01';
     currentSelectedCity = 'Medan';
@@ -396,6 +405,18 @@ final class MockStore {
       await persistSessionAndProfile();
     }
     notifyListeners();
+  }
+
+  void dispose() {
+    for (final timer in pendingAutoReplyTimers) {
+      timer.cancel();
+    }
+    pendingAutoReplyTimers.clear();
+    conversationsStreamController.close();
+    notificationsStreamController.close();
+    for (final controller in messageStreamsByConv.values) {
+      controller.close();
+    }
   }
 
   void notifyListeners() {
@@ -644,6 +665,54 @@ final class MockStore {
     return item;
   }
 
+  /// PSN: Mengelompokkan notifikasi pesan baru belum dibaca per percakapan.
+  AppNotification pushGroupedMessageNotification({
+    required String recipientId,
+    required String conversationId,
+    required String title,
+    required String body,
+    required String deepLink,
+  }) {
+    final existingIdx = notifications.indexWhere(
+      (n) =>
+          n.recipientId == recipientId &&
+          n.type == NotificationType.newMessage &&
+          !n.isRead &&
+          n.deepLink.contains('conversationId=$conversationId'),
+    );
+    if (existingIdx >= 0) {
+      final prev = notifications[existingIdx];
+      final countMatch = RegExp(r'^\((\d+) pesan baru\)').firstMatch(prev.body);
+      final prevCount = countMatch != null
+          ? (int.tryParse(countMatch.group(1)!) ?? 1)
+          : 1;
+      final nextCount = prevCount + 1;
+      final updated = AppNotification(
+        id: prev.id,
+        recipientId: recipientId,
+        type: NotificationType.newMessage,
+        title: title,
+        body: '($nextCount pesan baru) $body',
+        deepLink: deepLink,
+        createdAt: now,
+      );
+      notifications.removeAt(existingIdx);
+      notifications.insert(0, updated);
+      if (!notificationsStreamController.isClosed) {
+        notificationsStreamController.add(visibleNotificationsForActiveUser());
+      }
+      onDebugStateChanged?.call();
+      return updated;
+    }
+    return pushNotificationInternal(
+      recipientId: recipientId,
+      type: NotificationType.newMessage,
+      title: title,
+      body: body,
+      deepLink: deepLink,
+    );
+  }
+
   List<AppNotification> visibleNotificationsForActiveUser() {
     if (isEmptyState || currentUserId == null) {
       return const <AppNotification>[];
@@ -671,7 +740,23 @@ final class MockStore {
           continue; // PSN-R6, AC-11: blokir menyembunyikan percakapan pribadi
         }
       }
-      result.add(conv);
+      final updatedParticipants = conv.participants
+          .map(
+            (p) => usersById.containsKey(p.id)
+                ? p
+                : p.copyWith(displayName: 'Pengguna terhapus'),
+          )
+          .toList(growable: false);
+      final resolvedTitle = conv.type == ConversationType.direct
+          ? (updatedParticipants
+                    .where((p) => p.id != uid)
+                    .firstOrNull
+                    ?.displayName ??
+                conv.title)
+          : conv.title;
+      result.add(
+        conv.copyWith(title: resolvedTitle, participants: updatedParticipants),
+      );
     }
     result.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
     return result;
@@ -1375,6 +1460,32 @@ final class MockStore {
         lastMessage: msg2,
         unreadCount: 1,
         updatedAt: msg2.createdAt,
+      ),
+    );
+
+    // Permintaan pesan awal dari konteks bersama (PSN-02)
+    final u05Summary = toPersonSummary(
+      usersById['u-05']!,
+      viewer: usersById['u-01'],
+    );
+    final reqMsg = Message(
+      id: 'msg-req-01',
+      conversationId: 'conv-dm-req-01',
+      sender: u05Summary,
+      text: 'Horas Lae, saya satu punguan Simanjuntak di Medan. Boleh kenalan?',
+      createdAt: baseNow.subtract(const Duration(hours: 4)),
+    );
+    messagesByConversationId['conv-dm-req-01'] = <Message>[reqMsg];
+    messageRequests.add(
+      MessageRequest(
+        id: 'mreq-seed-01',
+        conversationId: 'conv-dm-req-01',
+        sender: u05Summary,
+        receiverId: 'u-01',
+        firstMessage: reqMsg,
+        sharedContextDescription: 'Berbagi komunitas Punguan Simanjuntak Medan',
+        status: MessageRequestStatus.pending,
+        createdAt: reqMsg.createdAt,
       ),
     );
 

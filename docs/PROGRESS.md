@@ -20,10 +20,10 @@ Keterangan status:
 | Sekitar | SEK | 12 | 9 | 3 | 9 |
 | Tarombo | TAR | 8 | 7 | 1 | 7 |
 | Main | MAN | 9 | 9 | 0 | 9 |
-| Pesan | PSN | 6 | 6 | 0 | 0 |
+| Pesan | PSN | 6 | 6 | 0 | 6 |
 | Akun | AKN | 15 | 15 | 0 | 0 |
 | Sistem | SIS | 8 | 8 | 0 | 0 |
-| **Total** |  | **75** | **69** | **6** | **40** |
+| **Total** |  | **75** | **69** | **6** | **46** |
 
 ---
 
@@ -98,12 +98,12 @@ Keterangan status:
 ### 6. Pesan (PSN)
 | ID | Nama Halaman | Tujuan | Fase | Rute | Status |
 | --- | --- | --- | --- | --- | --- |
-| PSN-01 | Daftar pesan | Semua percakapan | 1 | `/pesan` | Belum |
-| PSN-02 | Permintaan pesan | Pesan dari orang yang belum terhubung | 1 | `/pesan/permintaan` | Belum |
-| PSN-03 | Chat pribadi | Percakapan satu lawan satu | 1 | `/pesan/pribadi` | Belum |
-| PSN-04 | Chat grup | Grup komunitas dan sesi | 1 | `/pesan/grup` | Belum |
-| PSN-05 | Info percakapan | Anggota, bisukan, keluar, lapor | 1 | `/pesan/info` | Belum |
-| PSN-06 | Penampil media | Foto dalam chat | 1 | `/pesan/media` | Belum |
+| PSN-01 | Daftar pesan | Semua percakapan | 1 | `/pesan` | Selesai |
+| PSN-02 | Permintaan pesan | Pesan dari orang yang belum terhubung | 1 | `/pesan/permintaan` | Selesai |
+| PSN-03 | Chat pribadi | Percakapan satu lawan satu | 1 | `/pesan/pribadi` | Selesai |
+| PSN-04 | Chat grup | Grup komunitas dan sesi | 1 | `/pesan/grup` | Selesai |
+| PSN-05 | Info percakapan | Anggota, bisukan, keluar, lapor | 1 | `/pesan/info` | Selesai |
+| PSN-06 | Penampil media | Foto dalam chat | 1 | `/pesan/media` | Selesai |
 
 ### 7. Akun (AKN)
 | ID | Nama Halaman | Tujuan | Fase | Rute | Status |
@@ -139,11 +139,10 @@ Keterangan status:
 ---
 
 ## Bagian Placeholder (`SegeraPage`)
-Halaman yang masih dirender menggunakan `SegeraPage` (35 halaman; `AUT-01` .. `AUT-07` selesai di Prompt 3, `BER-01`/`04..10` di Prompt 4, `SEK-01..08`/`12` di Prompt 5, `TAR-01..07` di Prompt 6, `MAN-01..09` di Prompt 7):
+Halaman yang masih dirender menggunakan `SegeraPage` (29 halaman; `AUT-01` .. `AUT-07` selesai di Prompt 3, `BER-01`/`04..10` di Prompt 4, `SEK-01..08`/`12` di Prompt 5, `TAR-01..07` di Prompt 6, `MAN-01..09` di Prompt 7, `PSN-01..06` di Prompt 8):
 - `BER-02` .. `BER-03` (`HomeModulePageRouter` - Fase 2 belum diaktifkan)
 - `SEK-09` .. `SEK-11` (`NearbyModulePageRouter` - Fase 2 belum diaktifkan)
 - `TAR-08` (`TaromboModulePageRouter` - Fase 2 belum diaktifkan)
-- `PSN-01` .. `PSN-06` (`MessagesModulePlaceholderPage`)
 - `AKN-01` .. `AKN-15` (`AccountModulePlaceholderPage`)
 - `SIS-01` .. `SIS-08` (`SystemModulePlaceholderPage`)
 

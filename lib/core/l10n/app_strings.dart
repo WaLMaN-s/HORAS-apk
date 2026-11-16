@@ -41,6 +41,8 @@ abstract final class AppStrings {
   static const String debugToggleServerError = 'Simulasi Error Server';
   static const String debugToggleEmpty = 'Simulasi Status Kosong';
   static const String debugToggleSlow = 'Simulasi Jaringan Lambat (+1.2 dtk)';
+  static const String debugToggleChatAutoReply =
+      'Balasan Otomatis Kontak Tiruan (Chat)';
   static const String debugSectionClock = 'Simulasi Waktu (Clock)';
   static const String debugClockAdvance1Hour = '+1 Jam';
   static const String debugClockAdvance1Day = '+1 Hari';
@@ -1103,4 +1105,90 @@ abstract final class AppStrings {
       'Tidak dapat membuka aplikasi peta eksternal.';
   static const String man08SupportedSportsLabel = 'Olahraga Tersedia';
   static const String man08CityLabel = 'Kota';
+
+  // ── Pesan (Prompt 8: PSN-01 .. PSN-06) ─────────────────────────────────────
+  static const String psn01RequestsBannerTitle = 'Permintaan Pesan';
+  static String psn01RequestsCountLabel(int count) =>
+      '$count permintaan menunggu';
+  static const String psn01EmptyMessage =
+      'Belum ada percakapan. Mulai kenalan atau ikuti aktivitas untuk mengirim pesan.';
+  static const String psn01EmptyAction = 'Jelajahi Sekitar';
+  static const String psn01PhotoPreview = 'Mengirim foto';
+  static const String psn01DeletedPreview = 'Pesan ini telah dihapus';
+  static const String psn01MutedTooltip = 'Percakapan dibisukan';
+  static const String psn01ReadOnlyBadge = 'Baca-saja';
+
+  static const String psn02EmptyMessage = 'Tidak ada permintaan pesan baru.';
+  static const String psn02AcceptBtn = 'Terima';
+  static const String psn02DeleteBtn = 'Hapus';
+  static const String psn02BlockBtn = 'Blokir';
+  static const String psn02OneMessageLimitHint =
+      'Pengirim hanya dapat mengirim maksimal 1 pesan teks sampai kamu menerimanya.';
+
+  static const String psn03DeletedUserLabel = 'Pengguna terhapus';
+  static const String psn03ChatBlockedBanner =
+      'Percakapan ini ditutup karena salah satu pengguna diblokir.';
+  static const String psn03DeletedUserBanner =
+      'Lawan bicara telah menghapus akunnya. Kamu tidak dapat mengirim pesan baru.';
+  static const String psn03ScamWarningBanner =
+      'Peringatan keamanan: Jangan mentransfer uang atau mengklik tautan mencurigakan dari orang yang belum kamu kenal.';
+  static const String psn03ReadOnlySessionBanner =
+      'Grup sesi ini berstatus baca-saja (24 jam setelah sesi selesai).';
+  static const String psn03ComposerHint =
+      'Tulis pesan (maks. 2.000 karakter)...';
+  static const String psn03SendBtnTooltip = 'Kirim pesan';
+  static const String psn03PickPhotoTooltip = 'Kirim foto (maks. 5 MB)';
+  static const String psn03PhotoTooLargeError =
+      'Ukuran foto chat maksimal 5 MB.';
+  static const String psn03MenuInfo = 'Info Percakapan';
+  static const String psn03MenuReport = 'Laporkan';
+  static const String psn03MenuBlock = 'Blokir';
+  static const String psn03ReplyAction = 'Balas';
+  static const String psn03DeleteForMeAction = 'Hapus untuk saya';
+  static const String psn03DeleteForEveryoneAction =
+      'Hapus untuk semua (1 jam)';
+  static const String psn03ReportMessageAction = 'Laporkan pesan';
+  static const String psn03ReportedMessageToast =
+      'Pesan dilaporkan. Salinan disimpan 30 hari untuk tinjauan moderasi.';
+  static const String psn03FailedSendLabel = 'Gagal terkirim';
+  static const String psn03StatusSent = 'Terkirim';
+  static const String psn03StatusDelivered = 'Diterima';
+  static const String psn03StatusRead = 'Dibaca';
+  static const String psn03ReplyingToLabel = 'Membalas pesan:';
+  static const String psn03QuickGreetingDefault = 'Horas!';
+  static const String psn03QuickGreetingThanks = 'Mauliate!';
+  static String psn03QuickGreetingRelation(String callTerm) =>
+      'Horas, $callTerm!';
+  static const String psn03ReadReceiptsOffHint =
+      'Laporan dibaca dinonaktifkan di pengaturan privasi.';
+
+  static const String psn04PinnedAnnouncementTitle = 'Pengumuman Disematkan';
+  static const String psn04SendAnnouncementBtn = 'Kirim Pengumuman';
+  static const String psn04AnnouncementHint =
+      'Tulis pengumuman resmi yang akan disematkan di grup...';
+  static const String psn04AdminDeleteMessageAction = 'Hapus pesan (Admin)';
+  static const String psn04AdminKickMemberAction = 'Keluarkan dari grup';
+  static const String psn04AdminKickConfirmTitle = 'Keluarkan Anggota Grup?';
+  static const String psn04AdminKickConfirmBody =
+      'Anggota ini akan dikeluarkan dari percakapan grup.';
+
+  static const String psn05MembersSection = 'Anggota Percakapan';
+  static const String psn05MuteSection = 'Bisukan Notifikasi';
+  static const String psn05Mute1Hour = '1 jam';
+  static const String psn05Mute8Hours = '8 jam';
+  static const String psn05Mute1Week = '1 minggu';
+  static const String psn05MuteForever = 'Selamanya';
+  static const String psn05UnmuteBtn = 'Bunyikan Kembali';
+  static const String psn05LeaveGroupBtn = 'Keluar dari Grup';
+  static const String psn05LeaveGroupTitle = 'Keluar dari Grup?';
+  static const String psn05LeaveGroupBody =
+      'Kamu dapat keluar dari grup percakapan ini kapan saja.';
+  static const String psn05MutedActiveToast = 'Percakapan dibisukan.';
+  static const String psn05UnmutedToast = 'Notifikasi percakapan diaktifkan.';
+
+  static const String psn06SharePhotoBtn = 'Bagikan Foto';
+  static const String psn06ShareTextTemplate =
+      'Foto dibagikan dari chat HORAS.';
+  static const String psn06ShareUnavailableToast =
+      'Berbagi gambar hanya tersedia di perangkat seluler.';
 }

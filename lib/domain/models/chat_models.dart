@@ -33,6 +33,8 @@ final class Message {
     this.deletedForUserIds = const <String>[],
     this.hasScamWarning = false,
     this.isReported = false,
+    this.isAnnouncement = false,
+    this.moderatedRetainedUntil,
   });
 
   final String id;
@@ -48,6 +50,12 @@ final class Message {
   /// PSN-R8, AC-16: pesan pertama dari non-terhubung berisi tautan / permintaan uang.
   final bool hasScamWarning;
   final bool isReported;
+
+  /// PSN-R5: pesan pengumuman admin grup yang disematkan.
+  final bool isAnnouncement;
+
+  /// PSN-R4: pesan yang dilaporkan tetap tersimpan 30 hari untuk moderasi walau dihapus.
+  final DateTime? moderatedRetainedUntil;
   final DateTime createdAt;
 
   Message copyWith({
@@ -56,6 +64,8 @@ final class Message {
     bool? isDeletedForEveryone,
     List<String>? deletedForUserIds,
     bool? isReported,
+    bool? isAnnouncement,
+    DateTime? moderatedRetainedUntil,
   }) {
     return Message(
       id: id,
@@ -69,6 +79,9 @@ final class Message {
       deletedForUserIds: deletedForUserIds ?? this.deletedForUserIds,
       hasScamWarning: hasScamWarning,
       isReported: isReported ?? this.isReported,
+      isAnnouncement: isAnnouncement ?? this.isAnnouncement,
+      moderatedRetainedUntil:
+          moderatedRetainedUntil ?? this.moderatedRetainedUntil,
       createdAt: createdAt,
     );
   }
@@ -85,6 +98,8 @@ final class Message {
     'deletedForUserIds': deletedForUserIds,
     'hasScamWarning': hasScamWarning,
     'isReported': isReported,
+    'isAnnouncement': isAnnouncement,
+    'moderatedRetainedUntil': moderatedRetainedUntil?.toIso8601String(),
     'createdAt': createdAt.toIso8601String(),
   };
 }
@@ -126,6 +141,7 @@ final class Conversation {
     List<PersonSummary>? participants,
     bool? isReadOnly,
     DateTime? mutedUntil,
+    bool clearMutedUntil = false,
     String? pinnedAnnouncement,
     Message? lastMessage,
     int? unreadCount,
@@ -139,7 +155,7 @@ final class Conversation {
       communityId: communityId,
       sessionId: sessionId,
       isReadOnly: isReadOnly ?? this.isReadOnly,
-      mutedUntil: mutedUntil ?? this.mutedUntil,
+      mutedUntil: clearMutedUntil ? null : (mutedUntil ?? this.mutedUntil),
       pinnedAnnouncement: pinnedAnnouncement ?? this.pinnedAnnouncement,
       lastMessage: lastMessage ?? this.lastMessage,
       unreadCount: unreadCount ?? this.unreadCount,

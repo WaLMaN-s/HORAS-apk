@@ -354,6 +354,12 @@ abstract interface class ChatRepository {
   Stream<List<Conversation>> watchConversations();
   Stream<List<Message>> watchMessages(String conversationId);
   Future<Result<List<Conversation>>> getConversations();
+  Future<Result<Conversation>> getConversationById(String conversationId);
+  Future<Result<Conversation>> openDirectConversationWithUser(
+    String targetUserId,
+  );
+  Future<Result<List<Message>>> getMessages(String conversationId);
+  Future<Result<void>> markConversationRead(String conversationId);
   Future<Result<List<MessageRequest>>> getMessageRequests();
   Future<Result<Message>> sendMessage({
     required String conversationId,
@@ -375,6 +381,17 @@ abstract interface class ChatRepository {
     required String conversationId,
     required MuteDurationOption duration,
   });
+  Future<Result<Conversation>> unmuteConversation(String conversationId);
+  Future<Result<void>> leaveGroupConversation(String conversationId);
+  Future<Result<void>> removeGroupMember({
+    required String conversationId,
+    required String targetUserId,
+  });
+  Future<Result<Message>> sendPinnedAnnouncement({
+    required String conversationId,
+    required String text,
+  });
+  Future<bool> isGroupAdmin(String conversationId);
   Future<Result<Conversation>> createCommunityGroupChat({
     required Community community,
     required PersonSummary owner,

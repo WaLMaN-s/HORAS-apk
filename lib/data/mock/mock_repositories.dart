@@ -3611,6 +3611,204 @@ final class MockChatRepository implements ChatRepository {
   }
 
   @override
+  Future<Result<Conversation>> getConversationById(
+    String conversationId,
+  ) async {
+    final net = await _store.simulateNetworkCall();
+    if (net is Err<void>) return Err<Conversation>(net.failure);
+    final match = _store
+        .visibleConversationsForActiveUser()
+        .where((c) => c.id == conversationId)
+        .firstOrNull;
+    if (match != null) {
+      return Ok<Conversation>(match);
+    }
+    // Cek bila percakapan ada namun tertutup karena blokir (PSN-R6).
+    final raw = _store.conversations
+        .where((c) => c.id == conversationId)
+        .firstOrNull;
+    if (raw != null && raw.type == ConversationType.direct) {
+      final uid = _store.currentUserId;
+      final other = raw.participants.where((p) => p.id != uid).firstOrNull;
+      if (uid != null &&
+          other != null &&
+          _store.isBlockedBetween(uid, other.id)) {
+        return const Err<Conversation>(
+          UnavailableError(
+            message: 'Percakapan ditutup karena salah satu pengguna diblokir.',
+          ),
+        );
+      }
+    }
+    return const Err<Conversation>(
+      UnavailableError(message: AppStrings.stateContentUnavailableMessage),
+    );
+  }
+
+  @override
+  Future<Result<Conversation>> openDirectConversationWithUser(
+    String targetUserId,
+  ) async {
+    final net = await _store.simulateNetworkCall();
+    if (net is Err<void>) return Err<Conversation>(net.failure);
+
+    final me = _store.activeProfile;
+    final target = _store.usersById[targetUserId];
+    if (me == null) {
+      return const Err<Conversation>(
+        UnavailableError(message: AppStrings.stateContentUnavailableMessage),
+      );
+    }
+    if (target != null && _store.isBlockedBetween(me.id, target.id)) {
+      return const Err<Conversation>(
+        UnavailableError(
+          message: 'Percakapan ditutup karena salah satu pengguna diblokir.',
+        ),
+      );
+    }
+
+    final existing = _store.conversations.where((c) {
+      if (c.type != ConversationType.direct) return false;
+      final ids = c.participants.map((p) => p.id).toSet();
+      return ids.contains(me.id) && ids.contains(targetUserId);
+    }).firstOrNull;
+
+    if (existing != null) {
+      return getConversationById(existing.id);
+    }
+
+    if (target == null) {
+      return const Err<Conversation>(
+        UnavailableError(message: AppStrings.stateContentUnavailableMessage),
+      );
+    }
+
+    // PSN-R1: hanya boleh buka langsung bila sudah Terhubung.
+    if (!_store.isConnectedBetween(me.id, target.id)) {
+      return const Err<Conversation>(
+        PermissionDeniedError(
+          message: 'Pengguna belum Terhubung. Kirim Permintaan pesan dari profilnya terlebih dahulu.',
+          permissionName: 'pesan',
+        ),
+      );
+    }
+
+    final meSummary = _store.toPersonSummary(me, viewer: target);
+    final targetSummary = _store.toPersonSummary(target, viewer: me);
+    final conv = Conversation(
+      id: _store.nextId('conv-dm'),
+      type: ConversationType.direct,
+      title: targetSummary.displayName,
+      participants: <PersonSummary>[meSummary, targetSummary],
+      updatedAt: _store.now,
+    );
+    _store.conversations.insert(0, conv);
+    _store.messagesByConversationId.putIfAbsent(conv.id, () => <Message>[]);
+    _store.notifyListeners();
+    return Ok<Conversation>(conv);
+  }
+
+  List<Message> _visibleMessagesFor(String conversationId, String? uid) {
+    final raw =
+        _store.messagesByConversationId[conversationId] ?? const <Message>[];
+    final result = <Message>[];
+    for (final m in raw) {
+      if (uid != null && m.deletedForUserIds.contains(uid)) {
+        continue;
+      }
+      final senderAlive = _store.usersById.containsKey(m.sender.id);
+      final safeSender = senderAlive
+          ? m.sender
+          : m.sender.copyWith(displayName: 'Pengguna terhapus');
+      final resolved = Message(
+        id: m.id,
+        conversationId: m.conversationId,
+        sender: safeSender,
+        text: m.isDeletedForEveryone ? 'Pesan ini telah dihapus' : m.text,
+        photoSeed: m.isDeletedForEveryone ? null : m.photoSeed,
+        replyToMessageId: m.replyToMessageId,
+        deliveryStatus: m.deliveryStatus,
+        isDeletedForEveryone: m.isDeletedForEveryone,
+        deletedForUserIds: m.deletedForUserIds,
+        hasScamWarning: m.hasScamWarning,
+        isReported: m.isReported,
+        isAnnouncement: m.isAnnouncement,
+        moderatedRetainedUntil: m.moderatedRetainedUntil,
+        createdAt: m.createdAt,
+      );
+      result.add(resolved);
+    }
+    return List<Message>.unmodifiable(result);
+  }
+
+  void _emitMessages(String conversationId) {
+    final uid = _store.currentUserId;
+    final ctrl = _store.messageStreamsByConv[conversationId];
+    if (ctrl != null && !ctrl.isClosed) {
+      ctrl.add(_visibleMessagesFor(conversationId, uid));
+    }
+  }
+
+  @override
+  Future<Result<List<Message>>> getMessages(String conversationId) async {
+    final net = await _store.simulateNetworkCall();
+    if (net is Err<void>) return Err<List<Message>>(net.failure);
+    return Ok<List<Message>>(
+      _visibleMessagesFor(conversationId, _store.currentUserId),
+    );
+  }
+
+  @override
+  Future<Result<void>> markConversationRead(String conversationId) async {
+    final uid = _store.currentUserId;
+    final me = _store.activeProfile;
+    if (uid == null || me == null) return const Ok<void>(null);
+
+    final convIdx = _store.conversations.indexWhere(
+      (c) => c.id == conversationId,
+    );
+    if (convIdx >= 0 && _store.conversations[convIdx].unreadCount != 0) {
+      _store.conversations[convIdx] = _store.conversations[convIdx].copyWith(
+        unreadCount: 0,
+      );
+    }
+
+    // PSN-R3: Hormati pengaturan privasi sendReadReceipts
+    final allowReadReceipt = me.privacySettings.sendReadReceipts;
+    final list = _store.messagesByConversationId[conversationId];
+    if (list != null) {
+      var changed = false;
+      for (var i = 0; i < list.length; i++) {
+        final msg = list[i];
+        if (msg.sender.id != uid &&
+            msg.deliveryStatus != MessageDeliveryStatus.read) {
+          list[i] = msg.copyWith(
+            deliveryStatus: allowReadReceipt
+                ? MessageDeliveryStatus.read
+                : MessageDeliveryStatus.delivered,
+          );
+          changed = true;
+        }
+      }
+      if (changed) _emitMessages(conversationId);
+    }
+
+    // Tandai notifikasi pesan terkait percakapan ini sebagai terbaca.
+    for (var i = 0; i < _store.notifications.length; i++) {
+      final n = _store.notifications[i];
+      if (n.recipientId == uid &&
+          n.type == NotificationType.newMessage &&
+          !n.isRead &&
+          n.deepLink.contains('conversationId=$conversationId')) {
+        _store.notifications[i] = n.copyWith(isRead: true);
+      }
+    }
+
+    _store.notifyListeners();
+    return const Ok<void>(null);
+  }
+
+  @override
   Future<Result<List<MessageRequest>>> getMessageRequests() async {
     final net = await _store.simulateNetworkCall();
     if (net is Err<void>) return Err<List<MessageRequest>>(net.failure);
@@ -3735,12 +3933,12 @@ final class MockChatRepository implements ChatRepository {
           updatedAt: _store.now,
         ),
       );
-      _store.pushNotificationInternal(
+      _store.pushGroupedMessageNotification(
         recipientId: target.id,
-        type: NotificationType.newMessage,
+        conversationId: convId,
         title: 'Pesan Baru dari ${me.displayName}',
         body: cleanText,
-        deepLink: 'horas://app/pesan/pribadi',
+        deepLink: 'horas://app/pesan/pribadi?conversationId=$convId',
       );
     } else {
       final req = MessageRequest(
@@ -3797,7 +3995,31 @@ final class MockChatRepository implements ChatRepository {
       );
     }
 
+    if (conv.type == ConversationType.direct) {
+      final other = conv.participants.where((p) => p.id != me.id).firstOrNull;
+      if (other != null && _store.isBlockedBetween(me.id, other.id)) {
+        return const Err<Message>(
+          UnavailableError(
+            message: 'Percakapan ditutup karena salah satu pengguna diblokir.',
+          ),
+        );
+      }
+      if (other == null || !_store.usersById.containsKey(other.id)) {
+        return const Err<Message>(
+          UnavailableError(message: 'Lawan bicara sudah menghapus akunnya.'),
+        );
+      }
+    }
+
     final clean = text.trim();
+    if (clean.isEmpty && (photoSeed == null || photoSeed.trim().isEmpty)) {
+      return const Err<Message>(
+        ValidationError(
+          message: 'Tulis pesan atau pilih foto terlebih dahulu.',
+          field: 'text',
+        ),
+      );
+    }
     if (clean.length > AppLimits.messageTextMaxChars) {
       return const Err<Message>(
         ValidationError(
@@ -3814,34 +4036,116 @@ final class MockChatRepository implements ChatRepository {
       text: clean,
       photoSeed: photoSeed,
       replyToMessageId: replyToMessageId,
+      deliveryStatus: MessageDeliveryStatus.delivered,
       createdAt: _store.now,
     );
-    final list = _store.messagesByConversationId.putIfAbsent(
-      conversationId,
-      () => <Message>[],
-    )..add(msg);
+    _store.messagesByConversationId
+        .putIfAbsent(conversationId, () => <Message>[])
+        .add(msg);
 
     _store.conversations[convIdx] = conv.copyWith(
       lastMessage: msg,
       updatedAt: _store.now,
     );
 
-    _store.messageStreamsByConv[conversationId]?.add(
-      List<Message>.unmodifiable(list),
-    );
+    _emitMessages(conversationId);
 
+    final deepPath = conv.type == ConversationType.direct
+        ? 'horas://app/pesan/pribadi?conversationId=$conversationId'
+        : 'horas://app/pesan/grup?conversationId=$conversationId';
     for (final p in conv.participants.where((p) => p.id != me.id)) {
-      _store.pushNotificationInternal(
+      _store.pushGroupedMessageNotification(
         recipientId: p.id,
-        type: NotificationType.newMessage,
+        conversationId: conversationId,
         title: conv.type == ConversationType.direct
             ? me.displayName
             : conv.title,
-        body: clean,
-        deepLink: 'horas://app/pesan',
+        body: clean.isNotEmpty ? clean : 'Mengirim foto',
+        deepLink: deepPath,
       );
     }
     _store.notifyListeners();
+
+    // Realtime tiruan: di build non-prod kontak membalas otomatis jika diaktifkan di Panel Debug.
+    if (conv.type == ConversationType.direct &&
+        _store.isChatAutoReplyEnabled &&
+        !_store.appConfig.isProd) {
+      final otherSummary = conv.participants
+          .where((p) => p.id != me.id)
+          .firstOrNull;
+      final otherProfile = otherSummary != null
+          ? _store.usersById[otherSummary.id]
+          : null;
+      if (otherProfile != null &&
+          !_store.isBlockedBetween(me.id, otherProfile.id)) {
+        late final Timer timer;
+        timer = Timer(const Duration(milliseconds: 250), () {
+          _store.pendingAutoReplyTimers.remove(timer);
+          if (_store.conversationsStreamController.isClosed) return;
+          if (_store.isOffline ||
+              _store.isServerError ||
+              !_store.isChatAutoReplyEnabled) {
+            return;
+          }
+          final cIdx = _store.conversations.indexWhere(
+            (c) => c.id == conversationId,
+          );
+          if (cIdx < 0) return;
+          final currentConv = _store.conversations[cIdx];
+          if (_store.isBlockedBetween(me.id, otherProfile.id)) return;
+
+          final msgList = _store.messagesByConversationId.putIfAbsent(
+            conversationId,
+            () => <Message>[],
+          );
+          if (otherProfile.privacySettings.sendReadReceipts) {
+            for (var i = 0; i < msgList.length; i++) {
+              if (msgList[i].sender.id == me.id &&
+                  msgList[i].deliveryStatus != MessageDeliveryStatus.read) {
+                msgList[i] = msgList[i].copyWith(
+                  deliveryStatus: MessageDeliveryStatus.read,
+                );
+              }
+            }
+          }
+
+          final replySender = _store.toPersonSummary(otherProfile, viewer: me);
+          final callTerm = replySender.partuturan?.istilah;
+          final greeting =
+              (callTerm != null &&
+                  callTerm.isNotEmpty &&
+                  !(replySender.partuturan?.modeNetral ?? true))
+              ? 'Horas $callTerm!'
+              : 'Horas ${me.displayName}!';
+          final reply = Message(
+            id: _store.nextId('msg'),
+            conversationId: conversationId,
+            sender: replySender,
+            text: '$greeting Pesanmu sudah saya terima.',
+            deliveryStatus: MessageDeliveryStatus.delivered,
+            createdAt: _store.now,
+          );
+          msgList.add(reply);
+          _store.conversations[cIdx] = currentConv.copyWith(
+            lastMessage: reply,
+            unreadCount: currentConv.unreadCount + 1,
+            updatedAt: _store.now,
+          );
+          _store.pushGroupedMessageNotification(
+            recipientId: me.id,
+            conversationId: conversationId,
+            title: otherProfile.displayName,
+            body: reply.text,
+            deepLink:
+                'horas://app/pesan/pribadi?conversationId=$conversationId',
+          );
+          _emitMessages(conversationId);
+          _store.notifyListeners();
+        });
+        _store.pendingAutoReplyTimers.add(timer);
+      }
+    }
+
     return Ok<Message>(msg);
   }
 
@@ -3891,12 +4195,21 @@ final class MockChatRepository implements ChatRepository {
     final uid = _store.currentUserId;
     if (uid == null) return const Ok<void>(null);
 
-    for (final list in _store.messagesByConversationId.values) {
+    for (final entry in _store.messagesByConversationId.entries) {
+      final list = entry.value;
       for (var i = 0; i < list.length; i++) {
         if (list[i].id == messageId) {
+          // PSN-R4: Pesan yang dilaporkan tetap disimpan 30 hari untuk moderasi.
+          if (list[i].isReported) {
+            _store.retainedReportedMessages.putIfAbsent(
+              list[i].id,
+              () => list[i],
+            );
+          }
           list[i] = list[i].copyWith(
             deletedForUserIds: <String>[...list[i].deletedForUserIds, uid],
           );
+          _emitMessages(entry.key);
         }
       }
     }
@@ -3908,16 +4221,29 @@ final class MockChatRepository implements ChatRepository {
     final net = await _store.simulateNetworkCall();
     if (net.isErr) return net;
 
-    for (final list in _store.messagesByConversationId.values) {
+    final uid = _store.currentUserId;
+    for (final entry in _store.messagesByConversationId.entries) {
+      final list = entry.value;
       for (var i = 0; i < list.length; i++) {
         if (list[i].id == messageId) {
-          // PSN-R4: Hapus untuk semua dalam 1 jam setelah kirim
-          final check = HorasPolicies.checkDeleteMessageForEveryoneAllowed(
-            messageCreatedAt: list[i].createdAt,
-            now: _store.now,
-          );
-          if (check.isErr) return check;
+          final isAdmin = uid != null && await isGroupAdmin(entry.key);
+          // PSN-R4: Hapus untuk semua dalam 1 jam setelah kirim; PSN-R5: admin grup dapat menghapus pesan.
+          if (!isAdmin) {
+            final check = HorasPolicies.checkDeleteMessageForEveryoneAllowed(
+              messageCreatedAt: list[i].createdAt,
+              now: _store.now,
+            );
+            if (check.isErr) return check;
+          }
+          if (list[i].isReported) {
+            _store.retainedReportedMessages.putIfAbsent(
+              list[i].id,
+              () => list[i],
+            );
+          }
           list[i] = list[i].copyWith(isDeletedForEveryone: true);
+          _emitMessages(entry.key);
+          _store.notifyListeners();
           return const Ok<void>(null);
         }
       }
@@ -3943,7 +4269,176 @@ final class MockChatRepository implements ChatRepository {
       mutedUntil: _store.now.add(duration.duration),
     );
     _store.conversations[idx] = updated;
+    _store.notifyListeners();
     return Ok<Conversation>(updated);
+  }
+
+  @override
+  Future<Result<Conversation>> unmuteConversation(String conversationId) async {
+    final net = await _store.simulateNetworkCall();
+    if (net is Err<void>) return Err<Conversation>(net.failure);
+
+    final idx = _store.conversations.indexWhere((c) => c.id == conversationId);
+    if (idx < 0) {
+      return const Err<Conversation>(
+        UnavailableError(message: AppStrings.stateContentUnavailableMessage),
+      );
+    }
+    final updated = _store.conversations[idx].copyWith(clearMutedUntil: true);
+    _store.conversations[idx] = updated;
+    _store.notifyListeners();
+    return Ok<Conversation>(updated);
+  }
+
+  @override
+  Future<Result<void>> leaveGroupConversation(String conversationId) async {
+    final net = await _store.simulateNetworkCall();
+    if (net.isErr) return net;
+    final uid = _store.currentUserId;
+    if (uid == null) return const Ok<void>(null);
+
+    final idx = _store.conversations.indexWhere((c) => c.id == conversationId);
+    if (idx < 0) {
+      return const Err<void>(
+        UnavailableError(message: AppStrings.stateContentUnavailableMessage),
+      );
+    }
+    final conv = _store.conversations[idx];
+    if (conv.type == ConversationType.direct) {
+      return const Err<void>(
+        ValidationError(
+          message: 'Percakapan pribadi tidak dapat ditinggalkan.',
+          field: 'conversationId',
+        ),
+      );
+    }
+    _removeParticipantAtConvIndex(idx, uid);
+    if (conv.communityId != null) {
+      _store.memberships.removeWhere(
+        (m) => m.communityId == conv.communityId && m.user.id == uid,
+      );
+    }
+    _store.notifyListeners();
+    return const Ok<void>(null);
+  }
+
+  @override
+  Future<Result<void>> removeGroupMember({
+    required String conversationId,
+    required String targetUserId,
+  }) async {
+    final net = await _store.simulateNetworkCall();
+    if (net.isErr) return net;
+
+    final isAdmin = await isGroupAdmin(conversationId);
+    if (!isAdmin) {
+      return const Err<void>(
+        PermissionDeniedError(
+          message:
+              'Hanya Pengurus atau Host yang dapat mengeluarkan anggota grup.',
+          permissionName: 'admin_grup',
+        ),
+      );
+    }
+    final idx = _store.conversations.indexWhere((c) => c.id == conversationId);
+    if (idx < 0) return const Ok<void>(null);
+    _removeParticipantAtConvIndex(idx, targetUserId);
+    _store.notifyListeners();
+    return const Ok<void>(null);
+  }
+
+  @override
+  Future<Result<Message>> sendPinnedAnnouncement({
+    required String conversationId,
+    required String text,
+  }) async {
+    final net = await _store.simulateNetworkCall();
+    if (net is Err<void>) return Err<Message>(net.failure);
+
+    final isAdmin = await isGroupAdmin(conversationId);
+    if (!isAdmin) {
+      return const Err<Message>(
+        PermissionDeniedError(
+          message: 'Hanya Pengurus atau Host yang dapat mengirim pengumuman disematkan.',
+          permissionName: 'admin_grup',
+        ),
+      );
+    }
+
+    final me = _store.activeProfile;
+    final convIdx = _store.conversations.indexWhere(
+      (c) => c.id == conversationId,
+    );
+    if (me == null || convIdx < 0) {
+      return const Err<Message>(
+        UnavailableError(message: AppStrings.stateContentUnavailableMessage),
+      );
+    }
+    final conv = _store.conversations[convIdx];
+    if (conv.isReadOnly) {
+      return const Err<Message>(
+        ValidationError(
+          message: 'Percakapan sesi ini sudah menjadi baca-saja.',
+          field: 'conversationId',
+        ),
+      );
+    }
+
+    final clean = text.trim();
+    if (clean.isEmpty || clean.length > AppLimits.messageTextMaxChars) {
+      return const Err<Message>(
+        ValidationError(
+          message: 'Pengumuman harus antara 1 sampai 2.000 karakter.',
+          field: 'text',
+        ),
+      );
+    }
+
+    final msg = Message(
+      id: _store.nextId('msg'),
+      conversationId: conversationId,
+      sender: _store.toPersonSummary(me),
+      text: clean,
+      isAnnouncement: true,
+      deliveryStatus: MessageDeliveryStatus.delivered,
+      createdAt: _store.now,
+    );
+    _store.messagesByConversationId
+        .putIfAbsent(conversationId, () => <Message>[])
+        .add(msg);
+    _store.conversations[convIdx] = conv.copyWith(
+      pinnedAnnouncement: clean,
+      lastMessage: msg,
+      updatedAt: _store.now,
+    );
+    _emitMessages(conversationId);
+    _store.notifyListeners();
+    return Ok<Message>(msg);
+  }
+
+  @override
+  Future<bool> isGroupAdmin(String conversationId) async {
+    final uid = _store.currentUserId;
+    if (uid == null) return false;
+    final conv = _store.conversations
+        .where((c) => c.id == conversationId)
+        .firstOrNull;
+    if (conv == null) return false;
+    if (conv.type == ConversationType.communityGroup &&
+        conv.communityId != null) {
+      return _store.memberships.any(
+        (m) =>
+            m.communityId == conv.communityId &&
+            m.user.id == uid &&
+            (m.role == CommunityRole.owner || m.role == CommunityRole.manager),
+      );
+    }
+    if (conv.type == ConversationType.sessionGroup && conv.sessionId != null) {
+      return _store.sessions.any(
+        (s) => s.id == conv.sessionId && s.host.id == uid,
+      );
+    }
+    return false;
   }
 
   @override
@@ -4262,6 +4757,23 @@ final class MockReportRepository implements ReportRepository {
               ? CourtModerationStatus.flaggedForReview
               : court.status,
         );
+      }
+    }
+
+    // PSN-R4: Pesan yang dilaporkan tetap tersimpan 30 hari untuk moderasi walau dihapus.
+    if (targetType == ReportTargetType.message) {
+      final retainedUntil = _store.now.add(const Duration(days: 30));
+      for (final list in _store.messagesByConversationId.values) {
+        for (var i = 0; i < list.length; i++) {
+          if (list[i].id == targetId) {
+            final updatedMsg = list[i].copyWith(
+              isReported: true,
+              moderatedRetainedUntil: retainedUntil,
+            );
+            list[i] = updatedMsg;
+            _store.retainedReportedMessages[updatedMsg.id] = updatedMsg;
+          }
+        }
       }
     }
 
@@ -4985,6 +5497,7 @@ final class MockDebugSimulationRepository implements DebugSimulationRepository {
       isServerError: _store.isServerError,
       isEmptyState: _store.isEmptyState,
       isSlowNetwork: _store.isSlowNetwork,
+      isChatAutoReplyEnabled: _store.isChatAutoReplyEnabled,
       timeOffset: _store.timeOffset,
       activeStrikesCount: strikeCount,
       isAccountSuspended: me?.accountStatus == AccountStatus.suspended,
@@ -5027,6 +5540,12 @@ final class MockDebugSimulationRepository implements DebugSimulationRepository {
   @override
   void setSlowNetwork(bool value) {
     _store.isSlowNetwork = value;
+    _store.notifyListeners();
+  }
+
+  @override
+  void setChatAutoReplyEnabled(bool value) {
+    _store.isChatAutoReplyEnabled = value;
     _store.notifyListeners();
   }
 

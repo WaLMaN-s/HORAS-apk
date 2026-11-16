@@ -101,9 +101,9 @@ class Tar01DashboardPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(taromboControllerProvider);
     final controller = ref.read(taromboControllerProvider.notifier);
-    final unreadCounts = ref
-        .watch(navigationBadgeRepositoryProvider)
-        .currentUnreadCounts();
+    final unreadCounts =
+        ref.watch(unreadCountsProvider).value ??
+        ref.read(navigationBadgeRepositoryProvider).currentUnreadCounts();
     final scrollController = ref
         .read(shellNavigationProvider.notifier)
         .scrollControllerForTab(tabIndex);

@@ -25,9 +25,9 @@ class Sek01NearbyPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(nearbyControllerProvider);
     final controller = ref.read(nearbyControllerProvider.notifier);
-    final unreadCounts = ref
-        .watch(navigationBadgeRepositoryProvider)
-        .currentUnreadCounts();
+    final unreadCounts =
+        ref.watch(unreadCountsProvider).value ??
+        ref.read(navigationBadgeRepositoryProvider).currentUnreadCounts();
     final scrollController = ref
         .read(shellNavigationProvider.notifier)
         .scrollControllerForTab(tabIndex);

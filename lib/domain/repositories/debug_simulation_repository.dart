@@ -18,6 +18,7 @@ final class DebugSimulationState {
     this.isServerError = false,
     this.isEmptyState = false,
     this.isSlowNetwork = false,
+    this.isChatAutoReplyEnabled = true,
     this.timeOffset = Duration.zero,
     this.activeStrikesCount = 0,
     this.isAccountSuspended = false,
@@ -29,6 +30,7 @@ final class DebugSimulationState {
   final bool isServerError;
   final bool isEmptyState;
   final bool isSlowNetwork;
+  final bool isChatAutoReplyEnabled;
   final Duration timeOffset;
   final int activeStrikesCount;
   final bool isAccountSuspended;
@@ -43,6 +45,7 @@ abstract interface class DebugSimulationRepository {
   void setServerError(bool value);
   void setEmptyState(bool value);
   void setSlowNetwork(bool value);
+  void setChatAutoReplyEnabled(bool value);
 
   Future<void> switchMockUser(String userId);
   void advanceClock(Duration delta);

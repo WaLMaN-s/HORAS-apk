@@ -25,9 +25,9 @@ class Ber01FeedPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final feedState = ref.watch(homeFeedControllerProvider);
     final controller = ref.read(homeFeedControllerProvider.notifier);
-    final unreadCounts = ref
-        .watch(navigationBadgeRepositoryProvider)
-        .currentUnreadCounts();
+    final unreadCounts =
+        ref.watch(unreadCountsProvider).value ??
+        ref.read(navigationBadgeRepositoryProvider).currentUnreadCounts();
     final scrollController = ref
         .read(shellNavigationProvider.notifier)
         .scrollControllerForTab(tabIndex);

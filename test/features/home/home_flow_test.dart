@@ -6,6 +6,7 @@ import 'package:horas/core/config/repository_providers.dart';
 import 'package:horas/core/errors/app_failure.dart';
 import 'package:horas/core/errors/result.dart';
 import 'package:horas/core/l10n/app_strings.dart';
+import 'package:horas/core/widgets/widgets.dart';
 import 'package:horas/data/mock/mock_repositories.dart';
 import 'package:horas/data/mock/mock_store.dart';
 import 'package:horas/domain/models/models.dart';
@@ -294,6 +295,14 @@ void main() {
 
         // 1. Kotak postingan cepat di atas Beranda tampil & membuka BER-04
         expect(find.text(AppStrings.ber01ComposerPrompt), findsOneWidget);
+        // Nama tampil tanpa teks marga merah ganda
+        expect(
+          find.descendant(
+            of: find.byType(PostCard).first,
+            matching: find.text('Marbun'),
+          ),
+          findsNothing,
+        );
 
         // 2. Galeri multi-foto dapat digeser ke samping (ListView horizontal) tanpa teks "1/2"
         final horizontalLists = tester

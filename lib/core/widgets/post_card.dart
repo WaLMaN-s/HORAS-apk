@@ -135,24 +135,14 @@ class PostCard extends StatelessWidget {
                                     constraints: const BoxConstraints(
                                       minHeight: AppSizes.minTouchTarget,
                                     ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: <Widget>[
-                                        Flexible(
-                                          child: Text(
-                                            author.displayName,
-                                            style: typo.bodyStrong,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                        const SizedBox(width: AppSpacing.xs),
-                                        Text(
-                                          author.marga,
-                                          style: typo.captionStrong.copyWith(
-                                            color: colors.primary,
-                                          ),
-                                        ),
-                                      ],
+                                    child: Align(
+                                      alignment: Alignment.centerLeft,
+                                      widthFactor: 1.0,
+                                      child: Text(
+                                        author.displayName,
+                                        style: typo.bodyStrong,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
                                   ),
                                 ),

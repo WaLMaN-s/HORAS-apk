@@ -75,7 +75,19 @@ SELECT is(
   'AC-13: Komunitas closed tersembunyi bagi non-anggota'
 );
 
--- 5. AC-11: Blokir dua arah menyembunyikan target dari pencarian & profil
+-- 5. PSN-R1: Non-kenalan dengan komunitas bersama dibatasi 1 pesan pembuka sampai diterima/dibalas
+SELECT lives_ok(
+  $$SELECT public.send_first_message('00000000-0000-4000-8000-000000000004'::uuid, 'Horas Agus!');$$,
+  'Pesan permintaan pertama ke non-Kenalan (komunitas bersama) berhasil'
+);
+
+SELECT throws_like(
+  $$SELECT public.send_first_message('00000000-0000-4000-8000-000000000004'::uuid, 'Pesan kedua sebelum diterima');$$,
+  '%PSN-R1%',
+  'PSN-R1: Pesan kedua sebelum permintaan diterima ditolak server'
+);
+
+-- 6. AC-11: Blokir dua arah menyembunyikan target dari pencarian & profil
 SELECT lives_ok(
   $$SELECT public.block_user('00000000-0000-4000-8000-000000000004'::uuid);$$,
   'u-01 memblokir u-04'
@@ -94,19 +106,7 @@ SELECT is(
   0,
   'AC-11: Blokir bersifat dua arah (u-04 tidak menemukan u-01 di search_people)'
 );
-
--- 6. PSN-R1: Non-kenalan dibatasi 1 pesan pembuka sampai diterima/dibalas
 SELECT set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000001', true);
-SELECT lives_ok(
-  $$SELECT public.send_first_message('00000000-0000-4000-8000-000000000005'::uuid, 'Horas Rina!');$$,
-  'Pesan permintaan pertama ke non-Kenalan berhasil'
-);
-
-SELECT throws_like(
-  $$SELECT public.send_first_message('00000000-0000-4000-8000-000000000005'::uuid, 'Pesan kedua sebelum diterima');$$,
-  '%PSN-R1%',
-  'PSN-R1: Pesan kedua sebelum permintaan diterima ditolak server'
-);
 
 -- 7. MAN-R7: Anti taruhan / judi saat buat sesi Main
 SELECT throws_like(

@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:horas/core/theme/app_theme.dart';
 import 'package:horas/core/theme/app_tokens.dart';
 import 'package:material_ui/material_ui.dart';
@@ -58,6 +59,32 @@ class PlaceholderImage extends StatelessWidget {
       (prev, elem) => (prev * 37 + elem) & 0x7FFFFFFF,
     );
 
+    final isNetworkUrl =
+        seed.startsWith('http://') || seed.startsWith('https://');
+    final gradientFallback = CustomPaint(
+      painter: _TobaUlosPainter(
+        topColor: palette.$1,
+        midColor: palette.$2,
+        accentColor: palette.$3,
+        seedHash: seedHash,
+        showMountains: showMountainSilhouette,
+      ),
+      child: caption != null
+          ? Align(
+              alignment: Alignment.bottomLeft,
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                child: Text(
+                  caption!,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: typo.captionStrong.copyWith(color: colors.onPrimary),
+                ),
+              ),
+            )
+          : null,
+    );
+
     return Semantics(
       image: true,
       label: semanticsLabel ?? caption ?? seed,
@@ -66,31 +93,16 @@ class PlaceholderImage extends StatelessWidget {
         child: SizedBox(
           width: width,
           height: height,
-          child: CustomPaint(
-            painter: _TobaUlosPainter(
-              topColor: palette.$1,
-              midColor: palette.$2,
-              accentColor: palette.$3,
-              seedHash: seedHash,
-              showMountains: showMountainSilhouette,
-            ),
-            child: caption != null
-                ? Align(
-                    alignment: Alignment.bottomLeft,
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppSpacing.md),
-                      child: Text(
-                        caption!,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: typo.captionStrong.copyWith(
-                          color: colors.onPrimary,
-                        ),
-                      ),
-                    ),
-                  )
-                : null,
-          ),
+          child: isNetworkUrl
+              ? CachedNetworkImage(
+                  imageUrl: seed,
+                  width: width,
+                  height: height,
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) => gradientFallback,
+                  errorWidget: (context, url, error) => gradientFallback,
+                )
+              : gradientFallback,
         ),
       ),
     );

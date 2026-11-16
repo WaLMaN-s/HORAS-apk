@@ -168,3 +168,8 @@ Seluruh flag di `lib/core/config/feature_flags.dart` bernilai `false` secara baw
 - **Edge Functions:** `auth-otp-guard` (`AUT-R2` 5/jam & 60s cooldown, `AUT-R3` kunci 1 jam setelah 5x salah, `AUT-R9` maks 3 perangkat aktif) dan `process-image` (re-encode piksel & hapus metadata EXIF/GPS).
 - **Jadwal (`pg_cron`):** Lifecycle sesi (+2j selesai, +24j chat read-only), kedaluwarsa kenalan/komunitas/ekspor, purge akun hari ke-30 (`AC-12`), serta retensi PRD bagian 10.
 - **Dokumentasi & Pengujian:** `docs/API.md` memetakan seluruh 23 repository Flutter; diuji dengan `supabase test db` (15/15 lulus) dan `deno test` (`process-image` strip EXIF/GPS, OTP guard, AC-12 purge: 3/3 lulus).
+
+## Integrasi Supabase Flutter (`USE_MOCK_BACKEND=false`)
+- Seluruh 23 antarmuka repository (`lib/data/supabase/*`) terpasang di `repository_providers.dart` melalui `--dart-define=USE_MOCK_BACKEND=false`, `SUPABASE_URL`, dan `SUPABASE_ANON_KEY`.
+- Token di `flutter_secure_storage`, unggahan media terkompres & bebas EXIF via `process-image` (backoff + resume), Realtime chat & notifikasi (auto-reconnect + outbox offline), cache offline (`AC-15`), Partuturan cache-first (`< 200ms`) + RPC `generation_delta`, serta `PushNotificationService` FCM dengan graceful fallback saat `google-services.json` belum tersedia.
+- Migrasi `0007_contract_parity.sql` + contract test suite (`test/contract/repository_contract_test.dart`) memverifikasi paritas Mock vs Supabase lokal.

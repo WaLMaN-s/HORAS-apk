@@ -252,6 +252,11 @@ Deno.test("3. API privacy, PSN-R1, AC-12 account purge, and lifecycle cron jobs"
     },
   });
 
+  // Gabung komunitas terbuka com-01 bersama u-01 agar berbagi konteks (AC-06), lalu kirim pesan pertama
+  await userClient.rpc("join_community", {
+    p_community_id: "20000000-0000-4000-8000-000000000001",
+  });
+
   const firstMsg = await userClient.rpc("send_first_message", {
     p_recipient_id: "00000000-0000-4000-8000-000000000001",
     p_text: "Pesan sebelum hapus akun",

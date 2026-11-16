@@ -1,12 +1,8 @@
-import 'package:horas/domain/repositories/navigation_badge_repository.dart';
+import 'package:horas/data/supabase/supabase_chat_notif_repos.dart';
 
-/// Implementasi Supabase untuk [NavigationBadgeRepository] (diisi penuh di Prompt 11).
-final class SupabaseNavigationBadgeRepository
-    implements NavigationBadgeRepository {
-  const SupabaseNavigationBadgeRepository();
+export 'supabase_chat_notif_repos.dart'
+    show LiveSupabaseNavigationBadgeRepository;
 
-  @override
-  UnreadCounts currentUnreadCounts() {
-    return (unreadMessages: 0, unreadNotifications: 0);
-  }
-}
+/// Alias kompatibilitas untuk [LiveSupabaseNavigationBadgeRepository].
+typedef SupabaseNavigationBadgeRepository =
+    LiveSupabaseNavigationBadgeRepository;

@@ -81,3 +81,53 @@ Fungsi di `supabase/migrations/0006_cron_and_retention.sql`:
 - `run_retention_cleanup_jobs()` (harian 03:30 UTC): menghapus notifikasi > 90 hari, chat sesi selesai > 12 bulan, laporan & `audit_log` > 12 bulan, `retained_moderated_content` > 30 hari, dan membersihkan `otp_request_logs` > 24 jam.
 
 > **Tugas Infrastruktur Wajib (Cloud Production — PRD 10):** Aktifkan **Daily Automated Backups dengan retensi minimum 30 hari** (atau Point-in-Time Recovery / PITR pada paket Supabase Pro) di Supabase Cloud Dashboard sebelum peluncuran produksi.
+
+---
+
+## 6. Perintah Menjalankan Aplikasi & Build (Mock, Supabase Lokal, Beta)
+
+### a) Mode Debug Mock (Bawaan)
+```bash
+flutter run
+# atau eksplisit:
+flutter run --dart-define=USE_MOCK_BACKEND=true --dart-define=ENV=dev
+```
+
+### b) Mode Debug dengan Supabase Lokal
+1. Nyalakan stack lokal: `supabase start`
+2. Ambil `ANON_KEY` / `PUBLISHABLE_KEY` dari output `supabase status` (atau `.env`).
+3. Jalankan pada **Emulator Android** (mengakses host lewat `10.0.2.2`):
+```bash
+flutter run \
+  --dart-define=USE_MOCK_BACKEND=false \
+  --dart-define=ENV=dev \
+  --dart-define=SUPABASE_URL=http://10.0.2.2:54321 \
+  --dart-define=SUPABASE_ANON_KEY=<ANON_KEY_LOKAL>
+```
+*(Untuk Linux desktop / iOS simulator di host yang sama, ganti `10.0.2.2` dengan `127.0.0.1`).*
+
+### c) Build Beta (Supabase Cloud)
+```bash
+flutter build apk --release \
+  --dart-define=ENV=beta \
+  --dart-define=USE_MOCK_BACKEND=false \
+  --dart-define=SUPABASE_URL=https://<project-ref>.supabase.co \
+  --dart-define=SUPABASE_ANON_KEY=<CLOUD_ANON_OR_PUBLISHABLE_KEY>
+```
+
+### d) Konfigurasi Push Notification Firebase (Opsional saat Pengembangan)
+Aplikasi sudah dilengkapi **graceful fallback** (`PushNotificationService`) sehingga tetap berjalan normal tanpa crash bila berkas konfigurasi Firebase belum dipasang. Untuk mengaktifkan FCM push nyata:
+1. Buat project Firebase dan daftarkan Android package ID `id.horas.app` (dan iOS bundle ID jika dibangun di iOS).
+2. Unduh `google-services.json` ke `android/app/google-services.json` (dan `GoogleService-Info.plist` ke `ios/Runner/`).
+3. Aktifkan plugin `com.google.gms.google-services` di `android/settings.gradle.kts` & `android/app/build.gradle.kts`, lalu jalankan ulang build.
+4. Simpan kunci server FCM / Service Account Firebase di Supabase Edge Function / worker pengirim notifikasi (menggunakan `profiles.fcm_tokens`).
+
+---
+
+## 7. Perbedaan Perilaku Mode Mock vs Supabase Nyata
+
+1. **Format ID:** Mode Mock memakai ID pendek (`u-01`, `com-10`), sedangkan Supabase nyata memakai **UUID v4** (`00000000-0000-4000-8000-000000000001`, dst.).
+2. **Autentikasi & Perangkat:** Mode Mock menggunakan OTP dev in-memory `123456`; Supabase nyata memakai JWT (`flutter_secure_storage`), Edge Function `auth-otp-guard`, batas 3 perangkat di tabel `user_devices`, dan `[auth.sms.test_otp]` saat dev.
+3. **Media & Gambar:** Mode Mock menghasilkan seed gradien sintetis lokal; Supabase nyata mengompres gambar di klien, mengirim lewat `process-image` (menghapus EXIF/GPS dengan backoff retry & resume), dan menampilkannya via `cached_network_image`.
+4. **Realtime, Antrean Offline & Cache (`AC-15`):** Mode Mock memperbarui stream langsung di `MockStore`; Supabase nyata memakai WebSocket Supabase Realtime + auto-reconnect, menyimpan pesan gagal offline di antrean outbox untuk dikirim ulang saat online, serta menandai cache halaman-1 Feed/Profil/Percakapan/Sesi lewat `offlineCacheStatusProvider`.
+5. **Jumlah FAQ Awal & Siklus Latar Belakang:** `MockSeedData.helpArticles` berisi 4 item in-memory sedangkan Postgres `help_articles` & `assets/data/bantuan.json` berisi 5 FAQ (`faq-01..05`). Penghapusan akun ke-30 hari (`AC-12`), auto-selesai sesi (`+2j`), dan chat read-only (`+24j`) berjalan via `pg_cron` di Postgres, sementara di Mock disimulasikan lewat jam lokal.

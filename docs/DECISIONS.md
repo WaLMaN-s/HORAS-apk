@@ -122,3 +122,7 @@ Dokumen ini mencatat seluruh keputusan teknis, asumsi produk saat PRD ambigu, da
   1. **5 Tab Bilah Bawah (`MainShellScaffold` & `app_router.dart`):** Susunan tab bawah kini menjadi **Beranda**, **Sekitar**, **Pesan** (dengan lencana jumlah pesan belum dibaca langsung di ikon tab tengah), **Main**, dan **Akun**.
   2. **Akses Tarombo via Pengaturan (`AKN-07`):** Rute `AppPages.taromboPages` tetap tersedia sebagai rute teratas (`/tarombo`, `/tarombo/*`) sehingga `PartuturanBadge` (`TAR-05`) dan menu **Tarombo** di [Akn07SettingsPage](file:///home/man/HORAS-apk/lib/features/account/presentation/akn07_settings_page.dart) langsung membuka `TAR-01` dengan tombol kembali.
   3. **Bilah Atas Beranda:** Ikon pintasan Pesan pada bilah atas `BER-01` dihapus agar tidak ganda dengan tab tengah Pesan.
+
+## D-018 · Ikon Peluncur APK Kustom Android & iOS (16 Nov 2026)
+- **Konteks:** Pengguna menyediakan logo resmi aplikasi (`assets/branding/app_icon_source.jpeg`, 1254×1254 px) untuk menggantikan ikon peluncur bawaan Flutter.
+- **Keputusan:** Menghasilkan seluruh resolusi ikon peluncur Android (`mipmap-mdpi` s.d. `mipmap-xxxhdpi`), Adaptive Icon (`mipmap-anydpi-v26/ic_launcher.xml` & `ic_launcher_round.xml` dengan `ic_launcher_foreground.png` dan latar `@color/ic_launcher_background` `#000000` agar emblem Rumah Bolon/gorga utuh di zona aman 66.7%), serta seluruh set ikon iOS di `ios/Runner/Assets.xcassets/AppIcon.appiconset/`.

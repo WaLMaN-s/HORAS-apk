@@ -596,4 +596,182 @@ abstract final class AppStrings {
   static const String sis07Purpose = 'Status pengajuan verifikasi';
   static const String sis08Title = 'Pedoman Komunitas';
   static const String sis08Purpose = 'Aturan perilaku keluarga besar HORAS';
+
+  // ── Sekitar Detail & Fitur (Prompt 5: SEK-01 .. SEK-08, SEK-12) ────────────
+  static const String sek01SegmentOrang = 'Orang';
+  static const String sek01SegmentKomunitas = 'Komunitas';
+  static const String sek01AreaLabel = 'Area tampilan';
+  static const String sek01AreaPickerTitle = 'Pilih Kota / Area';
+  static const String sek01AreaPickerSubtitle =
+      'Menampilkan dongan sahuta di area profil atau kota tujuan pilihanmu tanpa GPS.';
+  static const String sek01EmptyPeopleMessage =
+      'Belum ada pengguna lain yang tampil di area dan filter ini.';
+  static const String sek01EmptyCommunitiesMessage =
+      'Belum ada komunitas yang tersedia di area ini.';
+  static const String sek01LocationPermissionBenefit =
+      'Izin lokasi perkiraan membantu mencocokkan kotamu secara otomatis. Kamu tetap dapat mengisi dan mengganti area secara manual.';
+  static const String sek01ManualAreaAction = 'Isi Area Manual';
+  static const String sek01OpenFilterTooltip = 'Filter Orang';
+  static const String sek01OpenSearchTooltip = 'Cari di Sekitar';
+  static const String sek01CreateCommunityBtn = 'Buat Komunitas';
+  static const String sek01ViewAllPeople = 'Lihat Semua Orang';
+  static const String sek01ViewAllCommunities = 'Jelajah Komunitas';
+  static const String sek01FilterActivePrefix = 'Filter aktif';
+
+  static const String sek02LoadMoreBtn = 'Muat lebih banyak';
+  static const String sek02ChangeAreaBtn = 'Ganti Area';
+  static String sek02SharedCommunitiesCount(int count) =>
+      '$count komunitas sama';
+
+  static const String sek03MargaLabel = 'Marga';
+  static const String sek03MargaHint = 'Semua marga (atau pilih marga)';
+  static const String sek03AllMargas = 'Semua Marga';
+  static const String sek03CityLabel = 'Kota / Area';
+  static const String sek03AllCities = 'Semua Kota';
+  static const String sek03CampusOrOfficeLabel = 'Kampus / Kantor';
+  static const String sek03CampusOrOfficeHint = 'Contoh: USU, ITB, SCBD';
+  static const String sek03HobbyLabel = 'Hobi';
+  static const String sek03HobbyHint = 'Contoh: Badminton, Kopi, Futsal';
+  static const String sek03ApplyBtn = 'Terapkan Filter';
+  static const String sek03ResetBtn = 'Atur Ulang';
+
+  static const String sek04FollowPending = 'Menunggu persetujuan';
+  static const String sek04UnfollowAction = 'Berhenti ikuti';
+  static const String sek04ConnectionSent = 'Terkirim';
+  static const String sek04AcceptBtn = 'Terima';
+  static const String sek04RejectBtn = 'Tolak';
+  static const String sek04IgnoreBtn = 'Abaikan';
+  static const String sek04RemoveConnectionAction = 'Hapus koneksi';
+  static const String sek04RemoveConnectionConfirmTitle = 'Hapus Koneksi?';
+  static const String sek04RemoveConnectionConfirmBody =
+      'Status Terhubung akan diakhiri tanpa pemberitahuan ke pengguna lain.';
+  static const String sek04MessageRequestBadge = 'Permintaan pesan';
+  static const String sek04MessageSheetTitle = 'Kirim Pesan';
+  static const String sek04MessageRequestNotice =
+      'Kalian belum Terhubung, tetapi berbagi komunitas/sesi. Pesan pertamamu akan masuk sebagai Permintaan pesan (maksimal 1 pesan teks sampai diterima).';
+  static const String sek04OpenChatPlaceholderBtn = 'Buka Chat';
+  static const String sek04SendFirstMessageBtn = 'Kirim Permintaan Pesan';
+  static const String sek04MessageSentNotice =
+      'Permintaan pesan berhasil dikirim.';
+  static const String sek04PrivateAccountTitle = 'Akun ini privat';
+  static const String sek04PrivateAccountSubtitle =
+      'Nama, foto, marga, dan kota tetap terlihat. Bio, hobi, dan rincian lain disembunyikan sesuai pengaturan privasi pemilik.';
+  static const String sek04BioSectionTitle = 'Tentang';
+  static const String sek04InfoSectionTitle = 'Informasi Terlihat';
+  static const String sek04MotherMargaLabel = 'Marga Ibu';
+  static const String sek04SubdistrictLabel = 'Kecamatan';
+  static const String sek04AgeGroupLabel = 'Rentang Usia';
+  static const String sek04CampusOfficeLabel = 'Kampus / Kantor';
+  static const String sek04HobbiesLabel = 'Hobi';
+  static const String sek04NeutralModeHint =
+      'Mode netral aktif: sub-suku belum memiliki aturan partuturan tervalidasi atau marga belum diverifikasi.';
+  static const String sek04KinshipAcceptQuestion = 'Konfirmasi';
+  static const String sek04KinshipRejectQuestion = 'Bukan';
+  static const String sek04KinshipConfirmToast =
+      'Terima kasih! Hubungan partuturan ditandai sesuai.';
+  static const String sek04KinshipFeedbackToast =
+      'Masukan dicatat untuk peninjauan aturan adat.';
+  static const String sek04MenuReport = 'Laporkan';
+  static const String sek04MenuMute = 'Bisukan akun';
+  static const String sek04MenuBlock = 'Blokir akun';
+  static const String sek04BlockConfirmTitle = 'Blokir Akun Ini?';
+  static const String sek04BlockConfirmBody =
+      'Kalian tidak akan saling terlihat di profil, postingan, pencarian, dan Sekitar. Koneksi serta ikuti akan dihapus.';
+  static const String sek04MuteSuccessToast =
+      'Akun dibisukan dari tampilan Sekitar dan Beranda.';
+  static const String sek04IncomingRequestBanner =
+      'Mengajakmu menjadi Kenalan (Terhubung)';
+
+  static const String sek04SheetKenalanTitle = 'Kirim Permintaan Kenalan';
+  static const String sek04SheetKenalanSubtitle =
+      'Pilih sapaan cepat atau tulis pesan pengantar maksimal 200 karakter.';
+  static const List<String> sek04QuickGreetings = <String>[
+    'Horas! Salam kenal.',
+    'Horas dongan sahuta!',
+    'Salam keluarga HORAS!',
+  ];
+  static const String sek04IntroHint = 'Tulis pengantar singkat (opsional)...';
+  static const String sek04SendKenalanBtn = 'Kirim Kenalan';
+  static const String sek04KenalanSentToast = 'Permintaan Kenalan terkirim.';
+  static const String sek04KenalanAcceptedToast =
+      'Permintaan Kenalan diterima! Sekarang kalian Terhubung.';
+  static const String sek04KenalanRejectedToast = 'Permintaan Kenalan ditolak.';
+
+  static const String sek05AccessOpen = 'Terbuka';
+  static const String sek05AccessApproval = 'Dengan persetujuan';
+  static const String sek05AccessClosed = 'Tertutup';
+  static String sek05MemberCount(int count) => '$count anggota';
+
+  static const String sek06JoinBtn = 'Gabung';
+  static const String sek06RequestJoinBtn = 'Minta Gabung';
+  static const String sek06WaitingApprovalBtn = 'Menunggu persetujuan';
+  static const String sek06ApprovalExpiryHint =
+      'Permintaan gabung kedaluwarsa otomatis dalam 14 hari bila belum ditanggapi.';
+  static const String sek06LeaveBtn = 'Keluar Komunitas';
+  static const String sek06ManageBtn = 'Kelola Komunitas';
+  static const String sek06GroupChatBtn = 'Chat Grup Komunitas';
+  static const String sek06AnnouncementsSection = 'Pengumuman';
+  static const String sek06MembersSection = 'Daftar Anggota';
+  static const String sek06PinnedBadge = 'Disematkan';
+  static const String sek06NoAnnouncements =
+      'Belum ada pengumuman di komunitas ini.';
+  static const String sek06OwnerMustTransferTitle =
+      'Tidak Dapat Keluar Sebelum Serah Kepemilikan';
+  static const String sek06OwnerMustTransferBody =
+      'Pemilik harus menyerahkan kepemilikan sebelum keluar. Silakan pilih Pemilik baru melalui menu Kelola Komunitas.';
+  static const String sek06OwnerTransferAction = 'Buka Kelola Komunitas';
+  static const String sek06ClosedCommunityHint =
+      'Komunitas Tertutup · Hanya anggota';
+  static const String sek06LeaveConfirmTitle = 'Keluar dari Komunitas?';
+  static const String sek06LeaveConfirmBody =
+      'Kamu akan keluar dari komunitas dan grup chat komunitas ini.';
+
+  static const String sek07TypeLabel = 'Jenis Komunitas';
+  static const String sek07NameLabel = 'Nama Komunitas';
+  static const String sek07NameHint = 'Minimal 3 karakter, maksimal 60';
+  static const String sek07MargaNameLabel = 'Nama Marga Punguan';
+  static const String sek07CityLabel = 'Kota Domisili Komunitas';
+  static const String sek07DescLabel = 'Deskripsi Komunitas';
+  static const String sek07DescHint =
+      'Jelaskan tujuan dan kegiatan komunitas (maks. 500 karakter)';
+  static const String sek07AccessLabel = 'Akses Bergabung';
+  static const String sek07SubmitBtn = 'Buat Komunitas';
+  static const String sek07CreatedToast =
+      'Komunitas dan chat grup otomatis berhasil dibuat.';
+  static const String sek07PunguanUnverifiedNote =
+      'Komunitas Punguan Marga baru berstatus Belum diverifikasi sampai pengajuan verifikasi (SIS-06) disetujui.';
+
+  static const String sek08TabMembers = 'Anggota';
+  static const String sek08TabRequests = 'Permintaan';
+  static const String sek08TabRoles = 'Peran';
+  static const String sek08TabAnnouncements = 'Pengumuman';
+  static const String sek08RoleOwner = 'Pemilik';
+  static const String sek08RoleManager = 'Pengurus';
+  static const String sek08RoleMember = 'Anggota';
+  static const String sek08PromoteManager = 'Jadikan Pengurus';
+  static const String sek08DemoteMember = 'Jadikan Anggota Biasa';
+  static const String sek08TransferOwner = 'Serahkan Kepemilikan';
+  static const String sek08KickMember = 'Keluarkan';
+  static const String sek08KickConfirmTitle = 'Keluarkan Anggota?';
+  static String sek08KickConfirmBody(String name) =>
+      '$name akan dikeluarkan dari komunitas dan chat grup komunitas.';
+  static const String sek08TransferConfirmTitle = 'Serahkan Kepemilikan?';
+  static String sek08TransferConfirmBody(String name) =>
+      'Apakah kamu yakin menyerahkan peran Pemilik komunitas kepada $name? Kamu akan menjadi Pengurus.';
+  static const String sek08ManagersLimitNote = 'Pengurus maksimal 10 orang';
+  static const String sek08PinnedLimitNote = 'Pengumuman disematkan maksimal 3';
+  static const String sek08RequestVerificationBtn = 'Ajukan Verifikasi';
+  static const String sek08ApproveJoinBtn = 'Setujui';
+  static const String sek08RejectJoinBtn = 'Tolak';
+  static const String sek08NoJoinRequests =
+      'Tidak ada permintaan gabung tertunda.';
+  static const String sek08AnnouncementTitleLabel = 'Judul Pengumuman';
+  static const String sek08AnnouncementBodyLabel = 'Isi Pengumuman';
+  static const String sek08PinAnnouncementToggle = 'Sematkan pengumuman';
+  static const String sek08PublishAnnouncementBtn = 'Terbitkan Pengumuman';
+  static const String sek08PinToggleBtn = 'Sematkan / Lepas';
+
+  static const String sek12SearchHint = 'Cari nama, marga, atau komunitas...';
+  static const String sek12SearchPrompt =
+      'Ketik nama orang, marga, atau nama komunitas di Sekitar.';
 }

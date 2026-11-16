@@ -112,16 +112,19 @@ GoRouter createAppRouter({
               ),
             ],
           ),
-          // Tab 1: Sekitar (SEK-01 .. SEK-12)
+          // Tab 1: Sekitar (SEK-01 .. SEK-08, SEK-12 — Selesai di Prompt 5)
           StatefulShellBranch(
             routes: <RouteBase>[
-              _buildTabBranchRoute(
+              _buildTabBranchRouteWithState(
                 rootSpec: AppPages.sek01,
                 childSpecs: AppPages.nearbyPages.skip(1).toList(),
-                rootBuilder: (spec) =>
-                    NearbyModulePlaceholderPage(pageSpec: spec, tabIndex: 1),
-                childBuilder: (spec) =>
-                    NearbyModulePlaceholderPage(pageSpec: spec),
+                rootBuilder: (spec, state) => NearbyModulePageRouter(
+                  pageSpec: spec,
+                  routerState: state,
+                  tabIndex: 1,
+                ),
+                childBuilder: (spec, state) =>
+                    NearbyModulePageRouter(pageSpec: spec, routerState: state),
               ),
             ],
           ),
@@ -194,6 +197,12 @@ GoRouter createAppRouter({
         path: '/report',
         builder: (context, state) =>
             const SystemModulePlaceholderPage(pageSpec: AppPages.sis02),
+      ),
+      // Alias /verification menuju SIS-06 Ajukan Verifikasi placeholder (Prompt 5)
+      GoRoute(
+        path: '/verification',
+        builder: (context, state) =>
+            const SystemModulePlaceholderPage(pageSpec: AppPages.sis06),
       ),
     ],
   );

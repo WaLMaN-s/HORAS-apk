@@ -727,6 +727,18 @@ final class MockFollowRepository implements FollowRepository {
   }
 
   @override
+  Future<Result<Follow?>> getFollowStatus(String targetUserId) async {
+    final net = await _store.simulateNetworkCall();
+    if (net is Err<void>) return Err<Follow?>(net.failure);
+    final uid = _store.currentUserId;
+    if (uid == null) return const Ok<Follow?>(null);
+    final match = _store.follows
+        .where((f) => f.followerId == uid && f.followeeId == targetUserId)
+        .firstOrNull;
+    return Ok<Follow?>(match);
+  }
+
+  @override
   Future<Result<List<PersonSummary>>> getFollowers(String userId) async {
     final net = await _store.simulateNetworkCall();
     if (net is Err<void>) return Err<List<PersonSummary>>(net.failure);
@@ -1796,6 +1808,14 @@ final class MockNearbyRepository implements NearbyRepository {
   }
 
   @override
+  bool get locationPermissionDenied => _store.nearbyLocationPermissionDenied;
+
+  @override
+  void setLocationPermissionDenied(bool denied) {
+    _store.nearbyLocationPermissionDenied = denied;
+  }
+
+  @override
   Future<Result<List<WilayahCity>>> getAvailableCities() async {
     final net = await _store.simulateNetworkCall();
     if (net is Err<void>) return Err<List<WilayahCity>>(net.failure);
@@ -1818,8 +1838,10 @@ final class MockNearbyRepository implements NearbyRepository {
 
     final me = _store.activeProfile;
     final targetCity = (city ?? _store.currentSelectedCity).trim();
+    final viewerHobbies =
+        me?.hobbies.map((h) => h.trim().toLowerCase()).toSet() ?? <String>{};
 
-    final candidates = <PersonSummary>[];
+    final candidates = <_NearbyRankedCandidate>[];
     for (final u in _store.usersById.values) {
       if (me != null && u.id == me.id) continue;
       if (me != null && _store.isBlockedBetween(me.id, u.id)) continue; // AC-11
@@ -1835,7 +1857,9 @@ final class MockNearbyRepository implements NearbyRepository {
       }
       if (hobby != null &&
           hobby.isNotEmpty &&
-          !u.hobbies.any((h) => h.toLowerCase() == hobby.toLowerCase())) {
+          !u.hobbies.any(
+            (h) => h.toLowerCase().contains(hobby.toLowerCase()),
+          )) {
         continue;
       }
       if (campusOrOffice != null &&
@@ -1845,24 +1869,41 @@ final class MockNearbyRepository implements NearbyRepository {
           )) {
         continue;
       }
-      candidates.add(_store.toPersonSummary(u, viewer: me));
+      final summary = _store.toPersonSummary(u, viewer: me);
+      final sharedHobbyCount = u.hobbies
+          .where((h) => viewerHobbies.contains(h.trim().toLowerCase()))
+          .length;
+      final lastActive = _store.userLastActiveAt[u.id] ?? u.createdAt;
+      candidates.add(
+        _NearbyRankedCandidate(
+          summary: summary,
+          sharedHobbyCount: sharedHobbyCount,
+          lastActiveAt: lastActive,
+        ),
+      );
     }
 
-    // SEK-R1: Urutan: kerabat (keyakinan tinggi/sedang), komunitas sama, hobi sama
+    // SEK-R1: Urutan: kerabat (keyakinan tinggi/sedang), komunitas sama, hobi sama, aktivitas terbaru
     int kinshipRank(PersonSummary p) {
       final part = p.partuturan;
       if (part == null || part.modeNetral) return 0;
       return switch (part.confidence) {
-        PartuturanConfidence.tinggi => 3,
-        PartuturanConfidence.sedang => 2,
-        PartuturanConfidence.rendah => 1,
+        PartuturanConfidence.tinggi => 2,
+        PartuturanConfidence.sedang => 1,
+        PartuturanConfidence.rendah => 0,
       };
     }
 
     candidates.sort((a, b) {
-      final kDiff = kinshipRank(b).compareTo(kinshipRank(a));
+      final kDiff = kinshipRank(b.summary).compareTo(kinshipRank(a.summary));
       if (kDiff != 0) return kDiff;
-      return b.sharedCommunitiesCount.compareTo(a.sharedCommunitiesCount);
+      final cDiff = b.summary.sharedCommunitiesCount.compareTo(
+        a.summary.sharedCommunitiesCount,
+      );
+      if (cDiff != 0) return cDiff;
+      final hDiff = b.sharedHobbyCount.compareTo(a.sharedHobbyCount);
+      if (hDiff != 0) return hDiff;
+      return b.lastActiveAt.compareTo(a.lastActiveAt);
     });
 
     final start = ((page - 1) * AppLimits.nearbyPageSize).clamp(
@@ -1870,16 +1911,36 @@ final class MockNearbyRepository implements NearbyRepository {
       candidates.length,
     );
     final end = (start + AppLimits.nearbyPageSize).clamp(0, candidates.length);
-    return Ok<List<PersonSummary>>(candidates.sublist(start, end));
+    return Ok<List<PersonSummary>>(
+      candidates
+          .sublist(start, end)
+          .map((e) => e.summary)
+          .toList(growable: false),
+    );
   }
+}
+
+final class _NearbyRankedCandidate {
+  const _NearbyRankedCandidate({
+    required this.summary,
+    required this.sharedHobbyCount,
+    required this.lastActiveAt,
+  });
+
+  final PersonSummary summary;
+  final int sharedHobbyCount;
+  final DateTime lastActiveAt;
 }
 
 // ── 11. MockCommunityRepository ─────────────────────────────────────────────
 
 final class MockCommunityRepository implements CommunityRepository {
-  const MockCommunityRepository(this._store);
+  const MockCommunityRepository(this._store, [this._chatRepository]);
 
   final MockStore _store;
+  final ChatRepository? _chatRepository;
+
+  ChatRepository get _chatRepo => _chatRepository ?? MockChatRepository(_store);
 
   @override
   Future<Result<List<Community>>> getCommunities({
@@ -2018,17 +2079,8 @@ final class MockCommunityRepository implements CommunityRepository {
       ),
     );
 
-    // SEK-R11: Chat grup komunitas dibuat otomatis
-    _store.conversations.add(
-      Conversation(
-        id: convId,
-        type: ConversationType.communityGroup,
-        title: comm.name,
-        communityId: commId,
-        participants: <PersonSummary>[meSummary],
-        updatedAt: _store.now,
-      ),
-    );
+    // SEK-R11: Chat grup komunitas dibuat otomatis lewat ChatRepository
+    await _chatRepo.createCommunityGroupChat(community: comm, owner: meSummary);
     return Ok<Community>(comm);
   }
 
@@ -2058,24 +2110,42 @@ final class MockCommunityRepository implements CommunityRepository {
 
     final meSummary = _store.toPersonSummary(me);
     if (comm.accessType == CommunityAccessType.open) {
-      // SEK-R11: Gabung langsung & otomatis masuk ke chat grup komunitas
-      _store.memberships.removeWhere(
+      // SEK-R11: Gabung langsung & otomatis masuk ke chat grup komunitas lewat ChatRepository
+      final alreadyMember = _store.memberships.any(
         (m) => m.communityId == communityId && m.user.id == me.id,
       );
-      _store.memberships.add(
-        Membership(
-          id: _store.nextId('mem'),
-          communityId: communityId,
-          user: meSummary,
-          role: CommunityRole.member,
-          joinedAt: _store.now,
-        ),
+      if (!alreadyMember) {
+        _store.memberships.add(
+          Membership(
+            id: _store.nextId('mem'),
+            communityId: communityId,
+            user: meSummary,
+            role: CommunityRole.member,
+            joinedAt: _store.now,
+          ),
+        );
+        _store.communities[idx] = comm.copyWith(
+          memberCount: comm.memberCount + 1,
+        );
+      }
+      await _chatRepo.addParticipantToCommunityChat(
+        communityId: comm.id,
+        user: meSummary,
       );
-      _store.communities[idx] = comm.copyWith(
-        memberCount: comm.memberCount + 1,
-      );
-      _addMemberToCommunityChat(comm.id, meSummary);
       return const Ok<JoinRequest?>(null);
+    }
+
+    final existingPending = _store.joinRequests
+        .where(
+          (r) =>
+              r.communityId == communityId &&
+              r.applicant.id == me.id &&
+              r.status == JoinRequestStatus.pending &&
+              _store.now.isBefore(r.expiresAt),
+        )
+        .firstOrNull;
+    if (existingPending != null) {
+      return Ok<JoinRequest?>(existingPending);
     }
 
     // Dengan persetujuan: kedaluwarsa 14 hari (SEK-R11)
@@ -2098,20 +2168,6 @@ final class MockCommunityRepository implements CommunityRepository {
       deepLink: 'horas://app/sekitar/komunitas-kelola',
     );
     return Ok<JoinRequest?>(joinReq);
-  }
-
-  void _addMemberToCommunityChat(String communityId, PersonSummary user) {
-    final convIdx = _store.conversations.indexWhere(
-      (c) => c.communityId == communityId,
-    );
-    if (convIdx >= 0) {
-      final conv = _store.conversations[convIdx];
-      if (!conv.participants.any((p) => p.id == user.id)) {
-        _store.conversations[convIdx] = conv.copyWith(
-          participants: <PersonSummary>[...conv.participants, user],
-        );
-      }
-    }
   }
 
   @override
@@ -2138,7 +2194,12 @@ final class MockCommunityRepository implements CommunityRepository {
       (m) => m.communityId == communityId && m.user.id == uid,
     );
     _store.communities[idx] = comm.copyWith(
+      managerIds: comm.managerIds.where((id) => id != uid).toList(),
       memberCount: (comm.memberCount - 1).clamp(1, 999999),
+    );
+    await _chatRepo.removeParticipantFromCommunityChat(
+      communityId: communityId,
+      userId: uid,
     );
     return const Ok<void>(null);
   }
@@ -2179,6 +2240,58 @@ final class MockCommunityRepository implements CommunityRepository {
         })
         .toList(growable: false);
     return Ok<List<Membership>>(list);
+  }
+
+  @override
+  Future<Result<void>> removeMember({
+    required String communityId,
+    required String targetUserId,
+  }) async {
+    final net = await _store.simulateNetworkCall();
+    if (net.isErr) return net;
+
+    final cIdx = _store.communities.indexWhere((c) => c.id == communityId);
+    if (cIdx < 0) return const Ok<void>(null);
+    final comm = _store.communities[cIdx];
+    if (targetUserId == comm.ownerId) {
+      return const Err<void>(
+        ValidationError(
+          message: 'Pemilik komunitas tidak dapat dikeluarkan.',
+          field: 'targetUserId',
+        ),
+      );
+    }
+
+    _store.memberships.removeWhere(
+      (m) => m.communityId == communityId && m.user.id == targetUserId,
+    );
+    _store.communities[cIdx] = comm.copyWith(
+      managerIds: comm.managerIds.where((id) => id != targetUserId).toList(),
+      memberCount: (comm.memberCount - 1).clamp(1, 999999),
+      lastManagerActiveAt: _store.now,
+    );
+    await _chatRepo.removeParticipantFromCommunityChat(
+      communityId: communityId,
+      userId: targetUserId,
+    );
+    return const Ok<void>(null);
+  }
+
+  @override
+  Future<Result<List<JoinRequest>>> getMyJoinRequests() async {
+    final net = await _store.simulateNetworkCall();
+    if (net is Err<void>) return Err<List<JoinRequest>>(net.failure);
+    final uid = _store.currentUserId;
+    if (uid == null) return const Ok<List<JoinRequest>>(<JoinRequest>[]);
+    final list = _store.joinRequests
+        .where(
+          (r) =>
+              r.applicant.id == uid &&
+              r.status == JoinRequestStatus.pending &&
+              _store.now.isBefore(r.expiresAt),
+        )
+        .toList(growable: false);
+    return Ok<List<JoinRequest>>(list);
   }
 
   @override
@@ -2246,7 +2359,10 @@ final class MockCommunityRepository implements CommunityRepository {
           memberCount: comm.memberCount + 1,
           lastManagerActiveAt: _store.now,
         );
-        _addMemberToCommunityChat(comm.id, req.applicant);
+        await _chatRepo.addParticipantToCommunityChat(
+          communityId: comm.id,
+          user: req.applicant,
+        );
         // PRD 9: Persetujuan gabung komunitas
         _store.pushNotificationInternal(
           recipientId: req.applicant.id,
@@ -2281,6 +2397,15 @@ final class MockCommunityRepository implements CommunityRepository {
       if (limitCheck.isErr) return limitCheck;
       _store.communities[cIdx] = comm.copyWith(
         managerIds: <String>[...comm.managerIds, targetUserId],
+        lastManagerActiveAt: _store.now,
+      );
+    } else if (role == CommunityRole.member &&
+        comm.managerIds.contains(targetUserId)) {
+      _store.communities[cIdx] = comm.copyWith(
+        managerIds: comm.managerIds
+            .where((id) => id != targetUserId)
+            .toList(growable: false),
+        lastManagerActiveAt: _store.now,
       );
     }
 
@@ -2307,6 +2432,15 @@ final class MockCommunityRepository implements CommunityRepository {
     if (me == null) {
       return const Err<Announcement>(
         UnavailableError(message: AppStrings.stateContentUnavailableMessage),
+      );
+    }
+
+    if (title.trim().isEmpty || body.trim().isEmpty) {
+      return const Err<Announcement>(
+        ValidationError(
+          message: 'Judul dan isi pengumuman wajib diisi.',
+          field: 'title',
+        ),
       );
     }
 
@@ -2345,14 +2479,74 @@ final class MockCommunityRepository implements CommunityRepository {
   }
 
   @override
+  Future<Result<Announcement>> togglePinAnnouncement({
+    required String communityId,
+    required String announcementId,
+  }) async {
+    final net = await _store.simulateNetworkCall();
+    if (net is Err<void>) return Err<Announcement>(net.failure);
+
+    final idx = _store.announcements.indexWhere(
+      (a) => a.id == announcementId && a.communityId == communityId,
+    );
+    if (idx < 0) {
+      return const Err<Announcement>(
+        UnavailableError(message: AppStrings.stateContentUnavailableMessage),
+      );
+    }
+    final current = _store.announcements[idx];
+    final nextPinned = !current.isPinned;
+    if (nextPinned) {
+      final pinnedCount = _store.announcements
+          .where((a) => a.communityId == communityId && a.isPinned)
+          .length;
+      final pinCheck = HorasPolicies.checkPinnedAnnouncementLimit(pinnedCount);
+      if (pinCheck is Err<void>) return Err<Announcement>(pinCheck.failure);
+    }
+    final updated = Announcement(
+      id: current.id,
+      communityId: current.communityId,
+      author: current.author,
+      title: current.title,
+      body: current.body,
+      isPinned: nextPinned,
+      createdAt: current.createdAt,
+    );
+    _store.announcements[idx] = updated;
+    return Ok<Announcement>(updated);
+  }
+
+  @override
   Future<Result<List<Announcement>>> getAnnouncements(
     String communityId,
   ) async {
     final net = await _store.simulateNetworkCall();
     if (net is Err<void>) return Err<List<Announcement>>(net.failure);
+
+    final comm = _store.communities
+        .where((c) => c.id == communityId)
+        .firstOrNull;
+    if (comm == null) {
+      return const Err<List<Announcement>>(
+        UnavailableError(message: AppStrings.stateContentUnavailableMessage),
+      );
+    }
+    final uid = _store.currentUserId;
+    final isMember =
+        uid != null && _store.communityIdsForUser(uid).contains(communityId);
+    if (comm.accessType == CommunityAccessType.closed && !isMember) {
+      return const Err<List<Announcement>>(
+        UnavailableError(message: AppStrings.stateContentUnavailableMessage),
+      );
+    }
+
     final list = _store.announcements
         .where((a) => a.communityId == communityId)
         .toList(growable: false);
+    list.sort((a, b) {
+      if (a.isPinned != b.isPinned) return a.isPinned ? -1 : 1;
+      return b.createdAt.compareTo(a.createdAt);
+    });
     return Ok<List<Announcement>>(list);
   }
 
@@ -2370,8 +2564,29 @@ final class MockCommunityRepository implements CommunityRepository {
         UnavailableError(message: AppStrings.stateContentUnavailableMessage),
       );
     }
-    final updated = _store.communities[cIdx].copyWith(ownerId: newOwnerUserId);
+    final comm = _store.communities[cIdx];
+    final oldOwnerId = comm.ownerId;
+    final updatedManagerIds = <String>{
+      ...comm.managerIds.where((id) => id != newOwnerUserId),
+      oldOwnerId,
+    }.where((id) => id != newOwnerUserId).toList(growable: false);
+
+    final updated = comm.copyWith(
+      ownerId: newOwnerUserId,
+      managerIds: updatedManagerIds,
+      lastManagerActiveAt: _store.now,
+    );
     _store.communities[cIdx] = updated;
+
+    for (var i = 0; i < _store.memberships.length; i++) {
+      final m = _store.memberships[i];
+      if (m.communityId != communityId) continue;
+      if (m.user.id == newOwnerUserId) {
+        _store.memberships[i] = m.copyWith(role: CommunityRole.owner);
+      } else if (m.user.id == oldOwnerId) {
+        _store.memberships[i] = m.copyWith(role: CommunityRole.manager);
+      }
+    }
     return Ok<Community>(updated);
   }
 }
@@ -3363,6 +3578,88 @@ final class MockChatRepository implements ChatRepository {
     );
     _store.conversations[idx] = updated;
     return Ok<Conversation>(updated);
+  }
+
+  @override
+  Future<Result<Conversation>> createCommunityGroupChat({
+    required Community community,
+    required PersonSummary owner,
+  }) async {
+    final convId = community.conversationId ?? 'conv-${community.id}';
+    final existingIdx = _store.conversations.indexWhere(
+      (c) => c.id == convId || c.communityId == community.id,
+    );
+    if (existingIdx >= 0) {
+      return Ok<Conversation>(_store.conversations[existingIdx]);
+    }
+    final conv = Conversation(
+      id: convId,
+      type: ConversationType.communityGroup,
+      title: community.name,
+      communityId: community.id,
+      participants: <PersonSummary>[owner],
+      updatedAt: _store.now,
+    );
+    _store.conversations.add(conv);
+    _store.notifyListeners();
+    return Ok<Conversation>(conv);
+  }
+
+  @override
+  Future<Result<void>> addParticipantToCommunityChat({
+    required String communityId,
+    required PersonSummary user,
+  }) async {
+    final convIdx = _store.conversations.indexWhere(
+      (c) => c.communityId == communityId,
+    );
+    if (convIdx >= 0) {
+      final conv = _store.conversations[convIdx];
+      if (!conv.participants.any((p) => p.id == user.id)) {
+        _store.conversations[convIdx] = conv.copyWith(
+          participants: <PersonSummary>[...conv.participants, user],
+        );
+        _store.notifyListeners();
+      }
+    } else {
+      final comm = _store.communities
+          .where((c) => c.id == communityId)
+          .firstOrNull;
+      if (comm != null) {
+        _store.conversations.add(
+          Conversation(
+            id: comm.conversationId ?? 'conv-$communityId',
+            type: ConversationType.communityGroup,
+            title: comm.name,
+            communityId: communityId,
+            participants: <PersonSummary>[user],
+            updatedAt: _store.now,
+          ),
+        );
+        _store.notifyListeners();
+      }
+    }
+    return const Ok<void>(null);
+  }
+
+  @override
+  Future<Result<void>> removeParticipantFromCommunityChat({
+    required String communityId,
+    required String userId,
+  }) async {
+    final convIdx = _store.conversations.indexWhere(
+      (c) => c.communityId == communityId,
+    );
+    if (convIdx >= 0) {
+      final conv = _store.conversations[convIdx];
+      _store.conversations[convIdx] = conv.copyWith(
+        participants: conv.participants
+            .where((p) => p.id != userId)
+            .toList(growable: false),
+      );
+      _store.notifyListeners();
+    }
+    return const Ok<void>(null);
   }
 }
 

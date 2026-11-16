@@ -74,8 +74,10 @@ final class MockStore {
   ];
 
   final Map<String, Profil> usersById = <String, Profil>{};
+  final Map<String, DateTime> userLastActiveAt = <String, DateTime>{};
   final List<MargaEntry> margas = <MargaEntry>[];
   final List<WilayahCity> cities = <WilayahCity>[];
+  bool nearbyLocationPermissionDenied = false;
 
   // OTP tracking per nomor HP
   final Map<String, List<DateTime>> otpRequestTimesByPhone =
@@ -337,8 +339,10 @@ final class MockStore {
       ..addAll(const <String>['Simanjuntak', 'Medan', 'Punguan']);
 
     usersById.clear();
+    userLastActiveAt.clear();
     margas.clear();
     cities.clear();
+    nearbyLocationPermissionDenied = false;
     otpRequestTimesByPhone.clear();
     issuedOtpCodeByPhone.clear();
     issuedOtpTimeByPhone.clear();
@@ -675,8 +679,18 @@ final class MockStore {
     margas.addAll(MockSeedData.standardMargas);
 
     // 42 pengguna fiktif
-    for (final u in MockSeedData.buildUsers(baseNow)) {
+    final seedUsers = MockSeedData.buildUsers(baseNow);
+    for (var i = 0; i < seedUsers.length; i++) {
+      var u = seedUsers[i];
+      if (u.id == 'u-10') {
+        u = u.copyWith(
+          privacySettings: const PrivacySettings(
+            accountType: AccountVisibilityType.privateAccount,
+          ),
+        );
+      }
       usersById[u.id] = u;
+      userLastActiveAt[u.id] = baseNow.subtract(Duration(minutes: i * 15));
     }
 
     // Kota wilayah bawaan (40+ kota)
@@ -910,10 +924,12 @@ final class MockStore {
           ),
         );
       }
-      // Tambahkan beberapa anggota biasa di kota yang sama (kecuali komunitas tertutup com-10)
+      // Tambahkan beberapa anggota biasa di kota yang sama (kecuali komunitas tertutup com-10
+      // dan biarkan u-01 belum bergabung di com-02 agar varian Dengan persetujuan bisa diuji)
       if (comm.accessType != CommunityAccessType.closed) {
         for (final uid in allUserIds) {
           if (uid == comm.ownerId || comm.managerIds.contains(uid)) continue;
+          if (comm.id == 'com-02' && uid == 'u-01') continue;
           final p = usersById[uid]!;
           if (p.city == comm.city) {
             memberships.add(
@@ -973,6 +989,32 @@ final class MockStore {
         status: ConnectionRequestStatus.pending,
         createdAt: baseNow.subtract(const Duration(days: 1)),
         expiresAt: baseNow.add(const Duration(days: 29)),
+      ),
+    );
+
+    // Permintaan gabung komunitas & pengumuman awal
+    joinRequests.add(
+      JoinRequest(
+        id: 'jreq-01',
+        communityId: 'com-01',
+        applicant: toPersonSummary(
+          usersById['u-12']!,
+          viewer: usersById['u-01'],
+        ),
+        status: JoinRequestStatus.pending,
+        createdAt: baseNow.subtract(const Duration(days: 1)),
+        expiresAt: baseNow.add(const Duration(days: 13)),
+      ),
+    );
+    announcements.add(
+      Announcement(
+        id: 'ann-01',
+        communityId: 'com-01',
+        author: toPersonSummary(usersById['u-01']!),
+        title: 'Pertemuan Bulanan Punguan',
+        body: 'Horas keluarga besar! Pertemuan bulanan diadakan Minggu depan pukul 15.00 WIB.',
+        isPinned: true,
+        createdAt: baseNow.subtract(const Duration(days: 2)),
       ),
     );
 

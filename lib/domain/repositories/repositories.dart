@@ -106,6 +106,7 @@ abstract interface class PrivacyRepository {
 abstract interface class FollowRepository {
   Future<Result<Follow>> followUser(String targetUserId);
   Future<Result<void>> unfollowUser(String targetUserId);
+  Future<Result<Follow?>> getFollowStatus(String targetUserId);
   Future<Result<List<PersonSummary>>> getFollowers(String userId);
   Future<Result<List<PersonSummary>>> getFollowing(String userId);
 }
@@ -204,6 +205,8 @@ abstract interface class SearchRepository {
 abstract interface class NearbyRepository {
   String get currentSelectedCity;
   void setCurrentSelectedCity(String city);
+  bool get locationPermissionDenied;
+  void setLocationPermissionDenied(bool denied);
   Future<Result<List<WilayahCity>>> getAvailableCities();
   Future<Result<List<PersonSummary>>> getNearbyPeople({
     String? city,
@@ -232,6 +235,11 @@ abstract interface class CommunityRepository {
   Future<Result<JoinRequest?>> joinCommunity(String communityId);
   Future<Result<void>> leaveCommunity(String communityId);
   Future<Result<List<Membership>>> getMembers(String communityId);
+  Future<Result<void>> removeMember({
+    required String communityId,
+    required String targetUserId,
+  });
+  Future<Result<List<JoinRequest>>> getMyJoinRequests();
   Future<Result<List<JoinRequest>>> getPendingJoinRequests(String communityId);
   Future<Result<void>> respondJoinRequest({
     required String joinRequestId,
@@ -247,6 +255,10 @@ abstract interface class CommunityRepository {
     required String title,
     required String body,
     bool isPinned = false,
+  });
+  Future<Result<Announcement>> togglePinAnnouncement({
+    required String communityId,
+    required String announcementId,
   });
   Future<Result<List<Announcement>>> getAnnouncements(String communityId);
   Future<Result<Community>> transferOwnership({
@@ -334,6 +346,18 @@ abstract interface class ChatRepository {
   Future<Result<Conversation>> muteConversation({
     required String conversationId,
     required MuteDurationOption duration,
+  });
+  Future<Result<Conversation>> createCommunityGroupChat({
+    required Community community,
+    required PersonSummary owner,
+  });
+  Future<Result<void>> addParticipantToCommunityChat({
+    required String communityId,
+    required PersonSummary user,
+  });
+  Future<Result<void>> removeParticipantFromCommunityChat({
+    required String communityId,
+    required String userId,
   });
 }
 

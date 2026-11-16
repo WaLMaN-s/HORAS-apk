@@ -72,7 +72,10 @@ final nearbyRepositoryProvider = Provider<NearbyRepository>((ref) {
 
 /// 11. Provider [CommunityRepository].
 final communityRepositoryProvider = Provider<CommunityRepository>((ref) {
-  return MockCommunityRepository(ref.watch(mockStoreProvider));
+  return MockCommunityRepository(
+    ref.watch(mockStoreProvider),
+    ref.watch(chatRepositoryProvider),
+  );
 });
 
 /// 12. Provider [SessionRepository].

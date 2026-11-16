@@ -4,10 +4,10 @@ import 'package:horas/app.dart';
 import 'package:horas/core/config/app_config.dart';
 import 'package:horas/core/config/repository_providers.dart';
 import 'package:horas/core/l10n/app_strings.dart';
-import 'package:horas/core/router/app_pages.dart';
 import 'package:horas/data/mock/mock_store.dart';
 import 'package:horas/domain/partuturan/partuturan_confidence.dart';
 import 'package:horas/features/auth/presentation/auth_placeholder_page.dart';
+import 'package:horas/features/nearby/presentation/sek01_nearby_page.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:pinput/pinput.dart';
 
@@ -284,7 +284,7 @@ void main() {
           await tester.pumpAndSettle();
 
           // 6. Tiba di tab Sekitar (SEK-01) menyelesaikan Alur A1!
-          expect(find.text(AppPages.sek01.id), findsOneWidget);
+          expect(find.byType(Sek01NearbyPage), findsOneWidget);
         },
       );
     },

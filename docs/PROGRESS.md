@@ -17,13 +17,13 @@ Keterangan status:
 | --- | --- | --- | --- | --- | --- |
 | Autentikasi | AUT | 7 | 7 | 0 | 7 |
 | Beranda | BER | 10 | 8 | 2 | 8 |
-| Sekitar | SEK | 12 | 9 | 3 | 0 |
+| Sekitar | SEK | 12 | 9 | 3 | 9 |
 | Tarombo | TAR | 8 | 7 | 1 | 0 |
 | Main | MAN | 9 | 9 | 0 | 0 |
 | Pesan | PSN | 6 | 6 | 0 | 0 |
 | Akun | AKN | 15 | 15 | 0 | 0 |
 | Sistem | SIS | 8 | 8 | 0 | 0 |
-| **Total** |  | **75** | **69** | **6** | **15** |
+| **Total** |  | **75** | **69** | **6** | **24** |
 
 ---
 
@@ -57,18 +57,18 @@ Keterangan status:
 ### 3. Sekitar (SEK)
 | ID | Nama Halaman | Tujuan | Fase | Rute | Status |
 | --- | --- | --- | --- | --- | --- |
-| SEK-01 | Sekitar (utama) | Segmen Orang, Komunitas, Gereja | 1 | `/sekitar` | Belum |
-| SEK-02 | Daftar orang sekitar | Kartu orang dengan badge partuturan | 1 | `/sekitar/orang` | Belum |
-| SEK-03 | Filter orang | Marga, kota, kampus/kantor, hobi | 1 | `/sekitar/orang-filter` | Belum |
-| SEK-04 | Profil orang lain | Profil, badge, aksi Ikuti/Kenalan/Pesan | 1 | `/sekitar/profil` | Belum |
-| SEK-05 | Daftar komunitas | Jelajah dan cari komunitas | 1 | `/sekitar/komunitas` | Belum |
-| SEK-06 | Detail komunitas | Info, anggota, pengumuman, kegiatan | 1 | `/sekitar/komunitas-detail` | Belum |
-| SEK-07 | Buat komunitas | Formulir pembuatan | 1 | `/sekitar/komunitas-buat` | Belum |
-| SEK-08 | Kelola komunitas | Anggota, permintaan gabung, peran, pengumuman | 1 | `/sekitar/komunitas-kelola` | Belum |
-| SEK-09 | Detail kegiatan | Info kegiatan dan RSVP | 2 | `/sekitar/kegiatan-detail` | Belum |
-| SEK-10 | Daftar gereja | Direktori dan filter | 2 | `/sekitar/gereja` | Belum |
-| SEK-11 | Detail gereja | Jadwal, kontak, kegiatan, jemaat di HORAS | 2 | `/sekitar/gereja-detail` | Belum |
-| SEK-12 | Pencarian Sekitar | Cari orang dan komunitas (gereja di fase 2) | 1 | `/sekitar/cari` | Belum |
+| SEK-01 | Sekitar (utama) | Segmen Orang dan Komunitas (Gereja Fase 2 off) | 1 | `/sekitar` | Selesai |
+| SEK-02 | Daftar orang sekitar | Kartu orang dengan badge partuturan | 1 | `/sekitar/orang` | Selesai |
+| SEK-03 | Filter orang | Marga, kota, kampus/kantor, hobi | 1 | `/sekitar/orang-filter` | Selesai |
+| SEK-04 | Profil orang lain | Profil, badge, aksi Ikuti/Kenalan/Pesan | 1 | `/sekitar/profil` | Selesai |
+| SEK-05 | Daftar komunitas | Jelajah dan cari komunitas | 1 | `/sekitar/komunitas` | Selesai |
+| SEK-06 | Detail komunitas | Info, anggota, pengumuman (kegiatan Fase 2 off) | 1 | `/sekitar/komunitas-detail` | Selesai |
+| SEK-07 | Buat komunitas | Formulir pembuatan | 1 | `/sekitar/komunitas-buat` | Selesai |
+| SEK-08 | Kelola komunitas | Anggota, permintaan gabung, peran, pengumuman | 1 | `/sekitar/komunitas-kelola` | Selesai |
+| SEK-09 | Detail kegiatan | Info kegiatan dan RSVP (Fase 2) | 2 | `/sekitar/kegiatan-detail` | Belum |
+| SEK-10 | Daftar gereja | Direktori dan filter (Fase 2) | 2 | `/sekitar/gereja` | Belum |
+| SEK-11 | Detail gereja | Jadwal, kontak, kegiatan, jemaat di HORAS (Fase 2) | 2 | `/sekitar/gereja-detail` | Belum |
+| SEK-12 | Pencarian Sekitar | Cari orang dan komunitas (gereja di fase 2) | 1 | `/sekitar/cari` | Selesai |
 
 ### 4. Tarombo (TAR)
 | ID | Nama Halaman | Tujuan | Fase | Rute | Status |
@@ -139,9 +139,9 @@ Keterangan status:
 ---
 
 ## Bagian Placeholder (`SegeraPage`)
-Halaman yang masih dirender menggunakan `SegeraPage` (60 halaman; `AUT-01` .. `AUT-07` selesai di Prompt 3, `BER-01` dan `BER-04` .. `BER-10` selesai di Prompt 4):
+Halaman yang masih dirender menggunakan `SegeraPage` (51 halaman; `AUT-01` .. `AUT-07` selesai di Prompt 3, `BER-01`/`04..10` di Prompt 4, `SEK-01..08`/`12` di Prompt 5):
 - `BER-02` .. `BER-03` (`HomeModulePageRouter` - Fase 2 belum diaktifkan)
-- `SEK-01` .. `SEK-12` (`NearbyModulePlaceholderPage`)
+- `SEK-09` .. `SEK-11` (`NearbyModulePageRouter` - Fase 2 belum diaktifkan)
 - `TAR-01` .. `TAR-08` (`TaromboModulePlaceholderPage`)
 - `MAN-01` .. `MAN-09` (`PlayModulePlaceholderPage`)
 - `PSN-01` .. `PSN-06` (`MessagesModulePlaceholderPage`)

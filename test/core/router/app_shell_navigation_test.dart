@@ -7,6 +7,7 @@ import 'package:horas/core/router/app_pages.dart';
 import 'package:horas/core/router/app_router.dart';
 import 'package:horas/core/router/shell_navigation_controller.dart';
 import 'package:horas/features/home/presentation/ber01_feed_page.dart';
+import 'package:horas/features/nearby/presentation/sek01_nearby_page.dart';
 
 void main() {
   testWidgets(
@@ -32,7 +33,7 @@ void main() {
       // Pindah ke Tab 1: Sekitar (SEK-01)
       await tester.tap(find.text(AppStrings.tabSekitar));
       await tester.pumpAndSettle();
-      expect(find.text(AppPages.sek01.id), findsOneWidget);
+      expect(find.byType(Sek01NearbyPage), findsOneWidget);
       expect(container.read(shellNavigationProvider).lastTabIndex, 1);
 
       // Pindah ke Tab 2: Tarombo (TAR-01)

@@ -68,9 +68,13 @@ class AppChip extends StatelessWidget {
                     Icon(leadingIcon, size: AppSizes.iconSm, color: fgColor),
                     const SizedBox(width: AppSpacing.xs + AppSpacing.xxs),
                   ],
-                  Text(
-                    label,
-                    style: typo.captionStrong.copyWith(color: fgColor),
+                  Flexible(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: typo.captionStrong.copyWith(color: fgColor),
+                    ),
                   ),
                 ],
               ),

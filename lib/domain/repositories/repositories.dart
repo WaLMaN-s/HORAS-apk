@@ -1,6 +1,7 @@
 import 'package:horas/core/errors/result.dart';
 import 'package:horas/domain/models/models.dart';
 import 'package:horas/domain/partuturan/partuturan_confidence.dart';
+import 'package:horas/domain/policies/privacy_defaults.dart';
 
 export 'debug_simulation_repository.dart';
 export 'navigation_badge_repository.dart';
@@ -405,7 +406,9 @@ abstract interface class VerificationRepository {
 /// 18. Repository Tarombo & Klaim Kerabat (TAR-01 .. TAR-04, TAR-07, TAR-R1 .. TAR-R12).
 abstract interface class TaromboRepository {
   bool get hasGivenConsent;
+  FieldVisibility get parentNamesVisibility;
   Future<Result<void>> giveConsent();
+  Future<Result<void>> setParentNamesVisibility(FieldVisibility visibility);
   Future<Result<List<FamilyMember>>> getMyFamilyMembers();
   Future<Result<FamilyMember>> upsertFamilyMember({
     required FamilyRelationType relationType,
@@ -416,7 +419,11 @@ abstract interface class TaromboRepository {
     String? id,
     int? birthYear,
   });
+  Future<Result<void>> deleteFamilyMember(String memberId);
   Future<Result<void>> deleteAllMyTarombo();
+  Future<Result<List<PersonSummary>>> findPotentialLinksForMember(
+    String memberId,
+  );
   Future<Result<int>> getCompletenessPercent();
   Future<Result<List<PartuturanClaim>>> getIncomingClaims();
   Future<Result<List<PartuturanClaim>>> getOutgoingClaims();
@@ -434,6 +441,10 @@ abstract interface class TaromboRepository {
 /// 19. Repository Partuturan & GenerationResolver (TAR-05, TAR-06, TAR-R5 .. TAR-R9).
 abstract interface class PartuturanRepository {
   Future<Result<PartuturanResult>> evaluateWithUser(String targetUserId);
+  Future<Result<PartuturanResult>> evaluateBetweenUsers({
+    required String userAId,
+    required String userBId,
+  });
   Future<Result<PartuturanResult>> evaluateManual({
     required String viewerMarga,
     required UserGender viewerGender,

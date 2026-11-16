@@ -195,7 +195,13 @@ class _Ber10SearchResultsPageState extends ConsumerState<Ber10SearchResultsPage>
                       ],
                     ),
                   ),
-                  if (showBadge) PartuturanBadge(result: partuturan),
+                  if (showBadge)
+                    PartuturanBadge(
+                      result: partuturan,
+                      onTap: () => context.push(
+                        '${AppPages.tar05.routePath}?userId=${person.id}',
+                      ),
+                    ),
                 ],
               ),
             ),

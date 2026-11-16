@@ -62,6 +62,7 @@ final class MockStore {
   String? secureAccessToken = 'mock-jwt-u-01';
   String currentSelectedCity = 'Medan';
   bool hasGivenTaromboConsent = false;
+  FieldVisibility taromboParentNamesVisibility = FieldVisibility.onlyMe;
   LegalConsentRecord? savedLegalConsent;
   OnboardingDraft onboardingDraft = const OnboardingDraft();
   AccountRecoverySubmission? latestRecoverySubmission;
@@ -385,6 +386,8 @@ final class MockStore {
 
     currentUserId = 'u-01';
     currentSelectedCity = 'Medan';
+    hasGivenTaromboConsent = false;
+    taromboParentNamesVisibility = FieldVisibility.onlyMe;
     _seedAll();
 
     if (prefs != null) {
@@ -1408,6 +1411,22 @@ final class MockStore {
         lifeStatus: LifeStatus.deceased,
       ),
     ]);
+
+    // Klaim konfirmasi hubungan awal masuk untuk u-01 (TAR-07)
+    partuturanClaims.add(
+      PartuturanClaim(
+        id: 'clm-seed-01',
+        sender: toPersonSummary(usersById['u-07']!, viewer: usersById['u-01']),
+        receiver: toPersonSummary(
+          usersById['u-01']!,
+          viewer: usersById['u-07'],
+        ),
+        claimedTermForReceiver: 'Bere',
+        note: 'Boru Panggabean satu generasi di atas.',
+        status: PartuturanClaimStatus.pending,
+        createdAt: baseNow.subtract(const Duration(days: 1)),
+      ),
+    );
 
     // Notifikasi awal untuk u-01
     notifications.addAll(<AppNotification>[

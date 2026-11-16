@@ -1,5 +1,7 @@
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
+import 'package:go_router/go_router.dart';
 import 'package:horas/core/l10n/app_strings.dart';
+import 'package:horas/core/router/app_pages.dart';
 import 'package:horas/core/theme/app_theme.dart';
 import 'package:horas/core/theme/app_tokens.dart';
 import 'package:horas/core/widgets/widgets.dart';
@@ -98,7 +100,12 @@ class PostCard extends StatelessWidget {
                                 ),
                               ),
                               if (showPartuturan)
-                                PartuturanBadge(result: partuturan),
+                                PartuturanBadge(
+                                  result: partuturan,
+                                  onTap: () => context.push(
+                                    '${AppPages.tar05.routePath}?userId=${author.id}',
+                                  ),
+                                ),
                               if (author.isSameMarga && !showPartuturan)
                                 Container(
                                   padding: const EdgeInsets.symmetric(

@@ -774,4 +774,158 @@ abstract final class AppStrings {
   static const String sek12SearchHint = 'Cari nama, marga, atau komunitas...';
   static const String sek12SearchPrompt =
       'Ketik nama orang, marga, atau nama komunitas di Sekitar.';
+
+  // ── Tarombo & Partuturan (Prompt 6: TAR-01 .. TAR-07) ──────────────────────
+  static const String tarConsentTitle = 'Persetujuan Data Keluarga (Tarombo)';
+  static const String tarConsentBody =
+      'Dengan mengisi silsilah Tarombo, kamu menyatakan bahwa kamu memasukkan data anggota keluarga (pihak lain) secara sukarela dan bertanggung jawab, hanya untuk penggunaan di lingkup privasi pilihanmu.';
+  static const String tarConsentAcceptBtn = 'Saya Setuju & Lanjutkan';
+  static const String tarConsentCancelBtn = 'Nanti Saja';
+
+  static const String tar01IdentityTitle = 'Identitas Adat';
+  static const String tar01MotherMargaLabel = 'Marga Ibu';
+  static const String tar01MotherMargaEmpty = 'Belum diisi';
+  static const String tar01EditMotherMargaBtn = 'Lengkapi Marga Ibu';
+  static const String tar01CompletenessTitle = 'Kelengkapan Tarombo';
+  static String tar01CompletenessPercent(int percent) => '$percent% Lengkap';
+  static const String tar01CompletenessSubtitle =
+      'Ajakan melengkapi 5 butir dasar (bukan syarat menggunakan aplikasi).';
+  static const String tar01ItemMotherMarga = 'Marga Ibu';
+  static const String tar01ItemFather = 'Ayah';
+  static const String tar01ItemMother = 'Ibu';
+  static const String tar01ItemPaternalGrandfather = 'Kakek dari Ayah';
+  static const String tar01ItemMaternalGrandfather = 'Kakek dari Ibu';
+  static const String tar01NeutralBanner =
+      'Mode netral aktif: sub-suku ini belum memiliki aturan partuturan tervalidasi di Fase 1. Identitas marga dan Semarga tetap aktif.';
+  static const String tar01SuggestionsTitle = 'Saran Kerabat';
+  static const String tar01IncomingClaimsTitle = 'Permintaan Konfirmasi Masuk';
+  static const String tar01EmptySuggestions =
+      'Belum ada saran kerabat di sekitar saat ini.';
+  static const String tar01OpenTreeBtn = 'Pohon Silsilah';
+  static const String tar01AddMemberBtn = 'Tambah Anggota';
+  static const String tar01CheckPartuturanBtn = 'Cek Partuturan';
+  static const String tar01ConfirmationsBtn = 'Konfirmasi Hubungan';
+
+  static const String tar01PrivacyTitle = 'Privasi & Data Tarombo';
+  static const String tar01PrivacyTaromboLabel = 'Visibilitas Tarombo';
+  static const String tar01PrivacyMotherMargaLabel = 'Visibilitas Marga Ibu';
+  static const String tar01PrivacyParentsLabel = 'Visibilitas Nama Orang Tua';
+  static const String tar01VisibilityOnlyMe = 'Hanya saya';
+  static const String tar01VisibilityConnected = 'Terhubung';
+  static const String tar01VisibilityEveryone = 'Publik';
+  static const String tar01DeleteAllBtn = 'Hapus Seluruh Data Tarombo';
+  static const String tar01DeleteAllConfirmTitle =
+      'Hapus Seluruh Data Tarombo?';
+  static const String tar01DeleteAllConfirmBody =
+      'Semua catatan anggota keluarga di Tarombo milikmu akan dihapus permanen dan privasi dikembalikan ke Hanya saya.';
+  static const String tar01DeleteAllDoneToast =
+      'Seluruh data tarombo telah dihapus.';
+  static const String tar01EmptyDataMessage =
+      'Belum ada anggota keluarga di Tarombo. Mulai dengan menambahkan ayah, ibu, atau kakek.';
+
+  static const String tar02SubtitleFullTreeSoon =
+      'Pohon penuh menyusul (Fase 3)';
+  static const String tar02ThreeGenNotice =
+      'Menampilkan maksimal 3 generasi ke atas dari pemilik. Cubit atau geser untuk menjelajahi silsilah.';
+  static const String tar02SelfNodeRole = 'Pemilik';
+  static const String tar02ZoomHint = 'Geser atau cubit untuk memperbesar';
+
+  static const String tar03RelationLabel = 'Hubungan Keluarga';
+  static const String tar03FullNameLabel = 'Nama Lengkap';
+  static const String tar03FullNameHint = 'Contoh: St. Maringan Simanjuntak';
+  static const String tar03MargaLabel = 'Marga';
+  static const String tar03MargaHint = 'Contoh: Simanjuntak';
+  static const String tar03GenderLabel = 'Jenis Kelamin';
+  static const String tar03BirthYearLabel = 'Tahun Lahir (Opsional)';
+  static const String tar03BirthYearHint = 'Contoh: 1966';
+  static const String tar03LifeStatusLabel = 'Status';
+  static const String tar03NoPhotoOrContactNote =
+      'Sesuai TAR-R3, anggota tarombo non-pengguna tidak dapat dicari publik dan tidak memuat foto maupun kontak.';
+  static const String tar03SaveBtn = 'Simpan Anggota';
+  static const String tar03SavedToast =
+      'Anggota keluarga tersimpan di Tarombo.';
+
+  static const String tar04EditBtn = 'Ubah';
+  static const String tar04DeleteBtn = 'Hapus Anggota';
+  static const String tar04DeleteConfirmTitle = 'Hapus Anggota Keluarga?';
+  static const String tar04DeleteConfirmBody =
+      'Anggota ini akan dihapus dari silsilah tarombomu.';
+  static const String tar04NotListed = 'Tidak dicantumkan';
+  static const String tar04PrivacyNotice =
+      'Hanya terlihat oleh pemilik dan pihak yang disetujui; tidak dapat dicari publik; tanpa foto atau kontak (TAR-R3).';
+  static const String tar04LinkPromptBtn =
+      'Tautkan ke Akun HORAS (Perlu Konfirmasi)';
+  static const String tar04LinkDialogTitle =
+      'Konfirmasi Penautan Akun (TAR-R4)';
+  static String tar04LinkDialogBody(String name) =>
+      'Kami menemukan akun HORAS "$name" yang mungkin cocok. Penautan tidak pernah otomatis dan butuh persetujuan kedua pihak. Kirim permintaan konfirmasi?';
+  static const String tar04LinkSendBtn = 'Kirim Konfirmasi Penautan';
+  static const String tar04LinkSentToast =
+      'Permintaan konfirmasi penautan dikirim.';
+
+  static const String tar05SectionCallTerm = 'Panggilan & Hubungan';
+  static const String tar05SectionPath = 'Penjelasan Jalur';
+  static const String tar05SendWeAreKinBtn = 'Kirim klaim Kami kerabat';
+  static const String tar05ReportWrongRuleBtn = 'Laporkan aturan salah';
+  static const String tar05ReportWrongRuleTitle =
+      'Laporkan Aturan Partuturan Salah';
+  static const String tar05ReportWrongRuleHint =
+      'Jelaskan ketidaksesuaian menurut adat / wilayah (opsional)...';
+  static const String tar05ReportSubmittedToast =
+      'Laporan dikirim ke reviewer adat untuk peninjauan.';
+  static const String tar05EstimateBadgeDesc =
+      'Hasil Perkiraan (bukan fakta silsilah sampai dikonfirmasi kedua pihak).';
+  static const String tar05ConfirmedBadgeDesc =
+      'Terverifikasi kedua pihak (keyakinan Tinggi).';
+
+  static const String tar06TabPickTwoPeople = 'Pilih Dua Orang';
+  static const String tar06TabManualInput = 'Input Manual';
+  static const String tar06PersonALabel = 'Orang Pertama (Sudut Pandang)';
+  static const String tar06PersonBLabel = 'Orang Kedua (Target)';
+  static const String tar06ManualSubEthnicLabel = 'Sub-suku';
+  static const String tar06ManualMargaALabel = 'Marga Orang A';
+  static const String tar06ManualMotherMargaALabel =
+      'Marga Ibu Orang A (Opsional)';
+  static const String tar06ManualMargaBLabel = 'Marga Orang B';
+  static const String tar06ManualGenDiffLabel = 'Selisih Generasi';
+  static const String tar06CalculateBtn = 'Cek Hubungan';
+  static const String tar06ResultHeader = 'Hasil Cek Partuturan';
+  static const String tar06GenAbove2 = '2 Generasi di Atas (+2 / Ompung)';
+  static const String tar06GenAbove1 = '1 Generasi di Atas (+1 / Orang Tua)';
+  static const String tar06GenSame = 'Sejajar (0 / Sepupu/Saudara)';
+  static const String tar06GenBelow1 = '1 Generasi di Bawah (-1 / Anak)';
+  static const String tar06GenUnknown = 'Generasi Tidak Diketahui';
+
+  static const String tar07TabIncoming = 'Masuk';
+  static const String tar07TabWaiting = 'Menunggu';
+  static const String tar07TabSendNew = 'Kirim Klaim';
+  static const String tar07SelectTargetLabel = 'Pilih Kenalan / Pengguna';
+  static const String tar07SelectTermLabel = 'Pilih Jenis Hubungan (Panggilan)';
+  static const String tar07NoteLabel = 'Catatan Tambahan (Opsional)';
+  static const String tar07SendClaimBtn = 'Kirim Klaim Kami Kerabat';
+  static const String tar07ClaimSentToast =
+      'Klaim Kami kerabat terkirim. Menunggu persetujuan pihak lain.';
+  static const String tar07ClaimAcceptedToast =
+      'Klaim diterima! Tingkat keyakinan hubungan naik menjadi Tinggi.';
+  static const String tar07ClaimRejectedToast = 'Klaim ditolak.';
+  static const String tar07EmptyIncoming =
+      'Tidak ada permintaan konfirmasi hubungan yang masuk.';
+  static const String tar07EmptyWaiting =
+      'Belum ada klaim yang sedang menunggu persetujuan.';
+  static const String tar07WaitingBadge = 'Menunggu konfirmasi';
+  static const List<String> tar07CommonTerms = <String>[
+    'Tulang',
+    'Nantulang',
+    'Amangboru',
+    'Namboru',
+    'Lae',
+    'Ito',
+    'Pariban',
+    'Dongan Tubu',
+    'Amanguda',
+    'Inanguda',
+    'Hula-hula',
+    'Boru',
+    'Bere',
+  ];
 }

@@ -456,7 +456,12 @@ class _Sek04PersonProfilePageState
 
           // Badge Partuturan & Semarga (AC-03, AC-04, SEK-R6)
           if (partuturan != null && !partuturan.modeNetral) ...<Widget>[
-            PartuturanBadge(result: partuturan),
+            PartuturanBadge(
+              result: partuturan,
+              onTap: () => context.push(
+                '${AppPages.tar05.routePath}?userId=${person.id}',
+              ),
+            ),
             if (partuturan.penjelasanJalur.isNotEmpty) ...<Widget>[
               const SizedBox(height: AppSpacing.sm),
               Text(partuturan.penjelasanJalur, style: typo.caption),

@@ -3928,10 +3928,24 @@ final class MockTaromboRepository implements TaromboRepository {
   bool get hasGivenConsent => _store.hasGivenTaromboConsent;
 
   @override
+  FieldVisibility get parentNamesVisibility =>
+      _store.taromboParentNamesVisibility;
+
+  @override
   Future<Result<void>> giveConsent() async {
     final net = await _store.simulateNetworkCall();
     if (net.isErr) return net;
     _store.hasGivenTaromboConsent = true;
+    return const Ok<void>(null);
+  }
+
+  @override
+  Future<Result<void>> setParentNamesVisibility(
+    FieldVisibility visibility,
+  ) async {
+    final net = await _store.simulateNetworkCall();
+    if (net.isErr) return net;
+    _store.taromboParentNamesVisibility = visibility;
     return const Ok<void>(null);
   }
 
@@ -3969,8 +3983,29 @@ final class MockTaromboRepository implements TaromboRepository {
       );
     }
 
+    if (fullName.trim().isEmpty || marga.trim().isEmpty) {
+      return const Err<FamilyMember>(
+        ValidationError(
+          message: 'Nama lengkap dan marga anggota keluarga wajib diisi.',
+          field: 'fullName',
+        ),
+      );
+    }
+
+    final existingIdx = id != null
+        ? _store.familyMembers.indexWhere((f) => f.id == id)
+        : (relationType != FamilyRelationType.otherAncestor
+              ? _store.familyMembers.indexWhere(
+                  (f) => f.ownerUserId == uid && f.relationType == relationType,
+                )
+              : -1);
+
+    final effectiveId = existingIdx >= 0
+        ? _store.familyMembers[existingIdx].id
+        : (id ?? _store.nextId('fam'));
+
     final member = FamilyMember(
-      id: id ?? _store.nextId('fam'),
+      id: effectiveId,
       ownerUserId: uid,
       relationType: relationType,
       fullName: fullName.trim(),
@@ -3979,9 +4014,20 @@ final class MockTaromboRepository implements TaromboRepository {
       birthYear: birthYear,
       lifeStatus: lifeStatus,
     );
-    _store.familyMembers.removeWhere((f) => f.id == member.id);
+    _store.familyMembers.removeWhere((f) => f.id == effectiveId);
     _store.familyMembers.add(member);
     return Ok<FamilyMember>(member);
+  }
+
+  @override
+  Future<Result<void>> deleteFamilyMember(String memberId) async {
+    final net = await _store.simulateNetworkCall();
+    if (net.isErr) return net;
+    final uid = _store.currentUserId;
+    _store.familyMembers.removeWhere(
+      (f) => f.id == memberId && f.ownerUserId == uid,
+    );
+    return const Ok<void>(null);
   }
 
   @override
@@ -3991,7 +4037,41 @@ final class MockTaromboRepository implements TaromboRepository {
     final uid = _store.currentUserId;
     // TAR-R10: Pemilik dapat menghapus seluruh data tarombonya kapan saja.
     _store.familyMembers.removeWhere((f) => f.ownerUserId == uid);
+    _store.taromboParentNamesVisibility = FieldVisibility.onlyMe;
     return const Ok<void>(null);
+  }
+
+  @override
+  Future<Result<List<PersonSummary>>> findPotentialLinksForMember(
+    String memberId,
+  ) async {
+    final net = await _store.simulateNetworkCall();
+    if (net is Err<void>) return Err<List<PersonSummary>>(net.failure);
+
+    final me = _store.activeProfile;
+    final member = _store.familyMembers
+        .where((f) => f.id == memberId && f.ownerUserId == me?.id)
+        .firstOrNull;
+    if (me == null || member == null || member.linkedUserId != null) {
+      return const Ok<List<PersonSummary>>(<PersonSummary>[]);
+    }
+
+    // TAR-R4: Tawarkan kandidat akun terdaftar yang cocok untuk konfirmasi kedua pihak (tidak otomatis).
+    final tokens = member.fullName
+        .toLowerCase()
+        .split(RegExp(r'\s+'))
+        .where((t) => t.length >= 3 && t != member.marga.toLowerCase())
+        .toSet();
+    final matches = <PersonSummary>[];
+    for (final u in _store.usersById.values) {
+      if (u.id == me.id || _store.isBlockedBetween(me.id, u.id)) continue;
+      if (u.marga.toLowerCase() != member.marga.toLowerCase()) continue;
+      final nameLower = u.displayName.toLowerCase();
+      if (tokens.any((t) => nameLower.contains(t))) {
+        matches.add(_store.toPersonSummary(u, viewer: me));
+      }
+    }
+    return Ok<List<PersonSummary>>(matches);
   }
 
   @override
@@ -4152,6 +4232,26 @@ final class MockPartuturanRepository implements PartuturanRepository {
     }
     return Ok<PartuturanResult>(
       _store.evaluatePartuturanForUsers(viewer: me, target: target),
+    );
+  }
+
+  @override
+  Future<Result<PartuturanResult>> evaluateBetweenUsers({
+    required String userAId,
+    required String userBId,
+  }) async {
+    final net = await _store.simulateNetworkCall();
+    if (net is Err<void>) return Err<PartuturanResult>(net.failure);
+
+    final userA = _store.usersById[userAId];
+    final userB = _store.usersById[userBId];
+    if (userA == null || userB == null) {
+      return const Err<PartuturanResult>(
+        UnavailableError(message: AppStrings.stateContentUnavailableMessage),
+      );
+    }
+    return Ok<PartuturanResult>(
+      _store.evaluatePartuturanForUsers(viewer: userA, target: userB),
     );
   }
 

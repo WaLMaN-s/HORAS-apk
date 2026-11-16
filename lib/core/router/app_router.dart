@@ -128,16 +128,19 @@ GoRouter createAppRouter({
               ),
             ],
           ),
-          // Tab 2: Tarombo (TAR-01 .. TAR-08)
+          // Tab 2: Tarombo (TAR-01 .. TAR-07 — Selesai di Prompt 6)
           StatefulShellBranch(
             routes: <RouteBase>[
-              _buildTabBranchRoute(
+              _buildTabBranchRouteWithState(
                 rootSpec: AppPages.tar01,
                 childSpecs: AppPages.taromboPages.skip(1).toList(),
-                rootBuilder: (spec) =>
-                    TaromboModulePlaceholderPage(pageSpec: spec, tabIndex: 2),
-                childBuilder: (spec) =>
-                    TaromboModulePlaceholderPage(pageSpec: spec),
+                rootBuilder: (spec, state) => TaromboModulePageRouter(
+                  pageSpec: spec,
+                  routerState: state,
+                  tabIndex: 2,
+                ),
+                childBuilder: (spec, state) =>
+                    TaromboModulePageRouter(pageSpec: spec, routerState: state),
               ),
             ],
           ),

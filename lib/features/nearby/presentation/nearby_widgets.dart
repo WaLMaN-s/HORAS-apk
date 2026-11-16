@@ -1,4 +1,6 @@
+import 'package:go_router/go_router.dart';
 import 'package:horas/core/l10n/app_strings.dart';
+import 'package:horas/core/router/app_pages.dart';
 import 'package:horas/core/theme/app_theme.dart';
 import 'package:horas/core/theme/app_tokens.dart';
 import 'package:horas/core/widgets/widgets.dart';
@@ -70,7 +72,12 @@ class PersonNearbyCard extends StatelessWidget {
                         runSpacing: AppSpacing.xs,
                         children: <Widget>[
                           if (partuturan != null && !partuturan.modeNetral)
-                            PartuturanBadge(result: partuturan),
+                            PartuturanBadge(
+                              result: partuturan,
+                              onTap: () => context.push(
+                                '${AppPages.tar05.routePath}?userId=${person.id}',
+                              ),
+                            ),
                           if (person.isSameMarga)
                             const SemargaLabel(showExplanation: false),
                           if (person.sharedCommunitiesCount > 0)

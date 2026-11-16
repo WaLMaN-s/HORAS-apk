@@ -18,12 +18,12 @@ Keterangan status:
 | Autentikasi | AUT | 7 | 7 | 0 | 7 |
 | Beranda | BER | 10 | 8 | 2 | 8 |
 | Sekitar | SEK | 12 | 9 | 3 | 9 |
-| Tarombo | TAR | 8 | 7 | 1 | 0 |
+| Tarombo | TAR | 8 | 7 | 1 | 7 |
 | Main | MAN | 9 | 9 | 0 | 0 |
 | Pesan | PSN | 6 | 6 | 0 | 0 |
 | Akun | AKN | 15 | 15 | 0 | 0 |
 | Sistem | SIS | 8 | 8 | 0 | 0 |
-| **Total** |  | **75** | **69** | **6** | **24** |
+| **Total** |  | **75** | **69** | **6** | **31** |
 
 ---
 
@@ -73,14 +73,14 @@ Keterangan status:
 ### 4. Tarombo (TAR)
 | ID | Nama Halaman | Tujuan | Fase | Rute | Status |
 | --- | --- | --- | --- | --- | --- |
-| TAR-01 | Dashboard Tarombo | Ringkasan identitas, kelengkapan, saran kerabat, permintaan konfirmasi | 1 | `/tarombo` | Belum |
-| TAR-02 | Pohon silsilah | Tampilan pohon; ringkas 3 generasi di fase 1, penuh di fase 3 | 1 | `/tarombo/pohon` | Belum |
-| TAR-03 | Tambah/ubah anggota keluarga | Fase 1: ayah, ibu, kakek dari ayah; penuh di fase 3 | 1 | `/tarombo/anggota-form` | Belum |
-| TAR-04 | Detail anggota | Data satu anggota tarombo | 1 | `/tarombo/anggota-detail` | Belum |
-| TAR-05 | Detail hubungan | Panggilan, penjelasan jalur, tingkat keyakinan | 1 | `/tarombo/hubungan-detail` | Belum |
-| TAR-06 | Cek partuturan | Pilih dua orang, lihat hubungannya | 1 | `/tarombo/cek-partuturan` | Belum |
-| TAR-07 | Konfirmasi hubungan | Kirim/terima/tolak pengakuan kerabat | 1 | `/tarombo/konfirmasi` | Belum |
-| TAR-08 | Kamus partuturan | Cari istilah dan maknanya | 2 | `/tarombo/kamus` | Belum |
+| TAR-01 | Dashboard Tarombo | Ringkasan identitas, kelengkapan, saran kerabat, permintaan konfirmasi | 1 | `/tarombo` | Selesai |
+| TAR-02 | Pohon silsilah | Tampilan pohon; ringkas 3 generasi di fase 1, penuh di fase 3 | 1 | `/tarombo/pohon` | Selesai |
+| TAR-03 | Tambah/ubah anggota keluarga | Fase 1: ayah, ibu, kakek dari ayah & kakek dari ibu | 1 | `/tarombo/anggota-form` | Selesai |
+| TAR-04 | Detail anggota | Data satu anggota tarombo | 1 | `/tarombo/anggota-detail` | Selesai |
+| TAR-05 | Detail hubungan | Panggilan, penjelasan jalur, tingkat keyakinan | 1 | `/tarombo/hubungan-detail` | Selesai |
+| TAR-06 | Cek partuturan | Pilih dua orang, lihat hubungannya | 1 | `/tarombo/cek-partuturan` | Selesai |
+| TAR-07 | Konfirmasi hubungan | Kirim/terima/tolak pengakuan kerabat | 1 | `/tarombo/konfirmasi` | Selesai |
+| TAR-08 | Kamus partuturan | Cari istilah dan maknanya (Fase 2) | 2 | `/tarombo/kamus` | Belum |
 
 ### 5. Main (MAN)
 | ID | Nama Halaman | Tujuan | Fase | Rute | Status |
@@ -139,10 +139,10 @@ Keterangan status:
 ---
 
 ## Bagian Placeholder (`SegeraPage`)
-Halaman yang masih dirender menggunakan `SegeraPage` (51 halaman; `AUT-01` .. `AUT-07` selesai di Prompt 3, `BER-01`/`04..10` di Prompt 4, `SEK-01..08`/`12` di Prompt 5):
+Halaman yang masih dirender menggunakan `SegeraPage` (44 halaman; `AUT-01` .. `AUT-07` selesai di Prompt 3, `BER-01`/`04..10` di Prompt 4, `SEK-01..08`/`12` di Prompt 5, `TAR-01..07` di Prompt 6):
 - `BER-02` .. `BER-03` (`HomeModulePageRouter` - Fase 2 belum diaktifkan)
 - `SEK-09` .. `SEK-11` (`NearbyModulePageRouter` - Fase 2 belum diaktifkan)
-- `TAR-01` .. `TAR-08` (`TaromboModulePlaceholderPage`)
+- `TAR-08` (`TaromboModulePageRouter` - Fase 2 belum diaktifkan)
 - `MAN-01` .. `MAN-09` (`PlayModulePlaceholderPage`)
 - `PSN-01` .. `PSN-06` (`MessagesModulePlaceholderPage`)
 - `AKN-01` .. `AKN-15` (`AccountModulePlaceholderPage`)

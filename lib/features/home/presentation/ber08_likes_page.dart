@@ -116,7 +116,13 @@ class _Ber08LikesPageState extends ConsumerState<Ber08LikesPage> {
                             ],
                           ),
                         ),
-                        if (showBadge) PartuturanBadge(result: partuturan),
+                        if (showBadge)
+                          PartuturanBadge(
+                            result: partuturan,
+                            onTap: () => context.push(
+                              '${AppPages.tar05.routePath}?userId=${user.id}',
+                            ),
+                          ),
                       ],
                     ),
                   );

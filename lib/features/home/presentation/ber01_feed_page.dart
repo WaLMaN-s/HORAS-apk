@@ -33,6 +33,16 @@ class Ber01FeedPage extends ConsumerWidget {
         .scrollControllerForTab(tabIndex);
     final now = ref.watch(authRepositoryProvider).currentTime;
 
+    final authRepo = ref.watch(authRepositoryProvider);
+    final inner = _buildBody(
+      context,
+      ref,
+      feedState: feedState,
+      controller: controller,
+      scrollController: scrollController,
+      now: now,
+    );
+
     return Scaffold(
       appBar: AppBar(
         title: const HorasLogo(showRoof: false, wordmarkFontSize: 26),
@@ -61,14 +71,35 @@ class Ber01FeedPage extends ConsumerWidget {
           ),
         ],
       ),
-      body: _buildBody(
-        context,
-        ref,
-        feedState: feedState,
-        controller: controller,
-        scrollController: scrollController,
-        now: now,
-      ),
+      body: authRepo.hadDeletionRecentlyCancelled
+          ? Column(
+              children: <Widget>[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  color: context.colors.primary.withValues(alpha: 0.12),
+                  child: Row(
+                    children: <Widget>[
+                      Expanded(
+                        child: Text(
+                          '${AppStrings.akn14CancelledScreenTitle}: ${AppStrings.akn14CancelledScreenBody}',
+                          style: context.typo.caption,
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          authRepo.clearDeletionCancelledNotice();
+                          ref.invalidate(authRepositoryProvider);
+                        },
+                        child: const Text(AppStrings.actionClose),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(child: inner),
+              ],
+            )
+          : inner,
     );
   }
 

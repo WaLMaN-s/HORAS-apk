@@ -6,6 +6,8 @@ import 'package:horas/core/l10n/app_strings.dart';
 import 'package:horas/core/router/app_pages.dart';
 import 'package:horas/core/router/app_router.dart';
 import 'package:horas/core/router/shell_navigation_controller.dart';
+import 'package:horas/features/account/presentation/akn01_my_profile_page.dart';
+import 'package:horas/features/account/presentation/akn02_edit_profile_page.dart';
 import 'package:horas/features/home/presentation/ber01_feed_page.dart';
 import 'package:horas/features/nearby/presentation/sek01_nearby_page.dart';
 import 'package:horas/features/play/presentation/man01_play_page.dart';
@@ -53,20 +55,20 @@ void main() {
       // Pindah ke Tab 4: Akun (AKN-01)
       await tester.tap(find.text(AppStrings.tabAkun));
       await tester.pumpAndSettle();
-      expect(find.text(AppPages.akn01.id), findsOneWidget);
+      expect(find.byType(Akn01MyProfilePage), findsOneWidget);
       expect(container.read(shellNavigationProvider).lastTabIndex, 4);
 
-      // Gulung ke bawah lalu buka subhalaman AKN-02 Edit Profil di dalam tab Akun,
+      // Buka subhalaman AKN-02 Edit Profil di dalam tab Akun,
       // kemudian ketuk ulang tab Akun untuk memastikan kembali ke halaman awal tab (AKN-01).
       await tester.ensureVisible(find.text(AppStrings.akn02Title));
       await tester.pumpAndSettle();
       await tester.tap(find.text(AppStrings.akn02Title));
       await tester.pumpAndSettle();
-      expect(find.text(AppPages.akn02.id), findsOneWidget);
+      expect(find.byType(Akn02EditProfilePage), findsOneWidget);
 
       await tester.tap(find.text(AppStrings.tabAkun));
       await tester.pumpAndSettle();
-      expect(find.text(AppPages.akn01.id), findsOneWidget);
+      expect(find.byType(Akn01MyProfilePage), findsOneWidget);
 
       // Kembali ke Tab 0: Beranda (BER-01 Feed)
       await tester.tap(find.text(AppStrings.tabBeranda));

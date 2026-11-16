@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:archive/archive.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:horas/core/errors/app_failure.dart';
 import 'package:horas/core/errors/result.dart';
@@ -237,7 +238,7 @@ final class MockAuthRepository implements AuthRepository {
       );
       _store.accountDeletionsByUser[user.id] = evaluated;
       if (evaluated.isPermanentlyDeleted) {
-        _store.usersById.remove(user.id);
+        _store.purgePermanentlyDeletedUser(user.id);
         return const Err<Profil>(
           UnavailableError(
             message:
@@ -245,7 +246,27 @@ final class MockAuthRepository implements AuthRepository {
           ),
         );
       }
+      if (evaluated.isCancelled) {
+        _store.recentlyCancelledDeletionUserId = user.id;
+      }
     }
+
+    // AKN-09: Catat riwayat masuk 30 hari terakhir
+    final logList = _store.loginHistoryByUser.putIfAbsent(
+      user.id,
+      () => <LoginHistoryEntry>[],
+    );
+    logList.insert(
+      0,
+      LoginHistoryEntry(
+        id: _store.nextId('log'),
+        userId: user.id,
+        deviceName: deviceName,
+        platform: platform,
+        city: user.city,
+        loggedInAt: _store.now,
+      ),
+    );
 
     // AUT-R9: Maksimal 3 perangkat aktif; login ke-4 mengeluarkan yang tertua + notifikasi keamanan
     final existingDevices = _store.devicesByUserId[user.id] ?? const <Device>[];
@@ -368,6 +389,32 @@ final class MockAuthRepository implements AuthRepository {
       _store.devicesByUserId[uid]?.removeWhere((d) => d.id == deviceId);
     }
     return const Ok<void>(null);
+  }
+
+  @override
+  Future<Result<List<LoginHistoryEntry>>> getLoginHistory30Days() async {
+    final net = await _store.simulateNetworkCall();
+    if (net is Err<void>) return Err<List<LoginHistoryEntry>>(net.failure);
+    final uid = _store.currentUserId;
+    if (uid == null) {
+      return const Ok<List<LoginHistoryEntry>>(<LoginHistoryEntry>[]);
+    }
+    final cutoff = _store.now.subtract(const Duration(days: 30));
+    final entries =
+        (_store.loginHistoryByUser[uid] ?? const <LoginHistoryEntry>[])
+            .where((e) => e.loggedInAt.isAfter(cutoff))
+            .toList(growable: false);
+    return Ok<List<LoginHistoryEntry>>(entries);
+  }
+
+  @override
+  bool get hadDeletionRecentlyCancelled =>
+      _store.currentUserId != null &&
+      _store.recentlyCancelledDeletionUserId == _store.currentUserId;
+
+  @override
+  void clearDeletionCancelledNotice() {
+    _store.recentlyCancelledDeletionUserId = null;
   }
 
   @override
@@ -508,6 +555,7 @@ final class MockProfileRepository implements ProfileRepository {
   @override
   Future<Result<Profil>> updateMyProfile({
     String? displayName,
+    String? avatarSeed,
     String? bio,
     String? city,
     String? subdistrict,
@@ -547,6 +595,7 @@ final class MockProfileRepository implements ProfileRepository {
 
     final updated = me.copyWith(
       displayName: displayName?.trim(),
+      avatarSeed: avatarSeed?.trim(),
       bio: bio?.trim(),
       city: city?.trim(),
       subdistrict: subdistrict?.trim(),
@@ -1509,6 +1558,12 @@ final class MockCommentRepository implements CommentRepository {
     if (_store.isEmptyState) return const Ok<List<Comment>>(<Comment>[]);
 
     final me = _store.activeProfile;
+    final postIdx = _store.posts.indexWhere((p) => p.id == postId);
+    if (me != null &&
+        postIdx >= 0 &&
+        _store.isBlockedBetween(me.id, _store.posts[postIdx].author.id)) {
+      return const Ok<List<Comment>>(<Comment>[]);
+    }
     final list = _store.comments
         .where(
           (c) =>
@@ -3711,9 +3766,17 @@ final class MockChatRepository implements ChatRepository {
   List<Message> _visibleMessagesFor(String conversationId, String? uid) {
     final raw =
         _store.messagesByConversationId[conversationId] ?? const <Message>[];
+    final conv = _store.conversations
+        .where((c) => c.id == conversationId)
+        .firstOrNull;
+    final isGroup = conv != null && conv.type != ConversationType.direct;
     final result = <Message>[];
     for (final m in raw) {
       if (uid != null && m.deletedForUserIds.contains(uid)) {
+        continue;
+      }
+      // AKN-R6: Di grup bersama, pesan dari pengguna yang diblokir disembunyikan bagi pemblokir.
+      if (uid != null && isGroup && _store.hasUserBlocked(uid, m.sender.id)) {
         continue;
       }
       final senderAlive = _store.usersById.containsKey(m.sender.id);
@@ -4686,6 +4749,42 @@ final class MockNotificationRepository implements NotificationRepository {
     _store.notifyListeners();
     return const Ok<void>(null);
   }
+
+  @override
+  Future<Result<NotificationPreferences>> getNotificationPreferences() async {
+    final net = await _store.simulateNetworkCall();
+    if (net is Err<void>) return Err<NotificationPreferences>(net.failure);
+    final uid = _store.currentUserId;
+    if (uid == null) {
+      return const Ok<NotificationPreferences>(NotificationPreferences());
+    }
+    return Ok<NotificationPreferences>(
+      _store.notificationPrefsByUser[uid] ?? const NotificationPreferences(),
+    );
+  }
+
+  @override
+  Future<Result<NotificationPreferences>> updateNotificationPreferences(
+    NotificationPreferences preferences,
+  ) async {
+    final net = await _store.simulateNetworkCall();
+    if (net is Err<void>) return Err<NotificationPreferences>(net.failure);
+    final uid = _store.currentUserId;
+    if (uid == null) {
+      return const Err<NotificationPreferences>(
+        UnavailableError(message: AppStrings.stateContentUnavailableMessage),
+      );
+    }
+    // AKN-10: pastikan keamanan akun & moderasi tidak dapat dinonaktifkan
+    var enforced = preferences;
+    for (final t in NotificationType.values) {
+      if (!t.canDisable) {
+        enforced = enforced.setTypeEnabled(t, true);
+      }
+    }
+    _store.notificationPrefsByUser[uid] = enforced;
+    return Ok<NotificationPreferences>(enforced);
+  }
 }
 
 // ── 16. MockReportRepository ────────────────────────────────────────────────
@@ -5331,6 +5430,7 @@ final class MockSupportRepository implements SupportRepository {
     required String category,
     required String message,
     String? email,
+    String? attachmentSeed,
   }) async {
     final net = await _store.simulateNetworkCall(checkAccountStatus: false);
     if (net.isErr) return net;
@@ -5342,7 +5442,32 @@ final class MockSupportRepository implements SupportRepository {
         ),
       );
     }
+    final uid = _store.currentUserId ?? 'guest';
+    _store.supportTickets.insert(
+      0,
+      SupportTicket(
+        id: _store.nextId('tkt'),
+        userId: uid,
+        category: category.trim(),
+        message: message.trim(),
+        email: email?.trim(),
+        attachmentSeed: attachmentSeed,
+        createdAt: _store.now,
+      ),
+    );
     return const Ok<void>(null);
+  }
+
+  @override
+  Future<Result<List<SupportTicket>>> getMySupportTickets() async {
+    final net = await _store.simulateNetworkCall(checkAccountStatus: false);
+    if (net is Err<void>) return Err<List<SupportTicket>>(net.failure);
+    final uid = _store.currentUserId ?? 'guest';
+    return Ok<List<SupportTicket>>(
+      _store.supportTickets
+          .where((t) => t.userId == uid)
+          .toList(growable: false),
+    );
   }
 }
 
@@ -5355,7 +5480,7 @@ final class MockAccountLifecycleRepository
   final MockStore _store;
 
   @override
-  Future<Result<DataExportJob>> requestDataExport() async {
+  Future<Result<DataExportJob>> requestDataExport({String? otpCode}) async {
     final net = await _store.simulateNetworkCall();
     if (net is Err<void>) return Err<DataExportJob>(net.failure);
 
@@ -5364,6 +5489,18 @@ final class MockAccountLifecycleRepository
       return const Err<DataExportJob>(
         UnavailableError(message: AppStrings.stateContentUnavailableMessage),
       );
+    }
+
+    if (otpCode != null) {
+      final expected = _store.appConfig.isProd ? '984321' : '123456';
+      if (otpCode.trim() != expected) {
+        return const Err<DataExportJob>(
+          ValidationError(
+            message: 'Kode OTP konfirmasi unduh data tidak sesuai.',
+            field: 'otp',
+          ),
+        );
+      }
     }
 
     final latest = _store.dataExportJobs
@@ -5395,6 +5532,43 @@ final class MockAccountLifecycleRepository
   }
 
   @override
+  Future<Result<List<int>>> buildExportZipBytes() async {
+    final net = await _store.simulateNetworkCall();
+    if (net is Err<void>) return Err<List<int>>(net.failure);
+
+    final me = _store.activeProfile;
+    if (me == null) {
+      return const Err<List<int>>(
+        UnavailableError(message: AppStrings.stateContentUnavailableMessage),
+      );
+    }
+
+    final myPosts = _store.posts
+        .where((p) => p.author.id == me.id)
+        .map((p) => p.toJson())
+        .toList(growable: false);
+    final myTarombo = _store.familyMembers
+        .where((f) => f.ownerUserId == me.id)
+        .map((f) => f.toJson())
+        .toList(growable: false);
+
+    final archive = Archive();
+    void addJsonFile(String filename, Object data) {
+      final bytes = utf8.encode(
+        const JsonEncoder.withIndent('  ').convert(data),
+      );
+      archive.addFile(ArchiveFile(filename, bytes.length, bytes));
+    }
+
+    addJsonFile('profil.json', me.toJson());
+    addJsonFile('postingan.json', myPosts);
+    addJsonFile('tarombo.json', myTarombo);
+
+    final zipBytes = ZipEncoder().encode(archive);
+    return Ok<List<int>>(zipBytes);
+  }
+
+  @override
   Future<Result<DataExportJob?>> getLatestDataExportJob() async {
     final net = await _store.simulateNetworkCall();
     if (net is Err<void>) return Err<DataExportJob?>(net.failure);
@@ -5404,7 +5578,9 @@ final class MockAccountLifecycleRepository
   }
 
   @override
-  Future<Result<AccountDeletion>> requestAccountDeletion() async {
+  Future<Result<AccountDeletion>> requestAccountDeletion({
+    String? otpCode,
+  }) async {
     final net = await _store.simulateNetworkCall();
     if (net is Err<void>) return Err<AccountDeletion>(net.failure);
 
@@ -5413,6 +5589,18 @@ final class MockAccountLifecycleRepository
       return const Err<AccountDeletion>(
         UnavailableError(message: AppStrings.stateContentUnavailableMessage),
       );
+    }
+
+    if (otpCode != null) {
+      final expected = _store.appConfig.isProd ? '984321' : '123456';
+      if (otpCode.trim() != expected) {
+        return const Err<AccountDeletion>(
+          ValidationError(
+            message: 'Kode OTP konfirmasi hapus akun tidak sesuai.',
+            field: 'otp',
+          ),
+        );
+      }
     }
 
     // AKN-R8: Komunitas yang dimiliki harus diserahkan dulu sebelum hapus akun
@@ -5450,6 +5638,9 @@ final class MockAccountLifecycleRepository
       userLoggedIn: true,
     );
     _store.accountDeletionsByUser[uid] = evaluated;
+    if (evaluated.isPermanentlyDeleted) {
+      _store.purgePermanentlyDeletedUser(uid);
+    }
     return Ok<AccountDeletion?>(evaluated);
   }
 
@@ -5468,6 +5659,9 @@ final class MockAccountLifecycleRepository
       userLoggedIn: false,
     );
     _store.accountDeletionsByUser[uid] = evaluated;
+    if (evaluated.isPermanentlyDeleted) {
+      _store.purgePermanentlyDeletedUser(uid);
+    }
     return Ok<AccountDeletion?>(evaluated);
   }
 }
@@ -5632,6 +5826,68 @@ final class MockDebugSimulationRepository implements DebugSimulationRepository {
     final me = _store.usersById[uid];
     if (me != null) {
       _store.usersById[uid] = me.copyWith(accountStatus: AccountStatus.active);
+    }
+    _store.notifyListeners();
+  }
+
+  @override
+  List<Report> getReportsForDebug() =>
+      List<Report>.unmodifiable(_store.reports);
+
+  @override
+  void updateReportStatusForDebug({
+    required String reportId,
+    required ReportStatus status,
+    ReportOutcome? outcome,
+  }) {
+    final idx = _store.reports.indexWhere((r) => r.id == reportId);
+    if (idx < 0) return;
+    final current = _store.reports[idx];
+    final updated = current.copyWith(
+      status: status,
+      outcome: outcome ?? current.outcome,
+      resolvedAt: status == ReportStatus.completed ? _store.now : null,
+    );
+    _store.reports[idx] = updated;
+    if (status == ReportStatus.completed) {
+      _store.pushNotificationInternal(
+        recipientId: current.reporterId,
+        type: NotificationType.reportOutcome,
+        title: 'Hasil Tinjauan Laporan',
+        body:
+            'Laporanmu telah selesai ditinjau: ${(outcome ?? ReportOutcome.actionTaken).label}.',
+        deepLink: 'horas://app/sistem/laporan-status',
+      );
+    }
+    _store.notifyListeners();
+  }
+
+  @override
+  List<VerificationRequest> getVerificationRequestsForDebug() =>
+      List<VerificationRequest>.unmodifiable(_store.verificationRequests);
+
+  @override
+  void updateVerificationStatusForDebug({
+    required String requestId,
+    required VerificationStatus status,
+    String? rejectionReason,
+  }) {
+    final idx = _store.verificationRequests.indexWhere(
+      (v) => v.id == requestId,
+    );
+    if (idx < 0) return;
+    final current = _store.verificationRequests[idx];
+    _store.verificationRequests[idx] = current.copyWith(
+      status: status,
+      rejectionReason: rejectionReason,
+    );
+    final cIdx = _store.communities.indexWhere(
+      (c) => c.id == current.communityId,
+    );
+    if (cIdx >= 0) {
+      _store.communities[cIdx] = _store.communities[cIdx].copyWith(
+        isVerified: status == VerificationStatus.approved,
+      );
     }
     _store.notifyListeners();
   }

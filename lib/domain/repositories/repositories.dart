@@ -51,6 +51,9 @@ abstract interface class AuthRepository {
   });
   Future<Result<List<Device>>> getActiveDevices();
   Future<Result<void>> revokeDevice(String deviceId);
+  Future<Result<List<LoginHistoryEntry>>> getLoginHistory30Days();
+  bool get hadDeletionRecentlyCancelled;
+  void clearDeletionCancelledNotice();
   Future<Result<void>> requestAccountRecovery({
     required String oldPhoneE164,
     required String newPhoneE164,
@@ -78,6 +81,7 @@ abstract interface class ProfileRepository {
   Future<Result<Profil>> getMyProfile();
   Future<Result<Profil>> updateMyProfile({
     String? displayName,
+    String? avatarSeed,
     String? bio,
     String? city,
     String? subdistrict,
@@ -432,6 +436,10 @@ abstract interface class NotificationRepository {
   });
   Future<Result<void>> markAsRead(String notificationId);
   Future<Result<void>> markAllAsRead();
+  Future<Result<NotificationPreferences>> getNotificationPreferences();
+  Future<Result<NotificationPreferences>> updateNotificationPreferences(
+    NotificationPreferences preferences,
+  );
 }
 
 /// 16. Repository Laporan & Moderasi (SIS-02, SIS-03, SIS-R2 .. SIS-R4).
@@ -530,14 +538,17 @@ abstract interface class SupportRepository {
     required String category,
     required String message,
     String? email,
+    String? attachmentSeed,
   });
+  Future<Result<List<SupportTicket>>> getMySupportTickets();
 }
 
 /// 21. Repository Unduh Data & Hapus Akun (AKN-13, AKN-14, AKN-R7, AKN-R8, AC-12).
 abstract interface class AccountLifecycleRepository {
-  Future<Result<DataExportJob>> requestDataExport();
+  Future<Result<DataExportJob>> requestDataExport({String? otpCode});
+  Future<Result<List<int>>> buildExportZipBytes();
   Future<Result<DataExportJob?>> getLatestDataExportJob();
-  Future<Result<AccountDeletion>> requestAccountDeletion();
+  Future<Result<AccountDeletion>> requestAccountDeletion({String? otpCode});
   Future<Result<AccountDeletion?>> cancelAccountDeletion();
   Future<Result<AccountDeletion?>> getAccountDeletionStatus();
 }

@@ -391,3 +391,86 @@ final class HelpArticle {
     'answer': answer,
   };
 }
+
+/// Preferensi notifikasi per jenis dan jam tenang 22.00-06.00 (AKN-10, AKN-R5, PRD 9).
+///
+/// Jenis dengan `canDisable == false` (keamanan akun, tindakan moderasi,
+/// sesi diubah/dibatalkan) tidak dapat dinonaktifkan.
+final class NotificationPreferences {
+  const NotificationPreferences({
+    this.disabledTypes = const <NotificationType>{},
+    this.quietHoursEnabled = true,
+  });
+
+  final Set<NotificationType> disabledTypes;
+  final bool quietHoursEnabled;
+
+  bool isEnabled(NotificationType type) {
+    if (!type.canDisable) return true;
+    return !disabledTypes.contains(type);
+  }
+
+  NotificationPreferences setTypeEnabled(NotificationType type, bool enabled) {
+    if (!type.canDisable) {
+      // AKN-10 & PRD 9: Keamanan akun & tindakan moderasi terkunci aktif.
+      return this;
+    }
+    final next = Set<NotificationType>.from(disabledTypes);
+    if (enabled) {
+      next.remove(type);
+    } else {
+      next.add(type);
+    }
+    return NotificationPreferences(
+      disabledTypes: Set<NotificationType>.unmodifiable(next),
+      quietHoursEnabled: quietHoursEnabled,
+    );
+  }
+
+  NotificationPreferences copyWith({bool? quietHoursEnabled}) {
+    return NotificationPreferences(
+      disabledTypes: disabledTypes,
+      quietHoursEnabled: quietHoursEnabled ?? this.quietHoursEnabled,
+    );
+  }
+}
+
+/// Entri riwayat masuk 30 hari terakhir (AKN-09, AKN-R4).
+final class LoginHistoryEntry {
+  const LoginHistoryEntry({
+    required this.id,
+    required this.userId,
+    required this.deviceName,
+    required this.platform,
+    required this.city,
+    required this.loggedInAt,
+  });
+
+  final String id;
+  final String userId;
+  final String deviceName;
+  final String platform;
+  final String city;
+  final DateTime loggedInAt;
+}
+
+/// Tiket dukungan pelanggan dengan kategori dan lampiran opsional (SIS-05, SIS-R5).
+final class SupportTicket {
+  const SupportTicket({
+    required this.id,
+    required this.userId,
+    required this.category,
+    required this.message,
+    required this.createdAt,
+    this.email,
+    this.attachmentSeed,
+  });
+
+  final String id;
+  final String userId;
+  final String category;
+  final String message;
+  final String? email;
+  final String? attachmentSeed;
+  final DateTime createdAt;
+}

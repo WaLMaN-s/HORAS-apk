@@ -54,6 +54,13 @@ abstract final class AppStrings {
   static const String debugAddStrike = 'Tambah 1 Strike ke Akun Aktif';
   static const String debugSuspendAccount = 'Tangguhkan Akun Aktif (Suspend)';
   static const String debugClearSanctions = 'Bersihkan Sanksi Akun';
+  static const String debugAdvanceLatestReportReview = 'Tinjau Laporan Terbaru';
+  static const String debugCompleteReportActionTaken =
+      'Selesaikan Laporan (Tindakan Diambil)';
+  static const String debugCompleteReportNoViolation =
+      'Selesaikan Laporan (Tidak Melanggar)';
+  static const String debugApproveLatestVerification =
+      'Setujui Verifikasi Terbaru';
   static const String debugResetAllData = 'Reset Seluruh Data Tiruan';
   static const String debugTapHintOnAbout =
       'Tekan lama logo HORAS di bawah untuk membuka Panel Debug (khusus build dev/beta).';
@@ -1191,4 +1198,189 @@ abstract final class AppStrings {
       'Foto dibagikan dari chat HORAS.';
   static const String psn06ShareUnavailableToast =
       'Berbagi gambar hanya tersedia di perangkat seluler.';
+
+  // ── Akun (Prompt 9: AKN-01 .. AKN-15) ──────────────────────────────────────
+  static const String akn01TabPosts = 'Postingan';
+  static const String akn01TabSaved = 'Tersimpan';
+  static const String akn01FollowersCountLabel = 'Pengikut';
+  static const String akn01FollowingCountLabel = 'Mengikuti';
+  static const String akn01ConnectionsCountLabel = 'Kenalan';
+  static const String akn01ConnectionsShortcut = 'Kenalan Saya';
+  static const String akn01EmptyPosts = 'Kamu belum membuat postingan.';
+  static const String akn01EmptySaved = 'Belum ada postingan tersimpan.';
+
+  static const String akn02PickPhotoBtn = 'Ubah Foto Profil';
+  static const String akn02NameLabel = 'Nama Tampil (2-40 karakter)';
+  static const String akn02NameCooldownInfo =
+      'Nama tampil hanya dapat diubah maksimal sekali per 30 hari.';
+  static const String akn02BioLabel = 'Bio (Maks. 150 karakter)';
+  static const String akn02CityLabel = 'Kota Domisili';
+  static const String akn02SubdistrictLabel = 'Kecamatan';
+  static const String akn02HobbiesLabel = 'Minat & Hobi (pisahkan koma)';
+  static const String akn02CampusOfficeLabel = 'Kampus / Kantor';
+  static const String akn02WebsiteLabel = 'Satu Tautan Opsional';
+  static const String akn02LockedIdentityTitle = 'Data Identitas Terkunci';
+  static const String akn02LockedIdentityHint =
+      'Marga, sub-suku, dan jenis kelamin terkunci. Ubah lewat Hubungi dukungan.';
+  static const String akn02PhoneHint =
+      'Nomor HP hanya dapat diganti melalui menu Keamanan (AKN-09).';
+  static const String akn02SavedToast = 'Profil berhasil diperbarui.';
+
+  static const String akn05EmptyFollowers = 'Belum ada pengikut.';
+  static const String akn06EmptyFollowing = 'Belum mengikuti siapa pun.';
+  static const String akn06UnfollowBtn = 'Berhenti ikuti';
+
+  static const String akn07AppearanceSection = 'Tampilan & Bahasa';
+  static const String akn07ThemeModeLabel = 'Mode Tampilan';
+  static const String akn07ThemeSystem = 'Sistem';
+  static const String akn07ThemeLight = 'Terang';
+  static const String akn07ThemeDark = 'Gelap';
+  static const String akn07LanguageLabel = 'Bahasa Aplikasi';
+  static const String akn07LanguageValue = 'Indonesia';
+  static const String akn07AccountSection = 'Akun & Keamanan';
+  static const String akn07SupportSection = 'Bantuan & Info';
+
+  static const String akn08PublicInfoNote =
+      'Nama, foto, marga, dan kota selalu terlihat oleh pengguna terdaftar HORAS.';
+  static const String akn08AccountTypeLabel = 'Tipe Akun';
+  static const String akn08PublicAccount = 'Publik';
+  static const String akn08PrivateAccount = 'Privat';
+  static const String akn08FieldMotherMarga = 'Marga Ibu';
+  static const String akn08FieldAgeGroup = 'Kelompok Usia (dari tahun lahir)';
+  static const String akn08FieldSubdistrict = 'Kecamatan';
+  static const String akn08FieldCommunities = 'Komunitas yang Diikuti';
+  static const String akn08FieldHomeChurch = 'Gereja Asal (Opt-in)';
+  static const String akn08FieldTarombo = 'Pohon Tarombo';
+  static const String akn08DiscoverableLabel =
+      'Tampil di Sekitar dan Pencarian';
+  static const String akn08WhoCanConnectLabel =
+      'Siapa yang Dapat Mengirim Kenalan';
+  static const String akn08SharedContextMsgLabel =
+      'Izinkan Pesan dari Konteks Bersama';
+  static const String akn08ReadReceiptsLabel = 'Kirim Tanda Terbaca';
+  static const String akn08VisEveryone = 'Semua Pengguna';
+  static const String akn08VisConnected = 'Hanya Terhubung';
+  static const String akn08VisOnlyMe = 'Hanya Saya';
+  static const String akn08VisSameMargaOrComm = 'Semarga / Sekomunitas';
+  static const String akn08SavedToast = 'Pengaturan privasi disimpan.';
+
+  static const String akn09ActiveDevicesSection = 'Perangkat Aktif (Maks. 3)';
+  static const String akn09RevokeDeviceBtn = 'Keluarkan';
+  static const String akn09CurrentDeviceBadge = 'Perangkat ini';
+  static const String akn09ChangePhoneSection = 'Ganti Nomor HP (Dual OTP)';
+  static const String akn09OldPhoneLabel = 'Nomor HP Lama (+62...)';
+  static const String akn09OldOtpLabel = 'Kode OTP Nomor Lama';
+  static const String akn09NewPhoneLabel = 'Nomor HP Baru (+62...)';
+  static const String akn09NewOtpLabel = 'Kode OTP Nomor Baru';
+  static const String akn09ChangePhoneBtn = 'Ganti Nomor Sekarang';
+  static const String akn09ChangePhoneSuccessToast =
+      'Nomor HP berhasil diganti.';
+  static const String akn09LoginHistorySection =
+      'Riwayat Masuk 30 Hari Terakhir';
+  static const String akn09LogoutBtn = 'Keluar dari Akun';
+
+  static const String akn10QuietHoursTitle = 'Jam Tenang (22.00 – 06.00)';
+  static const String akn10QuietHoursDesc =
+      'Berlaku untuk seluruh notifikasi kecuali keamanan akun.';
+  static const String akn10LockedSecurityNote =
+      'Notifikasi Keamanan Akun dan Tindakan Moderasi terkunci aktif demi keselamatan akun.';
+  static const String akn10SavedToast = 'Preferensi notifikasi disimpan.';
+
+  static const String akn11EmptyBlocked = 'Tidak ada pengguna yang diblokir.';
+  static const String akn11UnblockBtn = 'Buka blokir';
+  static const String akn11UnblockConfirmTitle = 'Buka Blokir Pengguna?';
+  static const String akn11UnblockConfirmBody =
+      'Pengguna ini dapat melihat profilmu lagi, namun hubungan Kenalan/Ikuti sebelumnya tidak dipulihkan otomatis.';
+
+  static const String akn12TabConnected = 'Terhubung';
+  static const String akn12TabIncoming = 'Permintaan Masuk';
+  static const String akn12TabOutgoing = 'Terkirim';
+  static const String akn12EmptyConnected = 'Belum ada kenalan terhubung.';
+  static const String akn12EmptyIncoming = 'Tidak ada permintaan masuk.';
+  static const String akn12EmptyOutgoing = 'Tidak ada permintaan terkirim.';
+
+  static const String akn13InfoText =
+      'Unduh arsip profil, postingan, dan tarombo dalam format ZIP (JSON). Maksimal sekali per 7 hari; tautan berlaku 7 hari dan dikirim dalam 48 jam.';
+  static const String akn13OtpLabel = 'Kode OTP Verifikasi (dev: 123456)';
+  static const String akn13RequestBtn = 'Buat & Unduh Arsip ZIP';
+  static const String akn13ShareZipBtn = 'Bagikan / Simpan File ZIP';
+  static const String akn13JobReadyStatus =
+      'Arsip ZIP siap diunduh dan dibagikan (tautan berlaku 7 hari).';
+  static const String akn13JobProcessingStatus =
+      'Status: Diproses (dikirim dalam 48 jam).';
+
+  static const String akn14ConsequenceTitle = 'Konsekuensi Hapus Akun';
+  static const String akn14ConsequenceBody =
+      '• Komunitas yang kamu miliki harus diserahkan dulu sebelum hapus akun.\n'
+      '• Masa tunggu 30 hari: login ulang dalam 30 hari membatalkan penghapusan.\n'
+      '• Setelah 30 hari, profil, postingan, foto, dan tarombo dihapus permanen.\n'
+      '• Pesan lama tetap tampil ke lawan bicara sebagai "Pengguna terhapus".';
+  static const String akn14OtpLabel = 'Konfirmasi OTP Hapus Akun (dev: 123456)';
+  static const String akn14ConfirmBtn =
+      'Ajukan Hapus Akun (Masa Tunggu 30 Hari)';
+  static const String akn14PendingBanner =
+      'Penghapusan akun dijadwalkan (masa tunggu 30 hari). Login kembali sebelum 30 hari akan membatalkannya.';
+  static const String akn14CancelDeletionBtn = 'Batalkan Penghapusan Akun';
+  static const String akn14CancelledScreenTitle = 'Penghapusan dibatalkan';
+  static const String akn14CancelledScreenBody =
+      'Karena kamu masuk kembali sebelum masa tunggu 30 hari berakhir, permintaan penghapusan akunmu otomatis dibatalkan.';
+  static const String akn14TransferCommunityBtn = 'Kelola Komunitas Saya';
+
+  static const String akn15LicenseBtn = 'Lihat Lisensi Open Source';
+  static const String akn15PrivacyPolicyBtn = 'Kebijakan Privasi & Syarat';
+  static const String akn15GuidelinesBtn = 'Pedoman Komunitas';
+  static String akn15VersionText(String version, String buildNumber) =>
+      'Versi $version (build $buildNumber)';
+
+  // ── Sistem (Prompt 9: SIS-01 .. SIS-08) ────────────────────────────────────
+  static const String sis01MarkAllReadBtn = 'Tandai Semua Dibaca';
+  static const String sis01GroupToday = 'Hari ini';
+  static const String sis01GroupThisWeek = 'Minggu ini';
+  static const String sis01GroupEarlier = 'Sebelumnya';
+  static const String sis01EmptyMessage =
+      'Belum ada notifikasi dalam 90 hari terakhir.';
+
+  static const String sis02ReporterPrivacyNote =
+      'Identitas pelapor dirahasiakan dan tidak pernah diberitahukan kepada terlapor. Maksimal 20 laporan per hari dan 1 laporan aktif per target.';
+  static const String sis02CategoryLabel = 'Kategori Laporan';
+  static const String sis02NoteLabel = 'Catatan Tambahan (Opsional, maks. 500)';
+  static const String sis02AlsoBlockLabel = 'Blokir pengguna ini juga';
+  static const String sis02SubmitBtn = 'Kirim Laporan';
+  static const String sis02SuccessToast =
+      'Laporan dikirim dengan status Diterima.';
+
+  static const String sis03EmptyReports = 'Belum ada laporan yang kamu kirim.';
+  static const String sis04SearchHint = 'Cari pertanyaan atau topik bantuan...';
+  static const String sis04EmptyArticles = 'Tidak ada artikel yang cocok.';
+
+  static const String sis05CategoryGeneral = 'Pertanyaan / Keluhan Umum';
+  static const String sis05CategoryIdentity =
+      'Ubah Marga / Sub-suku / Jenis Kelamin';
+  static const String sis05CategoryAppeal =
+      'Banding Sanksi / Akun Ditangguhkan (14 hari)';
+  static const String sis05CategoryLabel = 'Kategori Dukungan';
+  static const String sis05MessageLabel = 'Jelaskan Keluhan / Bukti Banding';
+  static const String sis05EmailLabel = 'Email Balasan Opsional';
+  static const String sis05AttachPhotoBtn = 'Lampirkan Foto Bukti (Opsional)';
+  static const String sis05SubmitBtn = 'Kirim ke Dukungan HORAS';
+  static const String sis05SuccessToast =
+      'Tiket dukungan / banding berhasil dikirim.';
+
+  static const String sis06CommunityLabel = 'Pilih Komunitas';
+  static const String sis06TypeLabel = 'Tipe Pengajuan: Komunitas / Punguan';
+  static const String sis06EvidenceLabel =
+      'Bukti (surat penunjukan/keterangan pengurus, atau konfirmasi pengurus pusat)';
+  static const String sis06ContactLabel = 'Kontak Pengurus Resmi';
+  static const String sis06SubmitBtn = 'Ajukan Verifikasi Komunitas';
+  static const String sis06SuccessToast =
+      'Pengajuan verifikasi komunitas dikirim.';
+  static const String sis06StatusShortcutBtn = 'Lihat Status Verifikasi Saya';
+
+  static const String sis07EmptyRequests =
+      'Belum ada pengajuan verifikasi komunitas.';
+  static String sis07RejectionReason(String reason) =>
+      'Alasan penolakan: $reason';
+
+  static const String sis08PublicReadNotice =
+      'Pedoman Komunitas HORAS dapat dibaca bebas tanpa login (SIS-R7).';
 }

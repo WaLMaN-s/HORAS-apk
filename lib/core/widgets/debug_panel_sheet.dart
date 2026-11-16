@@ -8,6 +8,7 @@ import 'package:horas/core/widgets/app_bottom_sheet.dart';
 import 'package:horas/core/widgets/app_button.dart';
 import 'package:horas/core/widgets/app_chip.dart';
 import 'package:horas/core/widgets/section_header.dart';
+import 'package:horas/domain/models/system_models.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// Panel Debug HORAS khusus build non-prod (`dev` / `beta`), dibuka dengan tekan lama
@@ -170,6 +171,43 @@ class _DebugPanelSheetState extends ConsumerState<DebugPanelSheet> {
                 variant: AppButtonVariant.text,
                 onPressed: () => setState(repo.clearAccountSanctions),
               ),
+              if (repo.getReportsForDebug().isNotEmpty) ...<Widget>[
+                AppButton(
+                  label: AppStrings.debugAdvanceLatestReportReview,
+                  variant: AppButtonVariant.secondary,
+                  onPressed: () => setState(() {
+                    final latest = repo.getReportsForDebug().first;
+                    repo.updateReportStatusForDebug(
+                      reportId: latest.id,
+                      status: ReportStatus.inReview,
+                    );
+                  }),
+                ),
+                AppButton(
+                  label: AppStrings.debugCompleteReportActionTaken,
+                  variant: AppButtonVariant.secondary,
+                  onPressed: () => setState(() {
+                    final latest = repo.getReportsForDebug().first;
+                    repo.updateReportStatusForDebug(
+                      reportId: latest.id,
+                      status: ReportStatus.completed,
+                      outcome: ReportOutcome.actionTaken,
+                    );
+                  }),
+                ),
+              ],
+              if (repo.getVerificationRequestsForDebug().isNotEmpty)
+                AppButton(
+                  label: AppStrings.debugApproveLatestVerification,
+                  variant: AppButtonVariant.secondary,
+                  onPressed: () => setState(() {
+                    final latest = repo.getVerificationRequestsForDebug().first;
+                    repo.updateVerificationStatusForDebug(
+                      requestId: latest.id,
+                      status: VerificationStatus.approved,
+                    );
+                  }),
+                ),
             ],
           ),
           const SizedBox(height: AppSpacing.md),

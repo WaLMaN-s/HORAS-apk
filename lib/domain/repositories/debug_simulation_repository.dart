@@ -1,4 +1,5 @@
 import 'package:horas/domain/models/sub_ethnic.dart';
+import 'package:horas/domain/models/system_models.dart';
 
 /// Ringkasan akun tiruan untuk pemilih pengguna di Panel Debug (Prompt 2 Bagian D).
 typedef DebugMockUserOption = ({
@@ -54,5 +55,17 @@ abstract interface class DebugSimulationRepository {
   void simulateAddStrike({String reason});
   void simulateSuspendCurrentAccount();
   void clearAccountSanctions();
+  List<Report> getReportsForDebug();
+  void updateReportStatusForDebug({
+    required String reportId,
+    required ReportStatus status,
+    ReportOutcome? outcome,
+  });
+  List<VerificationRequest> getVerificationRequestsForDebug();
+  void updateVerificationStatusForDebug({
+    required String requestId,
+    required VerificationStatus status,
+    String? rejectionReason,
+  });
   Future<void> resetAllData();
 }

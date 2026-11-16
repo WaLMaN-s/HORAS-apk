@@ -12,6 +12,7 @@ import 'package:horas/data/mock/mock_seed_data.dart';
 import 'package:horas/domain/models/models.dart';
 import 'package:horas/domain/partuturan/partuturan_confidence.dart';
 import 'package:horas/domain/partuturan/partuturan_engine.dart';
+import 'package:horas/domain/policies/block_policy.dart';
 import 'package:horas/domain/policies/privacy_defaults.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -150,6 +151,12 @@ final class MockStore {
   final List<DataExportJob> dataExportJobs = <DataExportJob>[];
   final Map<String, AccountDeletion> accountDeletionsByUser =
       <String, AccountDeletion>{};
+  final Map<String, NotificationPreferences> notificationPrefsByUser =
+      <String, NotificationPreferences>{};
+  final Map<String, List<LoginHistoryEntry>> loginHistoryByUser =
+      <String, List<LoginHistoryEntry>>{};
+  final List<SupportTicket> supportTickets = <SupportTicket>[];
+  String? recentlyCancelledDeletionUserId;
 
   int _seq = 1000;
   String nextId(String prefix) => '$prefix-${++_seq}';
@@ -386,6 +393,10 @@ final class MockStore {
     verificationRequests.clear();
     dataExportJobs.clear();
     accountDeletionsByUser.clear();
+    notificationPrefsByUser.clear();
+    loginHistoryByUser.clear();
+    supportTickets.clear();
+    recentlyCancelledDeletionUserId = null;
     retainedReportedMessages.clear();
     for (final timer in pendingAutoReplyTimers) {
       timer.cancel();
@@ -430,11 +441,45 @@ final class MockStore {
   }
 
   bool isBlockedBetween(String userAId, String userBId) {
-    return blocks.any(
-      (b) =>
-          (b.blockerId == userAId && b.blockedUser.id == userBId) ||
-          (b.blockerId == userBId && b.blockedUser.id == userAId),
+    return BlockPolicy.isBlockedBetween(
+      blocks: blocks,
+      userAId: userAId,
+      userBId: userBId,
     );
+  }
+
+  bool hasUserBlocked(String blockerId, String targetId) {
+    return BlockPolicy.hasUserBlocked(
+      blocks: blocks,
+      blockerId: blockerId,
+      targetId: targetId,
+    );
+  }
+
+  /// AKN-R8 & AC-12: Menghapus data permanen pengguna setelah masa tunggu 30 hari berakhir,
+  /// sambil membiarkan pesan chat lama terlihat sebagai "Pengguna terhapus".
+  void purgePermanentlyDeletedUser(String userId) {
+    usersById.remove(userId);
+    posts.removeWhere((p) => p.author.id == userId);
+    comments.removeWhere((c) => c.author.id == userId);
+    savedPosts.removeWhere((s) => s.userId == userId);
+    likes.removeWhere((l) => l.user.id == userId);
+    familyMembers.removeWhere((f) => f.ownerUserId == userId);
+    follows.removeWhere(
+      (f) => f.followerId == userId || f.followeeId == userId,
+    );
+    connections.removeWhere((c) => c.userId == userId || c.friend.id == userId);
+    connectionRequests.removeWhere(
+      (r) => r.sender.id == userId || r.receiver.id == userId,
+    );
+    blocks.removeWhere(
+      (b) => b.blockerId == userId || b.blockedUser.id == userId,
+    );
+    devicesByUserId.remove(userId);
+    if (currentUserId == userId) {
+      currentUserId = null;
+    }
+    notifyListeners();
   }
 
   bool isConnectedBetween(String userAId, String userBId) {
@@ -648,6 +693,21 @@ final class MockStore {
     required String body,
     required String deepLink,
   }) {
+    final prefs =
+        notificationPrefsByUser[recipientId] ?? const NotificationPreferences();
+    if (!prefs.isEnabled(type)) {
+      return AppNotification(
+        id: nextId('notif-suppressed'),
+        recipientId: recipientId,
+        type: type,
+        title: title,
+        body: body,
+        deepLink: deepLink,
+        createdAt: now,
+        isRead: true,
+      );
+    }
+
     final item = AppNotification(
       id: nextId('notif'),
       recipientId: recipientId,
@@ -978,6 +1038,25 @@ final class MockStore {
         platform: 'Android',
         loggedInAt: baseNow.subtract(const Duration(days: 4)),
         lastActiveAt: baseNow.subtract(const Duration(hours: 5)),
+      ),
+    ];
+
+    loginHistoryByUser['u-01'] = <LoginHistoryEntry>[
+      LoginHistoryEntry(
+        id: 'log-01',
+        userId: 'u-01',
+        deviceName: 'Samsung Galaxy S24',
+        platform: 'Android',
+        city: 'Medan',
+        loggedInAt: baseNow,
+      ),
+      LoginHistoryEntry(
+        id: 'log-02',
+        userId: 'u-01',
+        deviceName: 'Xiaomi Pad 6',
+        platform: 'Android',
+        city: 'Medan',
+        loggedInAt: baseNow.subtract(const Duration(days: 4)),
       ),
     ];
 

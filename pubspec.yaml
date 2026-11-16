@@ -47,6 +47,7 @@ flutter:
 
   assets:
     - assets/data/wilayah.json
+    - assets/data/bantuan.json
     - assets/partuturan/toba.v0.json
     - assets/legal/kebijakan_privasi_dan_syarat.md
     - assets/legal/pedoman_komunitas.md

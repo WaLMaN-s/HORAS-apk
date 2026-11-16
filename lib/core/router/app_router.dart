@@ -70,7 +70,8 @@ GoRouter createAppRouter({
         if (profile.accountStatus == AccountStatus.suspended ||
             profile.accountStatus == AccountStatus.restricted ||
             profile.accountStatus == AccountStatus.permanentlyBanned) {
-          if (uri.path != AppPages.aut01.routePath) {
+          if (uri.path != AppPages.aut01.routePath &&
+              uri.path != AppPages.sis05.routePath) {
             return AppPages.aut01.routePath;
           }
           return null;
@@ -160,16 +161,19 @@ GoRouter createAppRouter({
               ),
             ],
           ),
-          // Tab 4: Akun (AKN-01 .. AKN-15)
+          // Tab 4: Akun (AKN-01 .. AKN-15 — Selesai di Prompt 9)
           StatefulShellBranch(
             routes: <RouteBase>[
-              _buildTabBranchRoute(
+              _buildTabBranchRouteWithState(
                 rootSpec: AppPages.akn01,
                 childSpecs: AppPages.accountPages.skip(1).toList(),
-                rootBuilder: (spec) =>
-                    AccountModulePlaceholderPage(pageSpec: spec, tabIndex: 4),
-                childBuilder: (spec) =>
-                    AccountModulePlaceholderPage(pageSpec: spec),
+                rootBuilder: (spec, state) => AccountModulePageRouter(
+                  pageSpec: spec,
+                  routerState: state,
+                  tabIndex: 4,
+                ),
+                childBuilder: (spec, state) =>
+                    AccountModulePageRouter(pageSpec: spec, routerState: state),
               ),
             ],
           ),
@@ -190,25 +194,29 @@ GoRouter createAppRouter({
           builder: (context, state) =>
               MessagesModulePageRouter(pageSpec: spec, routerState: state),
         ),
-      // Rute modul Sistem (SIS-01 .. SIS-08)
+      // Rute modul Sistem (SIS-01 .. SIS-08 — Selesai di Prompt 9)
       for (final spec in AppPages.systemPages)
         GoRoute(
           path: spec.routePath,
           name: spec.id,
           builder: (context, state) =>
-              SystemModulePlaceholderPage(pageSpec: spec),
+              SystemModulePageRouter(pageSpec: spec, routerState: state),
         ),
-      // Alias /report menuju SIS-02 Laporkan placeholder (Prompt 4)
+      // Alias /report menuju SIS-02 Laporkan
       GoRoute(
         path: '/report',
-        builder: (context, state) =>
-            const SystemModulePlaceholderPage(pageSpec: AppPages.sis02),
+        builder: (context, state) => SystemModulePageRouter(
+          pageSpec: AppPages.sis02,
+          routerState: state,
+        ),
       ),
-      // Alias /verification menuju SIS-06 Ajukan Verifikasi placeholder (Prompt 5)
+      // Alias /verification menuju SIS-06 Ajukan Verifikasi
       GoRoute(
         path: '/verification',
-        builder: (context, state) =>
-            const SystemModulePlaceholderPage(pageSpec: AppPages.sis06),
+        builder: (context, state) => SystemModulePageRouter(
+          pageSpec: AppPages.sis06,
+          routerState: state,
+        ),
       ),
     ],
   );
@@ -233,30 +241,6 @@ GoRoute _buildTabBranchRouteWithState({
               : child.routePath,
           name: child.id,
           builder: (context, state) => childBuilder(child, state),
-        ),
-    ],
-  );
-}
-
-GoRoute _buildTabBranchRoute({
-  required PageSpec rootSpec,
-  required List<PageSpec> childSpecs,
-  required Widget Function(PageSpec spec) rootBuilder,
-  required Widget Function(PageSpec spec) childBuilder,
-}) {
-  final prefix = '${rootSpec.routePath}/';
-  return GoRoute(
-    path: rootSpec.routePath,
-    name: rootSpec.id,
-    builder: (context, state) => rootBuilder(rootSpec),
-    routes: <RouteBase>[
-      for (final child in childSpecs)
-        GoRoute(
-          path: child.routePath.startsWith(prefix)
-              ? child.routePath.substring(prefix.length)
-              : child.routePath,
-          name: child.id,
-          builder: (context, state) => childBuilder(child),
         ),
     ],
   );

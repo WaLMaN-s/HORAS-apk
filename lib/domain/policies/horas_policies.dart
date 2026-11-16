@@ -659,6 +659,20 @@ abstract final class HorasPolicies {
     return candidate;
   }
 
+  /// AKN-10 & PRD 9: Menentukan apakah notifikasi non-keamanan sedang berada
+  /// di jam tenang (22.00-06.00). `NotificationType.accountSecurity` selalu aktif.
+  static bool shouldDelayPushForQuietHours({
+    required NotificationType type,
+    required DateTime now,
+    required NotificationPreferences prefs,
+  }) {
+    if (!prefs.quietHoursEnabled || type == NotificationType.accountSecurity) {
+      return false;
+    }
+    return now.hour >= AppLimits.quietHoursStartHour ||
+        now.hour < AppLimits.quietHoursEndHour;
+  }
+
   /// MAN-R11: Menghitung jadwal pengingat H-1 pukul 19.00 dan 2 jam sebelum mulai
   /// dengan menghormati jam tenang 22.00-06.00.
   static ({DateTime? reminderHMinus1, DateTime? reminder2HoursBefore})

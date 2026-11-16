@@ -1,0 +1,32 @@
+[
+  {
+    "id": "faq-01",
+    "category": "Akun & Privasi",
+    "question": "Mengapa marga, sub-suku, dan jenis kelamin saya terkunci?",
+    "answer": "Untuk menjaga keaslian data tarombo dan mencegah penyalahgunaan identitas marga, perubahan marga, sub-suku, atau jenis kelamin hanya diproses melalui menu Hubungi Dukungan."
+  },
+  {
+    "id": "faq-02",
+    "category": "Akun & Privasi",
+    "question": "Apakah nomor HP atau jarak presisi saya terlihat orang lain?",
+    "answer": "Tidak pernah. HORAS tidak membagikan nomor HP, tahun lahir pasti, koordinat GPS, atau jarak kilometer presisi ke pengguna lain. Jarak hanya tampil dalam rentang umum seperti Di kotamu."
+  },
+  {
+    "id": "faq-03",
+    "category": "Tarombo & Partuturan",
+    "question": "Mengapa beberapa panggilan bertuliskan 'Kemungkinan: ...'?",
+    "answer": "Hasil tingkat Sedang dihitung dari marga dan perkiraan generasi tanpa jalur keluarga terkonfirmasi, sehingga selalu diberi label Kemungkinan / Perkiraan. Keyakinan menjadi Tinggi setelah kedua pihak mengonfirmasi klaim kerabat."
+  },
+  {
+    "id": "faq-04",
+    "category": "Main & Patungan",
+    "question": "Bagaimana aturan keluar mendadak atau daftar tunggu di Main?",
+    "answer": "Jika kamu naik dari daftar tunggu, kamu bebas keluar dalam 1 jam tanpa catatan keandalan. Keluar < 3 jam sebelum sesi atau tidak hadir menambah catatan; 3 catatan dalam 30 hari membatasi gabung sesi baru selama 7 hari."
+  },
+  {
+    "id": "faq-05",
+    "category": "Moderasi & Keamanan",
+    "question": "Bagaimana cara melaporkan pelanggaran dan mengajukan banding?",
+    "answer": "Gunakan menu Laporkan pada profil, postingan, komentar, pesan, komunitas, sesi, atau lapangan. Identitas pelapor dirahasiakan. Jika terkena sanksi, banding dapat diajukan dalam 14 hari lewat Hubungi Dukungan."
+  }
+]

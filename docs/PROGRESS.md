@@ -21,9 +21,9 @@ Keterangan status:
 | Tarombo | TAR | 8 | 7 | 1 | 7 |
 | Main | MAN | 9 | 9 | 0 | 9 |
 | Pesan | PSN | 6 | 6 | 0 | 6 |
-| Akun | AKN | 15 | 15 | 0 | 0 |
-| Sistem | SIS | 8 | 8 | 0 | 0 |
-| **Total** |  | **75** | **69** | **6** | **46** |
+| Akun | AKN | 15 | 15 | 0 | 15 |
+| Sistem | SIS | 8 | 8 | 0 | 8 |
+| **Total** |  | **75** | **69** | **6** | **69** |
 
 ---
 
@@ -108,45 +108,39 @@ Keterangan status:
 ### 7. Akun (AKN)
 | ID | Nama Halaman | Tujuan | Fase | Rute | Status |
 | --- | --- | --- | --- | --- | --- |
-| AKN-01 | Profil saya | Tampilan profil sendiri | 1 | `/akun` | Belum |
-| AKN-02 | Edit profil | Ubah bio, foto, domisili, hobi | 1 | `/akun/edit` | Belum |
-| AKN-03 | Postingan saya | Daftar postingan sendiri | 1 | `/akun/postingan-saya` | Belum |
-| AKN-04 | Tersimpan | Postingan yang disimpan | 1 | `/akun/tersimpan` | Belum |
-| AKN-05 | Pengikut | Daftar pengikut | 1 | `/akun/pengikut` | Belum |
-| AKN-06 | Mengikuti | Daftar yang diikuti | 1 | `/akun/mengikuti` | Belum |
-| AKN-07 | Pengaturan | Menu pengaturan utama, mode gelap | 1 | `/akun/pengaturan` | Belum |
-| AKN-08 | Privasi | Visibilitas per bidang | 1 | `/akun/privasi` | Belum |
-| AKN-09 | Keamanan | Perangkat aktif, ganti nomor | 1 | `/akun/keamanan` | Belum |
-| AKN-10 | Pengaturan notifikasi | Preferensi per jenis, jam tenang | 1 | `/akun/notifikasi-preferensi` | Belum |
-| AKN-11 | Pengguna diblokir | Daftar dan buka blokir | 1 | `/akun/diblokir` | Belum |
-| AKN-12 | Kenalan saya | Daftar terhubung dan permintaan | 1 | `/akun/kenalan` | Belum |
-| AKN-13 | Data saya | Unduh data | 1 | `/akun/data-saya` | Belum |
-| AKN-14 | Hapus akun | Alur penghapusan | 1 | `/akun/hapus-akun` | Belum |
-| AKN-15 | Tentang HORAS | Versi, lisensi, kebijakan | 1 | `/akun/tentang` | Belum |
+| AKN-01 | Profil saya | Tampilan profil sendiri | 1 | `/akun` | Selesai |
+| AKN-02 | Edit profil | Ubah bio, foto, domisili, hobi | 1 | `/akun/edit` | Selesai |
+| AKN-03 | Postingan saya | Daftar postingan sendiri | 1 | `/akun/postingan-saya` | Selesai |
+| AKN-04 | Tersimpan | Postingan yang disimpan | 1 | `/akun/tersimpan` | Selesai |
+| AKN-05 | Pengikut | Daftar pengikut | 1 | `/akun/pengikut` | Selesai |
+| AKN-06 | Mengikuti | Daftar yang diikuti | 1 | `/akun/mengikuti` | Selesai |
+| AKN-07 | Pengaturan | Menu pengaturan utama, mode gelap | 1 | `/akun/pengaturan` | Selesai |
+| AKN-08 | Privasi | Visibilitas per bidang | 1 | `/akun/privasi` | Selesai |
+| AKN-09 | Keamanan | Perangkat aktif, ganti nomor | 1 | `/akun/keamanan` | Selesai |
+| AKN-10 | Pengaturan notifikasi | Preferensi per jenis, jam tenang | 1 | `/akun/notifikasi-preferensi` | Selesai |
+| AKN-11 | Pengguna diblokir | Daftar dan buka blokir | 1 | `/akun/diblokir` | Selesai |
+| AKN-12 | Kenalan saya | Daftar terhubung dan permintaan | 1 | `/akun/kenalan` | Selesai |
+| AKN-13 | Data saya | Unduh data | 1 | `/akun/data-saya` | Selesai |
+| AKN-14 | Hapus akun | Alur penghapusan | 1 | `/akun/hapus-akun` | Selesai |
+| AKN-15 | Tentang HORAS | Versi, lisensi, kebijakan | 1 | `/akun/tentang` | Selesai |
 
 ### 8. Sistem (SIS)
 | ID | Nama Halaman | Tujuan | Fase | Rute | Status |
 | --- | --- | --- | --- | --- | --- |
-| SIS-01 | Notifikasi | Daftar notifikasi dalam aplikasi | 1 | `/sistem/notifikasi` | Belum |
-| SIS-02 | Laporkan | Formulir laporan untuk pengguna, konten, komunitas, sesi | 1 | `/sistem/laporkan` | Belum |
-| SIS-03 | Status laporan saya | Riwayat dan hasil laporan | 1 | `/sistem/laporan-status` | Belum |
-| SIS-04 | Pusat bantuan | Artikel dan pertanyaan umum | 1 | `/sistem/bantuan` | Belum |
-| SIS-05 | Hubungi dukungan | Kirim keluhan | 1 | `/sistem/dukungan` | Belum |
-| SIS-06 | Ajukan verifikasi | Verifikasi komunitas (gereja di fase 2) | 1 | `/sistem/verifikasi-ajukan` | Belum |
-| SIS-07 | Status verifikasi | Status pengajuan | 1 | `/sistem/verifikasi-status` | Belum |
-| SIS-08 | Pedoman komunitas | Aturan perilaku | 1 | `/sistem/pedoman` | Belum |
+| SIS-01 | Notifikasi | Daftar notifikasi dalam aplikasi | 1 | `/sistem/notifikasi` | Selesai |
+| SIS-02 | Laporkan | Formulir laporan untuk pengguna, konten, komunitas, sesi | 1 | `/sistem/laporkan` | Selesai |
+| SIS-03 | Status laporan saya | Riwayat dan hasil laporan | 1 | `/sistem/laporan-status` | Selesai |
+| SIS-04 | Pusat bantuan | Artikel dan pertanyaan umum | 1 | `/sistem/bantuan` | Selesai |
+| SIS-05 | Hubungi dukungan | Kirim keluhan | 1 | `/sistem/dukungan` | Selesai |
+| SIS-06 | Ajukan verifikasi | Verifikasi komunitas (gereja di fase 2) | 1 | `/sistem/verifikasi-ajukan` | Selesai |
+| SIS-07 | Status verifikasi | Status pengajuan | 1 | `/sistem/verifikasi-status` | Selesai |
+| SIS-08 | Pedoman komunitas | Aturan perilaku | 1 | `/sistem/pedoman` | Selesai |
 
 ---
 
 ## Bagian Placeholder (`SegeraPage`)
-Halaman yang masih dirender menggunakan `SegeraPage` (29 halaman; `AUT-01` .. `AUT-07` selesai di Prompt 3, `BER-01`/`04..10` di Prompt 4, `SEK-01..08`/`12` di Prompt 5, `TAR-01..07` di Prompt 6, `MAN-01..09` di Prompt 7, `PSN-01..06` di Prompt 8):
-- `BER-02` .. `BER-03` (`HomeModulePageRouter` - Fase 2 belum diaktifkan)
-- `SEK-09` .. `SEK-11` (`NearbyModulePageRouter` - Fase 2 belum diaktifkan)
-- `TAR-08` (`TaromboModulePageRouter` - Fase 2 belum diaktifkan)
-- `AKN-01` .. `AKN-15` (`AccountModulePlaceholderPage`)
-- `SIS-01` .. `SIS-08` (`SystemModulePlaceholderPage`)
-
-Setiap kali sebuah modul dibangun pada sesi berikutnya, halaman yang selesai dipindahkan dari `SegeraPage` ke implementasi penuhnya dan dihapus dari daftar Placeholder ini.
+Daftar halaman Fase 1 yang masih memakai placeholder `SegeraPage`: **Kosong (0 halaman Fase 1 tersisa — seluruh 69 halaman Fase 1 selesai di Prompt 9)**.
+*(6 halaman Fase 2 — `BER-02`, `BER-03`, `SEK-09`, `SEK-10`, `SEK-11`, `TAR-08` — tetap dinonaktifkan oleh `FeatureFlags` sampai Prompt 12.)*
 
 ---
 

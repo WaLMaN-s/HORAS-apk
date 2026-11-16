@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:convert';
 
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:horas/core/errors/app_failure.dart';
 import 'package:horas/core/errors/result.dart';
 import 'package:horas/core/l10n/app_strings.dart';
@@ -19,9 +21,101 @@ final class MockAuthRepository implements AuthRepository {
   const MockAuthRepository(this._store);
 
   final MockStore _store;
+  static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
 
   @override
   String? get currentUserId => _store.currentUserId;
+
+  @override
+  Profil? get currentSessionProfile => _store.activeProfile;
+
+  @override
+  DateTime get currentTime => _store.now;
+
+  @override
+  bool get isDevOtpHintEnabled => !_store.appConfig.isProd;
+
+  @override
+  LegalConsentRecord? get savedLegalConsent => _store.savedLegalConsent;
+
+  @override
+  Future<void> saveLegalConsent(LegalConsentRecord consent) async {
+    _store.savedLegalConsent = consent;
+    await _store.prefs?.setString(
+      kMockLegalConsentPrefsKey,
+      jsonEncode(consent.toJson()),
+    );
+  }
+
+  @override
+  OnboardingDraft getOnboardingDraft() => _store.onboardingDraft;
+
+  @override
+  Future<void> saveOnboardingDraft(OnboardingDraft draft) async {
+    _store.onboardingDraft = draft;
+    final me = _store.activeProfile;
+    if (me != null && !me.onboardingCompleted) {
+      _store.usersById[me.id] = me.copyWith(onboardingStep: draft.currentStep);
+    }
+    await _store.prefs?.setString(
+      kMockOnboardingDraftPrefsKey,
+      jsonEncode(draft.toJson()),
+    );
+  }
+
+  @override
+  Future<void> clearOnboardingDraft() async {
+    _store.onboardingDraft = const OnboardingDraft();
+    await _store.prefs?.remove(kMockOnboardingDraftPrefsKey);
+  }
+
+  @override
+  OtpPhoneStatus getOtpStatusForPhone(String phoneE164) {
+    final clean = phoneE164.trim();
+    final wrong = _store.otpWrongAttemptsByPhone[clean] ?? 0;
+    final remaining = (AppLimits.otpMaxWrongAttempts - wrong).clamp(
+      0,
+      AppLimits.otpMaxWrongAttempts,
+    );
+    final lockedUntil = _store.otpLockedUntilByPhone[clean];
+    final effectiveLock =
+        (lockedUntil != null && _store.now.isBefore(lockedUntil))
+        ? lockedUntil
+        : null;
+    final issuedAt = _store.issuedOtpTimeByPhone[clean];
+    final reqTimes = _store.otpRequestTimesByPhone[clean] ?? const <DateTime>[];
+    final resendReadyAt = reqTimes.isNotEmpty
+        ? reqTimes
+              .reduce((a, b) => a.isAfter(b) ? a : b)
+              .add(AppLimits.otpResendCooldown)
+        : null;
+    return (
+      remainingAttempts: remaining,
+      lockedUntil: effectiveLock,
+      issuedAt: issuedAt,
+      resendReadyAt: resendReadyAt,
+    );
+  }
+
+  Future<void> _writeSecureToken(String token) async {
+    _store.secureAccessToken = token;
+    if (!_store.enableNetworkLatency) return;
+    try {
+      await _secureStorage.write(key: kSecureAuthTokenKey, value: token);
+    } on Object {
+      // Abaikan bila platform channel belum tersedia.
+    }
+  }
+
+  Future<void> _deleteSecureToken() async {
+    _store.secureAccessToken = null;
+    if (!_store.enableNetworkLatency) return;
+    try {
+      await _secureStorage.delete(key: kSecureAuthTokenKey);
+    } on Object {
+      // Abaikan bila platform channel belum tersedia.
+    }
+  }
 
   @override
   Future<Result<void>> sendOtp({required String phoneE164}) async {
@@ -182,6 +276,9 @@ final class MockAuthRepository implements AuthRepository {
     }
 
     _store.currentUserId = user.id;
+    await _writeSecureToken(
+      'mock-jwt-${user.id}-${_store.now.millisecondsSinceEpoch}',
+    );
     await _store.persistSessionAndProfile();
     _store.notifyListeners();
     return Ok<Profil>(user);
@@ -287,8 +384,100 @@ final class MockAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<Result<void>> changePhoneWithDualOtp({
+    required String oldPhoneE164,
+    required String oldOtpCode,
+    required String newPhoneE164,
+    required String newOtpCode,
+  }) async {
+    final net = await _store.simulateNetworkCall(checkAccountStatus: false);
+    if (net.isErr) return net;
+
+    final validOld = HorasPolicies.validatePhoneE164(oldPhoneE164);
+    if (validOld.isErr) return validOld;
+    final validNew = HorasPolicies.validatePhoneE164(newPhoneE164);
+    if (validNew.isErr) return validNew;
+
+    final expected = _store.appConfig.isProd ? '984321' : '123456';
+    if (oldOtpCode.trim() != expected || newOtpCode.trim() != expected) {
+      return const Err<void>(
+        ValidationError(
+          message: 'Kode OTP nomor lama atau nomor baru belum sesuai.',
+          field: 'otp',
+        ),
+      );
+    }
+
+    final cleanOld = oldPhoneE164.trim();
+    final cleanNew = newPhoneE164.trim();
+    final existingUser = _store.usersById.values
+        .where((u) => u.phoneE164 == cleanOld)
+        .firstOrNull;
+    if (existingUser != null) {
+      _store.usersById[existingUser.id] = existingUser.copyWith(
+        phoneE164: cleanNew,
+      );
+      _store.pushNotificationInternal(
+        recipientId: existingUser.id,
+        type: NotificationType.accountSecurity,
+        title: 'Nomor HP Akun Diperbarui',
+        body: 'Nomor HP akunmu telah diganti ke $cleanNew.',
+        deepLink: 'horas://app/akun/keamanan',
+      );
+    }
+    return const Ok<void>(null);
+  }
+
+  @override
+  Future<Result<AccountRecoverySubmission>> submitLostPhoneRecovery({
+    required String oldPhoneE164,
+    required String newPhoneE164,
+    required String approximateRegistrationPeriod,
+    required String marga,
+    required String knownFriendsText,
+  }) async {
+    final net = await _store.simulateNetworkCall(checkAccountStatus: false);
+    if (net is Err<void>) {
+      return Err<AccountRecoverySubmission>(net.failure);
+    }
+
+    final validNew = HorasPolicies.validatePhoneE164(newPhoneE164);
+    if (validNew is Err<void>) {
+      return Err<AccountRecoverySubmission>(validNew.failure);
+    }
+    if (approximateRegistrationPeriod.trim().isEmpty ||
+        marga.trim().isEmpty ||
+        knownFriendsText.trim().isEmpty) {
+      return const Err<AccountRecoverySubmission>(
+        ValidationError(
+          message: 'Lengkapi perkiraan waktu daftar, marga, dan beberapa nama kenalan sebagai bukti kepemilikan.',
+          field: 'proof',
+        ),
+      );
+    }
+
+    final submission = AccountRecoverySubmission(
+      id: _store.nextId('rec'),
+      oldPhoneE164: oldPhoneE164.trim(),
+      newPhoneE164: newPhoneE164.trim(),
+      approximateRegistrationPeriod: approximateRegistrationPeriod.trim(),
+      marga: marga.trim(),
+      knownFriendsText: knownFriendsText.trim(),
+      statusLabel: AppStrings.aut07RecoveryStatusBadge,
+      submittedAt: _store.now,
+    );
+    _store.latestRecoverySubmission = submission;
+    return Ok<AccountRecoverySubmission>(submission);
+  }
+
+  @override
+  AccountRecoverySubmission? get latestRecoverySubmission =>
+      _store.latestRecoverySubmission;
+
+  @override
   Future<Result<void>> logout() async {
     _store.currentUserId = null;
+    await _deleteSecureToken();
     await _store.persistSessionAndProfile();
     _store.notifyListeners();
     return const Ok<void>(null);

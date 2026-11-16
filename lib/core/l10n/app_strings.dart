@@ -157,25 +157,185 @@ abstract final class AppStrings {
   static const String areaSameCity = 'Di kotamu';
   static const String areaSameSubdistrict = 'Di kecamatanmu';
 
-  // ── Daftar 75 Halaman PRD 5.1 (ID, Judul, Tujuan) ───────────────────────────
-  // Autentikasi (AUT-01 .. AUT-07)
+  // ── Autentikasi (AUT-01 .. AUT-07, AUT-R1 .. AUT-R10) ──────────────────────
   static const String aut01Title = 'Splash';
   static const String aut01Purpose = 'Memuat aplikasi, memeriksa sesi login';
+  static const String aut01CheckingSession = 'Memeriksa sesi keluarga HORAS...';
+
   static const String aut02Title = 'Pengenalan';
   static const String aut02Purpose =
       'Tiga layar nilai produk (kenal, tarombo, main)';
+  static const String aut02Slide1Title = 'Temukan Dongan Sahuta di Perantauan';
+  static const String aut02Slide1Desc =
+      'Kenali sesama orang Batak, punguan marga, dan komunitas di kotamu dengan privasi yang terjaga.';
+  static const String aut02Slide2Title = 'Pahami Tarombo & Partuturan';
+  static const String aut02Slide2Desc =
+      'Ketahui cara memanggil kerabat sesuai sistem kekerabatan Dalihan Na Tolu dengan aturan tervalidasi.';
+  static const String aut02Slide3Title = 'Main Bareng & Kumpul Sehat';
+  static const String aut02Slide3Desc =
+      'Ikuti atau buat sesi badminton, futsal, voli, dan aktivitas bersama di sekitarmu.';
+  static const String aut02BtnNext = 'Lanjut';
+  static const String aut02BtnSkip = 'Lewati';
+  static const String aut02BtnLogin = 'Masuk dengan Nomor HP';
+  static const String aut02BtnRegister = 'Daftar Anggota Baru';
+
   static const String aut03Title = 'Masuk';
   static const String aut03Purpose = 'Input nomor HP';
+  static const String aut03Subheading =
+      'Masukkan nomor HP aktifmu. Kami akan mengirimkan kode OTP 6 digit tanpa kata sandi.';
+  static const String aut03CountryLabel = 'Kode Negara';
+  static const String aut03PhoneLabel = 'Nomor HP';
+  static const String aut03PhoneHint = '812 3456 7890';
+  static const String aut03SendOtpBtn = 'Kirim Kode OTP';
+  static const String aut03LostNumberLink = 'Nomor tidak bisa diakses?';
+  static const String aut03ToRegisterPrefix = 'Belum pernah mendaftar? ';
+  static const String aut03ToRegisterAction = 'Daftar di sini';
+
   static const String aut04Title = 'Daftar';
   static const String aut04Purpose =
       'Persetujuan kebijakan, pedoman, konfirmasi usia 17+';
+  static const String aut04Subheading =
+      'Bergabung dengan keluarga besar HORAS. Setujui ketentuan dan konfirmasi usia sebelum verifikasi OTP.';
+  static const String aut04ConsentPrivacyLabel =
+      'Saya menyetujui Kebijakan Privasi dan Syarat Layanan HORAS.';
+  static const String aut04ReadPrivacyBtn =
+      'Baca Kebijakan Privasi & Syarat Layanan';
+  static const String aut04ConsentGuidelinesLabel =
+      'Saya berjanji mematuhi Pedoman Komunitas HORAS.';
+  static const String aut04ReadGuidelinesBtn = 'Baca Pedoman Komunitas';
+  static const String aut04ConsentAge17Label =
+      'Saya menyatakan bahwa saat ini saya berusia 17 tahun atau lebih.';
+  static const String aut04LegalDraftBadge = 'Draf, perlu tinjauan hukum';
+  static const String aut04ContinueToOtpBtn = 'Setuju & Kirim Kode OTP';
+  static const String aut04ToLoginPrefix = 'Sudah punya akun? ';
+  static const String aut04ToLoginAction = 'Masuk';
+  static const String aut04ErrorMustAcceptAll =
+      'Harap centang seluruh persetujuan dan pernyataan usia 17+ untuk melanjutkan.';
+
   static const String aut05Title = 'Verifikasi OTP';
   static const String aut05Purpose = 'Input kode 6 digit';
+  static String aut05SubtitleForPhone(String phone) =>
+      'Masukkan 6 digit kode OTP yang dikirimkan ke nomor $phone';
+  static const String aut05DevHint =
+      'Mode Non-Prod: Gunakan kode OTP tiruan 123456';
+  static String aut05ValidityNotice(int minutesLeft, int secondsLeft) =>
+      'Kode berlaku ${minutesLeft.toString().padLeft(2, '0')}:${secondsLeft.toString().padLeft(2, '0')}';
+  static const String aut05ExpiredNotice =
+      'Kode OTP telah kedaluwarsa (lewat 5 menit). Silakan kirim ulang kode baru.';
+  static String aut05ResendCountdown(int seconds) =>
+      'Kirim ulang kode dalam $seconds detik';
+  static const String aut05ResendBtn = 'Kirim Ulang Kode OTP';
+  static String aut05RemainingAttempts(int remaining, int max) =>
+      'Sisa kesempatan mencoba: $remaining dari $max';
+  static String aut05LockedMessage(String retryTimeFormatted) =>
+      'Nomor ini dikunci selama 1 jam karena batas percobaan OTP terlampaui. Kamu dapat mencoba lagi pada pukul $retryTimeFormatted.';
+  static const String aut05VerifyBtn = 'Verifikasi & Lanjutkan';
+
   static const String aut06Title = 'Onboarding Profil';
   static const String aut06Purpose =
       'Empat langkah: nama dan foto, jenis kelamin dan tahun lahir, marga dan sub-suku, domisili dan minat';
+  static String aut06StepIndicator(int step) => 'Langkah $step dari 4';
+  static const String aut06DraftSavedNotice =
+      'Draf otomatis tersimpan dan dapat dilanjutkan kapan saja.';
+  static const String aut06Step1Title = 'Nama Tampil & Foto Profil';
+  static const String aut06Step1Desc =
+      'Gunakan nama yang dikenal di keluarga atau komunitasmu (2–40 karakter).';
+  static const String aut06DisplayNameLabel = 'Nama Lengkap / Nama Tampil';
+  static const String aut06DisplayNameHint = 'Contoh: Rudi Simanjuntak';
+  static const String aut06PickPhotoGallery = 'Pilih dari Galeri';
+  static const String aut06PickPhotoCamera = 'Ambil Foto Kamera';
+  static const String aut06PhotoCompressedBadge =
+      'Foto terkompresi & bebas EXIF';
+
+  static const String aut06Step2Title = 'Jenis Kelamin & Tahun Lahir';
+  static const String aut06Step2Desc =
+      'Digunakan untuk perhitungan panggilan partuturan. Tahun lahir tidak pernah ditampilkan ke orang lain.';
+  static const String aut06GenderLabel = 'Jenis Kelamin';
+  static const String aut06BirthYearLabel = 'Tahun Lahir (Hanya Tahun)';
+  static const String aut06Under17PoliteRejection =
+      'Horas! Terima kasih atas minatmu bergabung di HORAS. Saat ini layanan HORAS hanya diperuntukkan bagi pengguna berusia 17 tahun ke atas. Data yang kamu isi tidak kami simpan.';
+
+  static const String aut06Step3Title = 'Marga & Sub-Suku';
+  static const String aut06Step3Desc =
+      'Identitas marga menjadi dasar hubungan kekerabatan di HORAS.';
+  static const String aut06LockWarningBanner =
+      'Penting (AUT-R7): Marga, sub-suku, dan jenis kelamin akan dikunci setelah onboarding selesai. Perubahan di kemudian hari hanya dapat diajukan melalui Hubungi Dukungan.';
+  static const String aut06SubEthnicLabel = 'Sub-Suku';
+  static const String aut06MargaSearchLabel = 'Cari & Pilih Marga';
+  static const String aut06MargaSearchHint =
+      'Ketik nama marga (mis. Simanjuntak)...';
+  static const String aut06MargaNotListedToggle =
+      'Marga belum ada di daftar baku';
+  static const String aut06CustomMargaInputLabel = 'Tulis Nama Margamu';
+  static const String aut06CustomMargaNotice =
+      'Marga baru akan masuk ke antrean verifikasi admin dan sementara tampil tanpa badge partuturan (AUT-R6).';
+  static const String aut06MotherMargaLabel = 'Marga Ibu (Opsional)';
+  static const String aut06MotherMargaHint =
+      'Sangat disarankan agar jalur Tulang/Hula-hula dapat dihitung';
+
+  static const String aut06Step4Title = 'Domisili & Minat';
+  static const String aut06Step4Desc =
+      'Pilih kota dan kecamatan tempat tinggalmu saat ini untuk menemukan komunitas sekitar.';
+  static const String aut06CityLabel = 'Kota / Kabupaten Domisili';
+  static const String aut06SubdistrictLabel = 'Kecamatan';
+  static const String aut06HobbiesLabel = 'Minat & Olahraga (Opsional)';
+  static const String aut06CampusOfficeLabel = 'Kampus atau Kantor (Opsional)';
+  static const String aut06CampusOfficeHint = 'Contoh: USU Medan / ITB Bandung';
+  static const String aut06BtnBackStep = 'Kembali';
+  static const String aut06BtnNextStep = 'Langkah Berikutnya';
+  static const String aut06BtnFinishSteps = 'Simpan & Lanjutkan';
+
+  // Layar penjelas manfaat izin setelah onboarding (AUT-R10)
+  static const String autPermissionTitle = 'Aktifkan Notifikasi & Area Sekitar';
+  static const String autPermissionSubtitle =
+      'Kami meminta izin hanya setelah kamu memahami manfaatnya. HORAS tetap berfungsi penuh meskipun kamu memilih melewati izin ini.';
+  static const String autPermissionNotifTitle =
+      'Notifikasi Kerabat & Aktivitas';
+  static const String autPermissionNotifDesc =
+      'Agar kamu tahu saat ada ajakan Kenalan, konfirmasi Tarombo, pesan baru, atau pengingat sesi olahraga.';
+  static const String autPermissionNotifAllowBtn = 'Izinkan Notifikasi';
+  static const String autPermissionNotifGranted = 'Notifikasi Diaktifkan';
+  static const String autPermissionLocTitle =
+      'Lokasi Perkiraan Kota (Tanpa GPS Presisi)';
+  static const String autPermissionLocDesc =
+      'Hanya memakai lokasi kasar (ACCESS_COARSE_LOCATION) untuk mencocokkan kota terdekat di perangkatmu, lalu koordinatnya langsung dibuang.';
+  static const String autPermissionLocAllowBtn = 'Cocokkan Kota Otomatis';
+  static String autPermissionLocMatched(String city) =>
+      'Kota terdeteksi di perangkat: $city (koordinat telah dibuang)';
+  static const String autPermissionDeniedNotice =
+      'Izin ditolak. Tidak masalah! Kamu tetap menggunakan domisili manual dan dapat mengubah izin kapan saja di Pengaturan.';
+  static const String autPermissionContinueToNearbyBtn =
+      'Masuk ke Sekitar Sekarang';
+
   static const String aut07Title = 'Pemulihan Akun';
   static const String aut07Purpose = 'Mengganti nomor atau memulihkan akses';
+  static const String aut07ModeAccessibleTab = 'Nomor Lama Masih Aktif';
+  static const String aut07ModeLostTab = 'Nomor Lama Hilang';
+  static const String aut07AccessibleDesc =
+      'Ganti nomor HP dengan memverifikasi kode OTP ke nomor lama lalu ke nomor baru (AUT-R8a).';
+  static const String aut07OldPhoneLabel = 'Nomor HP Lama';
+  static const String aut07NewPhoneLabel = 'Nomor HP Baru';
+  static const String aut07OldOtpLabel = 'Kode OTP Nomor Lama (6 digit)';
+  static const String aut07NewOtpLabel = 'Kode OTP Nomor Baru (6 digit)';
+  static const String aut07SendBothOtpBtn = 'Kirim OTP ke Nomor Lama & Baru';
+  static const String aut07ConfirmChangePhoneBtn =
+      'Verifikasi & Ganti Nomor HP';
+  static const String aut07PhoneChangedSuccess =
+      'Nomor HP berhasil diperbarui. Silakan masuk dengan nomor barumu.';
+  static const String aut07LostDesc =
+      'Jika nomor lama sudah tidak aktif, isi bukti kepemilikan akun untuk ditinjau tim dukungan (AUT-R8b).';
+  static const String aut07RegDateLabel = 'Perkiraan Bulan & Tahun Mendaftar';
+  static const String aut07RegDateHint = 'Contoh: Oktober 2026';
+  static const String aut07KnownMargaLabel = 'Marga pada Akun';
+  static const String aut07KnownFriendsLabel =
+      'Sebutkan Beberapa Nama Kenalan di HORAS';
+  static const String aut07KnownFriendsHint =
+      'Contoh: Dewi Simanjuntak, Bona Sitorus';
+  static const String aut07SubmitRecoveryBtn = 'Kirim Pengajuan Pemulihan';
+  static const String aut07RecoveryStatusBadge =
+      'Ditinjau, target 3 hari kerja';
+  static const String aut07RecoverySubmittedDesc =
+      'Pengajuan pemulihan akunmu telah diterima dan sedang ditinjau oleh tim dukungan HORAS dengan target penyelesaian 3 hari kerja.';
 
   // Beranda (BER-01 .. BER-10)
   static const String ber01Title = 'Beranda';

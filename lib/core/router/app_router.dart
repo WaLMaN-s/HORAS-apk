@@ -1,9 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:horas/core/config/repository_providers.dart';
 import 'package:horas/core/router/app_pages.dart';
 import 'package:horas/core/router/main_shell_scaffold.dart';
 import 'package:horas/core/widgets/state_view.dart';
-import 'package:horas/domain/models/page_spec.dart';
+import 'package:horas/domain/models/models.dart';
+import 'package:horas/domain/repositories/repositories.dart';
 import 'package:horas/features/account/presentation/account_placeholder_page.dart';
 import 'package:horas/features/auth/presentation/auth_placeholder_page.dart';
 import 'package:horas/features/home/presentation/home_placeholder_page.dart';
@@ -18,10 +20,6 @@ import 'package:material_ui/material_ui.dart';
 const String kHorasDeepLinkScheme = 'horas';
 
 /// Menormalkan URI deep link `horas://...` menjadi path internal `go_router`.
-///
-/// Contoh:
-/// - `horas://app/sekitar` -> `/sekitar`
-/// - `horas://tarombo/pohon` -> `/tarombo/pohon`
 String normalizeHorasDeepLink(Uri uri) {
   if (uri.scheme.toLowerCase() != kHorasDeepLinkScheme) {
     return uri.path.isEmpty ? AppPages.berandaPath : uri.path;
@@ -40,8 +38,11 @@ String normalizeHorasDeepLink(Uri uri) {
       : combined;
 }
 
-/// Pembuat [GoRouter] aplikasi HORAS dengan `StatefulShellRoute` 5 tab.
-GoRouter createAppRouter({String initialLocation = AppPages.berandaPath}) {
+/// Pembuat [GoRouter] aplikasi HORAS dengan `StatefulShellRoute` 5 tab & Guard Autentikasi.
+GoRouter createAppRouter({
+  String initialLocation = AppPages.berandaPath,
+  AuthRepository? authRepository,
+}) {
   return GoRouter(
     initialLocation: initialLocation,
     redirect: (context, state) {
@@ -51,6 +52,36 @@ GoRouter createAppRouter({String initialLocation = AppPages.berandaPath}) {
       }
       if (uri.path == '/') {
         return AppPages.berandaPath;
+      }
+
+      // Guard Router Autentikasi & Onboarding (Prompt 3)
+      if (authRepository != null) {
+        final isAuthRoute = uri.path.startsWith('/auth/');
+        final isPublicGuideline = uri.path == AppPages.sis08.routePath;
+        final profile = authRepository.currentSessionProfile;
+
+        if (profile == null) {
+          if (!isAuthRoute && !isPublicGuideline) {
+            return AppPages.aut02.routePath;
+          }
+          return null;
+        }
+
+        if (profile.accountStatus == AccountStatus.suspended ||
+            profile.accountStatus == AccountStatus.restricted ||
+            profile.accountStatus == AccountStatus.permanentlyBanned) {
+          if (uri.path != AppPages.aut01.routePath) {
+            return AppPages.aut01.routePath;
+          }
+          return null;
+        }
+
+        if (!profile.onboardingCompleted) {
+          if (uri.path != AppPages.aut06.routePath) {
+            return AppPages.aut06.routePath;
+          }
+          return null;
+        }
       }
       return null;
     },
@@ -132,13 +163,12 @@ GoRouter createAppRouter({String initialLocation = AppPages.berandaPath}) {
           ),
         ],
       ),
-      // Rute modul Autentikasi (AUT-01 .. AUT-07)
+      // Rute modul Autentikasi (AUT-01 .. AUT-07 — Selesai di Prompt 3)
       for (final spec in AppPages.authPages)
         GoRoute(
           path: spec.routePath,
           name: spec.id,
-          builder: (context, state) =>
-              AuthModulePlaceholderPage(pageSpec: spec),
+          builder: (context, state) => AuthModulePageRouter(pageSpec: spec),
         ),
       // Rute modul Pesan (PSN-01 .. PSN-06)
       for (final spec in AppPages.messagePages)
@@ -186,7 +216,8 @@ GoRoute _buildTabBranchRoute({
 
 /// Provider global untuk instance [GoRouter].
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final router = createAppRouter();
+  final authRepo = ref.watch(authRepositoryProvider);
+  final router = createAppRouter(authRepository: authRepo);
   ref.onDispose(router.dispose);
   return router;
 });

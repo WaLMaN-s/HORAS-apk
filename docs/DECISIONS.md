@@ -52,3 +52,11 @@ Dokumen ini mencatat seluruh keputusan teknis, asumsi produk saat PRD ambigu, da
   1. Berkas `assets/partuturan/toba.v0.json` hanya memuat pola dasar Toba yang jelas (kelompok semarga/dongan tubu dan jalur marga ibu/hula-hula 1 generasi di atas atau sebaya) dan ditandai `"validated": false`, `"reviewedBy": null`.
   2. Seluruh kasus yang belum tercakup atau datanya kurang dikembalikan sebagai keyakinan `rendah` (`"Belum bisa dipastikan"`) disertai pertanyaan pelengkap, tanpa mengarang istilah.
   3. Aturan wajib divalidasi oleh reviewer adat Toba sebelum peluncuran publik (`ENV=prod` secara bawaan mematikan aturan draf lewat `allowDraftRules = false`, sehingga otomatis masuk ke mode netral sampai `validated: true`).
+
+## D-009 · Modul Autentikasi, Persetujuan Hukum, dan Pencocokan Kota Kasar (16 Nov 2026)
+- **Konteks:** Prompt 3 mengimplementasikan `AUT-01` sampai `AUT-07`, layar penjelas manfaat izin (`AUT-R10`), dan guard router.
+- **Keputusan:**
+  1. **Tanpa Sandi & Tanpa Login Sosial (`AUT-R1`):** `AUT-03` dan `AUT-04` hanya menerima nomor HP (dengan kode negara diaspora) dan kode OTP 6 digit (`Pinput`). Tidak ada field sandi, tombol Google/Apple, maupun tautan "Lupa Password".
+  2. **Dokumen Legal Draf (`AUT-R4`, PRD 12):** `assets/legal/kebijakan_privasi_dan_syarat.md` dan `assets/legal/pedoman_komunitas.md` diberi label `"Draf, perlu tinjauan hukum"`. Persetujuan keduanya dan pernyataan usia 17+ disimpan di `LegalConsentRecord` lengkap dengan versi dan cap waktu.
+  3. **Lokasi Perkiraan Tanpa Simpan Koordinat (`AUT-R10`):** `AndroidManifest.xml` hanya meminta `ACCESS_COARSE_LOCATION` dan secara eksplisit menghapus `ACCESS_FINE_LOCATION` (`tools:node="remove"`). Koordinat kasar dicocokkan di perangkat ke nama kota terdekat di `wilayah.json` lewat `CoarseLocationCityMatcher` lalu langsung dibuang.
+  4. **Token Sesi Aman:** Token akses disimpan dan dihapus saat `logout()` melalui `flutter_secure_storage`.

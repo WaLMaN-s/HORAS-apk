@@ -701,3 +701,186 @@ final class WilayahCity {
     'subdistricts': subdistricts,
   };
 }
+
+/// Catatan persetujuan dokumen hukum dan pernyataan usia 17+ beserta versi & waktu (AUT-04, AUT-R4).
+final class LegalConsentRecord {
+  const LegalConsentRecord({
+    required this.version,
+    required this.acceptedPrivacyAndTermsAt,
+    required this.acceptedCommunityGuidelinesAt,
+    required this.confirmedAge17PlusAt,
+  });
+
+  final String version;
+  final DateTime acceptedPrivacyAndTermsAt;
+  final DateTime acceptedCommunityGuidelinesAt;
+  final DateTime confirmedAge17PlusAt;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    'version': version,
+    'acceptedPrivacyAndTermsAt': acceptedPrivacyAndTermsAt.toIso8601String(),
+    'acceptedCommunityGuidelinesAt': acceptedCommunityGuidelinesAt
+        .toIso8601String(),
+    'confirmedAge17PlusAt': confirmedAge17PlusAt.toIso8601String(),
+  };
+
+  factory LegalConsentRecord.fromJson(Map<String, Object?> json) {
+    final fallback = DateTime.utc(2026, 11, 16);
+    return LegalConsentRecord(
+      version: (json['version'] as String?) ?? '1.0.0-draft',
+      acceptedPrivacyAndTermsAt:
+          DateTime.tryParse(
+            (json['acceptedPrivacyAndTermsAt'] as String?) ?? '',
+          ) ??
+          fallback,
+      acceptedCommunityGuidelinesAt:
+          DateTime.tryParse(
+            (json['acceptedCommunityGuidelinesAt'] as String?) ?? '',
+          ) ??
+          fallback,
+      confirmedAge17PlusAt:
+          DateTime.tryParse((json['confirmedAge17PlusAt'] as String?) ?? '') ??
+          fallback,
+    );
+  }
+}
+
+/// Draf progres Onboarding 4 langkah yang disimpan per langkah agar dapat dilanjutkan
+/// apabila aplikasi ditutup di tengah jalan (AUT-06, AUT-R5).
+final class OnboardingDraft {
+  const OnboardingDraft({
+    this.currentStep = 1,
+    this.displayName = '',
+    this.photoSeedOrPath,
+    this.gender = UserGender.male,
+    this.birthYear = 1998,
+    this.marga = '',
+    this.isCustomMarga = false,
+    this.subEthnic = SubEthnic.toba,
+    this.motherMarga = '',
+    this.city = 'Medan',
+    this.subdistrict = 'Medan Baru',
+    this.hobbies = const <String>[],
+    this.campusOrOffice = '',
+    this.showPermissionExplainer = false,
+  });
+
+  final int currentStep;
+  final String displayName;
+  final String? photoSeedOrPath;
+  final UserGender gender;
+  final int birthYear;
+  final String marga;
+  final bool isCustomMarga;
+  final SubEthnic subEthnic;
+  final String motherMarga;
+  final String city;
+  final String subdistrict;
+  final List<String> hobbies;
+  final String campusOrOffice;
+  final bool showPermissionExplainer;
+
+  OnboardingDraft copyWith({
+    int? currentStep,
+    String? displayName,
+    String? photoSeedOrPath,
+    UserGender? gender,
+    int? birthYear,
+    String? marga,
+    bool? isCustomMarga,
+    SubEthnic? subEthnic,
+    String? motherMarga,
+    String? city,
+    String? subdistrict,
+    List<String>? hobbies,
+    String? campusOrOffice,
+    bool? showPermissionExplainer,
+  }) {
+    return OnboardingDraft(
+      currentStep: currentStep ?? this.currentStep,
+      displayName: displayName ?? this.displayName,
+      photoSeedOrPath: photoSeedOrPath ?? this.photoSeedOrPath,
+      gender: gender ?? this.gender,
+      birthYear: birthYear ?? this.birthYear,
+      marga: marga ?? this.marga,
+      isCustomMarga: isCustomMarga ?? this.isCustomMarga,
+      subEthnic: subEthnic ?? this.subEthnic,
+      motherMarga: motherMarga ?? this.motherMarga,
+      city: city ?? this.city,
+      subdistrict: subdistrict ?? this.subdistrict,
+      hobbies: hobbies ?? this.hobbies,
+      campusOrOffice: campusOrOffice ?? this.campusOrOffice,
+      showPermissionExplainer:
+          showPermissionExplainer ?? this.showPermissionExplainer,
+    );
+  }
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    'currentStep': currentStep,
+    'displayName': displayName,
+    'photoSeedOrPath': photoSeedOrPath,
+    'gender': gender.jsonCode,
+    'birthYear': birthYear,
+    'marga': marga,
+    'isCustomMarga': isCustomMarga,
+    'subEthnic': subEthnic.name,
+    'motherMarga': motherMarga,
+    'city': city,
+    'subdistrict': subdistrict,
+    'hobbies': hobbies,
+    'campusOrOffice': campusOrOffice,
+    'showPermissionExplainer': showPermissionExplainer,
+  };
+
+  factory OnboardingDraft.fromJson(Map<String, Object?> json) {
+    SubEthnic parseSubEthnic(String? raw) {
+      for (final s in SubEthnic.values) {
+        if (s.name == raw) return s;
+      }
+      return SubEthnic.toba;
+    }
+
+    return OnboardingDraft(
+      currentStep: ((json['currentStep'] as int?) ?? 1).clamp(1, 4),
+      displayName: (json['displayName'] as String?) ?? '',
+      photoSeedOrPath: json['photoSeedOrPath'] as String?,
+      gender: UserGender.fromJson(json['gender'] as String?),
+      birthYear: (json['birthYear'] as int?) ?? 1998,
+      marga: (json['marga'] as String?) ?? '',
+      isCustomMarga: (json['isCustomMarga'] as bool?) ?? false,
+      subEthnic: parseSubEthnic(json['subEthnic'] as String?),
+      motherMarga: (json['motherMarga'] as String?) ?? '',
+      city: (json['city'] as String?) ?? 'Medan',
+      subdistrict: (json['subdistrict'] as String?) ?? 'Medan Baru',
+      hobbies: ((json['hobbies'] as List<Object?>?) ?? const <Object?>[])
+          .whereType<String>()
+          .toList(growable: false),
+      campusOrOffice: (json['campusOrOffice'] as String?) ?? '',
+      showPermissionExplainer:
+          (json['showPermissionExplainer'] as bool?) ?? false,
+    );
+  }
+}
+
+/// Pengajuan pemulihan akun saat nomor lama hilang (AUT-07, AUT-R8b).
+final class AccountRecoverySubmission {
+  const AccountRecoverySubmission({
+    required this.id,
+    required this.oldPhoneE164,
+    required this.newPhoneE164,
+    required this.approximateRegistrationPeriod,
+    required this.marga,
+    required this.knownFriendsText,
+    required this.statusLabel,
+    required this.submittedAt,
+  });
+
+  final String id;
+  final String oldPhoneE164;
+  final String newPhoneE164;
+  final String approximateRegistrationPeriod;
+  final String marga;
+  final String knownFriendsText;
+  final String statusLabel;
+  final DateTime submittedAt;
+}

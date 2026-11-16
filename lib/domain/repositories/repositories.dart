@@ -5,9 +5,30 @@ import 'package:horas/domain/partuturan/partuturan_confidence.dart';
 export 'debug_simulation_repository.dart';
 export 'navigation_badge_repository.dart';
 
+/// Status percobaan dan waktu tunggu OTP per nomor HP (AUT-05, AUT-R2, AC-01).
+typedef OtpPhoneStatus = ({
+  int remainingAttempts,
+  DateTime? lockedUntil,
+  DateTime? issuedAt,
+  DateTime? resendReadyAt,
+});
+
 /// 1. Repository Autentikasi (AUT-01 .. AUT-07, AUT-R1 .. AUT-R10).
 abstract interface class AuthRepository {
   String? get currentUserId;
+  Profil? get currentSessionProfile;
+  DateTime get currentTime;
+  bool get isDevOtpHintEnabled;
+
+  LegalConsentRecord? get savedLegalConsent;
+  Future<void> saveLegalConsent(LegalConsentRecord consent);
+
+  OnboardingDraft getOnboardingDraft();
+  Future<void> saveOnboardingDraft(OnboardingDraft draft);
+  Future<void> clearOnboardingDraft();
+
+  OtpPhoneStatus getOtpStatusForPhone(String phoneE164);
+
   Future<Result<void>> sendOtp({required String phoneE164});
   Future<Result<Profil>> verifyOtp({
     required String phoneE164,
@@ -34,6 +55,20 @@ abstract interface class AuthRepository {
     required String newPhoneE164,
     required String proofNote,
   });
+  Future<Result<void>> changePhoneWithDualOtp({
+    required String oldPhoneE164,
+    required String oldOtpCode,
+    required String newPhoneE164,
+    required String newOtpCode,
+  });
+  Future<Result<AccountRecoverySubmission>> submitLostPhoneRecovery({
+    required String oldPhoneE164,
+    required String newPhoneE164,
+    required String approximateRegistrationPeriod,
+    required String marga,
+    required String knownFriendsText,
+  });
+  AccountRecoverySubmission? get latestRecoverySubmission;
   Future<Result<void>> logout();
 }
 

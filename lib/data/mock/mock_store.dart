@@ -18,6 +18,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 const String kMockSessionUserIdPrefsKey = 'horas.mock.session_user_id';
 const String kMockOwnProfilePrefsKey = 'horas.mock.own_profile';
 const String kMockOwnPrivacyPrefsKey = 'horas.mock.own_privacy';
+const String kMockLegalConsentPrefsKey = 'horas.mock.legal_consent';
+const String kMockOnboardingDraftPrefsKey = 'horas.mock.onboarding_draft';
+const String kSecureAuthTokenKey = 'horas.auth.access_token';
 
 /// Penyimpanan in-memory pusat untuk seluruh repository tiruan (Prompt 2 Bagian C & D).
 final class MockStore {
@@ -53,8 +56,12 @@ final class MockStore {
 
   // ── State In-Memory ─────────────────────────────────────────────────────────
   String? currentUserId = 'u-01';
+  String? secureAccessToken = 'mock-jwt-u-01';
   String currentSelectedCity = 'Medan';
   bool hasGivenTaromboConsent = false;
+  LegalConsentRecord? savedLegalConsent;
+  OnboardingDraft onboardingDraft = const OnboardingDraft();
+  AccountRecoverySubmission? latestRecoverySubmission;
 
   final Map<String, Profil> usersById = <String, Profil>{};
   final List<MargaEntry> margas = <MargaEntry>[];
@@ -249,6 +256,24 @@ final class MockStore {
         // Abaikan bila data lama korup.
       }
     }
+    final savedConsentJson = p.getString(kMockLegalConsentPrefsKey);
+    if (savedConsentJson != null) {
+      try {
+        final decoded = jsonDecode(savedConsentJson) as Map<String, Object?>;
+        savedLegalConsent = LegalConsentRecord.fromJson(decoded);
+      } on Object {
+        // Abaikan bila data lama korup.
+      }
+    }
+    final savedDraftJson = p.getString(kMockOnboardingDraftPrefsKey);
+    if (savedDraftJson != null) {
+      try {
+        final decoded = jsonDecode(savedDraftJson) as Map<String, Object?>;
+        onboardingDraft = OnboardingDraft.fromJson(decoded);
+      } on Object {
+        // Abaikan bila data lama korup.
+      }
+    }
   }
 
   void currentSpatialCitySync(String city) {
@@ -265,6 +290,9 @@ final class MockStore {
     isSlowNetwork = false;
     timeOffset = Duration.zero;
     hasGivenTaromboConsent = false;
+    savedLegalConsent = null;
+    onboardingDraft = const OnboardingDraft();
+    latestRecoverySubmission = null;
 
     usersById.clear();
     margas.clear();

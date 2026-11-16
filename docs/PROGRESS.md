@@ -15,7 +15,7 @@ Keterangan status:
 ## Ringkasan Modul
 | Modul | Kode | Jumlah Halaman | Fase 1 | Fase 2 | Selesai |
 | --- | --- | --- | --- | --- | --- |
-| Autentikasi | AUT | 7 | 7 | 0 | 0 |
+| Autentikasi | AUT | 7 | 7 | 0 | 7 |
 | Beranda | BER | 10 | 8 | 2 | 0 |
 | Sekitar | SEK | 12 | 9 | 3 | 0 |
 | Tarombo | TAR | 8 | 7 | 1 | 0 |
@@ -23,7 +23,7 @@ Keterangan status:
 | Pesan | PSN | 6 | 6 | 0 | 0 |
 | Akun | AKN | 15 | 15 | 0 | 0 |
 | Sistem | SIS | 8 | 8 | 0 | 0 |
-| **Total** |  | **75** | **69** | **6** | **0** |
+| **Total** |  | **75** | **69** | **6** | **7** |
 
 ---
 
@@ -32,13 +32,13 @@ Keterangan status:
 ### 1. Autentikasi (AUT)
 | ID | Nama Halaman | Tujuan | Fase | Rute | Status |
 | --- | --- | --- | --- | --- | --- |
-| AUT-01 | Splash | Memuat aplikasi, memeriksa sesi login | 1 | `/auth/splash` | Belum |
-| AUT-02 | Pengenalan | Tiga layar nilai produk (kenal, tarombo, main) | 1 | `/auth/pengenalan` | Belum |
-| AUT-03 | Masuk | Input nomor HP | 1 | `/auth/masuk` | Belum |
-| AUT-04 | Daftar | Persetujuan kebijakan, pedoman, konfirmasi usia 17+ | 1 | `/auth/daftar` | Belum |
-| AUT-05 | Verifikasi OTP | Input kode 6 digit | 1 | `/auth/otp` | Belum |
-| AUT-06 | Onboarding profil | Empat langkah: nama dan foto, jenis kelamin dan tahun lahir, marga dan sub-suku, domisili dan minat | 1 | `/auth/onboarding` | Belum |
-| AUT-07 | Pemulihan akun | Mengganti nomor atau memulihkan akses | 1 | `/auth/pemulihan` | Belum |
+| AUT-01 | Splash | Memuat aplikasi, memeriksa sesi login | 1 | `/auth/splash` | Selesai |
+| AUT-02 | Pengenalan | Tiga layar nilai produk (kenal, tarombo, main) | 1 | `/auth/pengenalan` | Selesai |
+| AUT-03 | Masuk | Input nomor HP | 1 | `/auth/masuk` | Selesai |
+| AUT-04 | Daftar | Persetujuan kebijakan, pedoman, konfirmasi usia 17+ | 1 | `/auth/daftar` | Selesai |
+| AUT-05 | Verifikasi OTP | Input kode 6 digit | 1 | `/auth/otp` | Selesai |
+| AUT-06 | Onboarding profil | Empat langkah: nama dan foto, jenis kelamin dan tahun lahir, marga dan sub-suku, domisili dan minat | 1 | `/auth/onboarding` | Selesai |
+| AUT-07 | Pemulihan akun | Mengganti nomor atau memulihkan akses | 1 | `/auth/pemulihan` | Selesai |
 
 ### 2. Beranda (BER)
 | ID | Nama Halaman | Tujuan | Fase | Rute | Status |
@@ -139,8 +139,7 @@ Keterangan status:
 ---
 
 ## Bagian Placeholder (`SegeraPage`)
-Pada tahap fondasi (Prompt 1), seluruh **75 halaman** di atas telah didaftarkan di `lib/core/router/app_pages.dart` dan `lib/core/router/app_router.dart`, serta dirender menggunakan `SegeraPage` melalui entrypoint modul masing-masing:
-- `AUT-01` .. `AUT-07` (`AuthModulePlaceholderPage`)
+Halaman yang masih dirender menggunakan `SegeraPage` (68 halaman; `AUT-01` .. `AUT-07` telah selesai di Prompt 3):
 - `BER-01` .. `BER-10` (`HomeModulePlaceholderPage`)
 - `SEK-01` .. `SEK-12` (`NearbyModulePlaceholderPage`)
 - `TAR-01` .. `TAR-08` (`TaromboModulePlaceholderPage`)

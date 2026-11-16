@@ -928,4 +928,179 @@ abstract final class AppStrings {
     'Boru',
     'Bere',
   ];
+
+  // ── Main Bareng (Prompt 7: MAN-01 .. MAN-09) ───────────────────────────────
+  static const String man01EmptyMessage = 'Belum ada sesi, buat yang pertama';
+  static const String man01CreateSessionBtn = 'Buat Sesi';
+  static const String man01PopularCourtsSection = 'Lapangan Populer';
+  static const String man01HistoryTooltip = 'Riwayat Sesi Saya';
+  static const String man01FilterTooltip = 'Filter Sesi';
+  static const String man01AllCourtsAction = 'Lihat Lapangan';
+  static String man01ParticipantsRatio(int joined, int maxSlots) =>
+      '$joined/$maxSlots peserta';
+  static const String man01FreeFeeLabel = 'Gratis';
+
+  static const String man02SportLabel = 'Cabang Olahraga';
+  static const String man02AllSports = 'Semua Olahraga';
+  static const String man02DayLabel = 'Hari';
+  static const String man02DayAll = 'Semua Hari';
+  static const String man02DayToday = 'Hari Ini';
+  static const String man02DayTomorrow = 'Besok';
+  static const String man02DayWeekend = 'Akhir Pekan';
+  static const String man02LevelLabel = 'Level Pemain';
+  static const String man02AllLevels = 'Semua';
+  static const String man02RangeLabel = 'Rentang Jarak Area';
+  static const String man02RangeAll = 'Semua di kota';
+  static const String man02RangeSameSubdistrict = 'Di kecamatanmu';
+  static const String man02RangeSameCity = 'Di kotamu';
+  static const String man02CostLabel = 'Biaya';
+  static const String man02CostAll = 'Semua Biaya';
+  static const String man02CostFree = 'Gratis (Rp0)';
+  static const String man02CostPaid = 'Patungan Berbayar';
+
+  static const String man03NoGamblingBanner =
+      'Taruhan uang atau judi dilarang keras di HORAS. Sesi hanya boleh di tempat umum atau fasilitas olahraga.';
+  static const String man03TitleLabel = 'Judul Sesi (Opsional)';
+  static const String man03TitleHint = 'Contoh: Badminton Naposo Sore';
+  static const String man03VenueModeCourt = 'Pilih Lapangan';
+  static const String man03VenueModeManual = 'Tempat Umum / Ketik Manual';
+  static const String man03CourtSelectLabel = 'Lapangan Terdaftar';
+  static const String man03ManualSummaryLabel =
+      'Nama Area / Tempat Umum (tampil ke publik)';
+  static const String man03ManualSummaryHint = 'Contoh: Taman Lapangan Merdeka';
+  static const String man03ManualFullDetailLabel =
+      'Alamat Lengkap / Titik Kumpul (baru tampil ke peserta yang sudah bergabung)';
+  static const String man03StartOffsetLabel = 'Jadwal Mulai';
+  static const String man03DurationHoursLabel = 'Durasi (Jam)';
+  static const String man03SlotsLabel = 'Jumlah Slot Termasuk Host (2-50)';
+  static const String man03FeeLabel =
+      'Perkiraan Biaya per Orang (Rp0 - 1.000.000)';
+  static const String man03NotesLabel = 'Catatan Sesi (Maks. 300 karakter)';
+  static const String man03VisibilityLabel = 'Visibilitas Sesi';
+  static const String man03VisibilityPublic = 'Publik di area';
+  static const String man03VisibilityCommunity = 'Komunitas tertentu';
+  static const String man03VisibilityInviteOnly = 'Hanya undangan';
+  static const String man03JoinModeLabel = 'Mode Bergabung';
+  static const String man03JoinModeInstant = 'Langsung gabung';
+  static const String man03JoinModeHostApproval = 'Perlu persetujuan host';
+  static const String man03SubmitBtn = 'Terbitkan Sesi';
+  static const String man03CreatedToast =
+      'Sesi main, chat grup otomatis, dan pengingat lokal berhasil dibuat.';
+  static const String man03StartTime2h = '2 jam lagi';
+  static const String man03StartTimeTomorrowMorning = 'Besok 08:00';
+  static const String man03StartTimeTomorrowNight = 'Besok 19:00';
+  static const String man03StartTimeNextWeek = '3 hari lagi';
+
+  static const String man04JoinBtn = 'Gabung';
+  static const String man04JoinWaitlistBtn = 'Masuk Daftar Tunggu';
+  static const String man04LeaveBtn = 'Keluar dari Sesi';
+  static const String man04WaitingHostApproval = 'Menunggu persetujuan host';
+  static String man04WaitlistPositionBadge(int pos) =>
+      'Daftar Tunggu · Urutan $pos';
+  static const String man04StatusUpdatedBadge = 'Jadwal/Lokasi Diubah';
+  static const String man04StatusCancelledBadge = 'Dibatalkan';
+  static const String man04StatusCompletedBadge = 'Selesai';
+  static const String man04Restricted7DaysBanner =
+      'Belum bisa bergabung selama 7 hari karena 3 catatan ketidakhadiran/keluar mendadak dalam 30 hari terakhir.';
+  static const String man04LateLeaveTitle = 'Keluar Mendadak (< 3 Jam)';
+  static const String man04LateLeaveBody =
+      'Waktu mulai kurang dari 3 jam. Keluar sekarang akan menambah catatan keandalan (3 catatan dalam 30 hari membatasi gabung sesi baru selama 7 hari). Tetap keluar?';
+  static const String man04NormalLeaveTitle = 'Keluar dari Sesi?';
+  static const String man04NormalLeaveBody =
+      'Slotmu akan dilepaskan untuk peserta lain atau daftar tunggu berikutnya.';
+  static const String man04CancelSessionTitle = 'Batalkan Sesi Ini?';
+  static const String man04CancelSessionBody =
+      'Seluruh peserta yang bergabung akan menerima notifikasi pembatalan.';
+  static const String man04CancelSessionBtn = 'Batalkan Sesi';
+  static const String man04EditScheduleBtn = 'Edit Jadwal / Lapangan';
+  static const String man04EditScheduleNote =
+      'Mengubah jadwal/lapangan memberi notifikasi ke peserta dan mengizinkan mereka keluar tanpa catatan keandalan.';
+  static const String man04ParticipantsBtn = 'Peserta & Daftar Tunggu';
+  static const String man04PatunganBtn = 'Patungan Biaya';
+  static const String man04SessionChatBtn = 'Chat Grup Sesi';
+  static const String man04ManualDetailHiddenHint =
+      'Detail titik kumpul lengkap baru ditampilkan kepada peserta yang sudah bergabung.';
+  static String man04RemindersScheduledInfo(String timesSummary) =>
+      'Pengingat lokal (jam tenang 22.00-06.00): $timesSummary';
+
+  static const String man05WaitlistSection = 'Daftar Tunggu (FIFO)';
+  static const String man05EmptyWaitlist =
+      'Belum ada pengguna di daftar tunggu.';
+  static const String man05PendingRequestsSection = 'Menunggu Persetujuan Host';
+  static const String man05JoinedSection = 'Peserta Bergabung';
+  static const String man05MarkAttended = 'Hadir';
+  static const String man05MarkAbsent = 'Tidak Hadir';
+  static const String man05KickBtn = 'Keluarkan';
+  static String man05HostReliabilityCount(int count) =>
+      'Catatan keandalan (host): $count';
+
+  static const String man06DisclaimerBanner =
+      'Pembayaran terjadi di luar aplikasi; HORAS tidak menyimpan rekening dan tidak memproses uang.';
+  static const String man06ModeTotal = 'Isi Total Biaya';
+  static const String man06ModePerPerson = 'Isi Biaya per Orang';
+  static const String man06AmountLabel = 'Nominal (Rupiah)';
+  static const String man06RecalculateBtn = 'Hitung Patungan (Bulatkan Rp500)';
+  static String man06PerPersonResult(int rupiah) =>
+      'Patungan per orang: Rp$rupiah';
+  static const String man06MarkPaidBtn = 'Sudah bayar';
+  static const String man06WaitingConfirmBadge = 'Menunggu konfirmasi host';
+  static const String man06ConfirmPaidBtn = 'Konfirmasi Lunas';
+  static const String man06PaidConfirmedBadge = 'Terkonfirmasi Lunas';
+
+  static const String man07ProposeCourtBtn = 'Usulkan Lapangan';
+  static const String man07EmptyCourtsMessage =
+      'Belum ada lapangan terdaftar di kota ini.';
+
+  static const String man08EstimatedPricePrefix = 'Perkiraan harga';
+  static const String man08OpeningHoursLabel = 'Jam Operasional';
+  static const String man08OpenMapsBtn = 'Buka Lokasi di Peta';
+  static const String man08ReportWrongInfoBtn = 'Laporkan info salah';
+  static const String man08ReportWrongInfoTitle =
+      'Laporkan Info Lapangan Salah';
+  static const String man08ReportWrongInfoHint =
+      'Jelaskan info yang keliru (harga, alamat, jam)...';
+  static const String man08ReportWrongInfoSuccess =
+      'Laporan dikirim. Lapangan dengan > 3 laporan akan ditandai untuk ditinjau.';
+  static const String man08FlaggedForReviewBadge =
+      'Ditandai untuk ditinjau (>3 laporan)';
+  static const String man08ProposeTitle = 'Usulkan Lapangan Baru';
+  static const String man08CourtNameLabel =
+      'Nama Lapangan / Fasilitas Olahraga';
+  static const String man08CourtAddressLabel = 'Alamat Lengkap';
+  static const String man08CourtPriceLabel =
+      'Perkiraan Tarif (contoh: Rp50.000/jam)';
+  static const String man08CourtHoursLabel = 'Jam Buka (contoh: 07.00 - 22.00)';
+  static const String man08SubmitProposeBtn = 'Kirim Usulan (Antrean Moderasi)';
+  static const String man08ProposedToast =
+      'Usulan lapangan dikirim ke antrean moderasi.';
+
+  static const String man09TabCreated = 'Dibuat';
+  static const String man09TabJoined = 'Diikuti';
+  static const String man09EmptyCreated = 'Belum ada sesi yang kamu buat.';
+  static const String man09EmptyJoined = 'Belum ada sesi yang kamu ikuti.';
+
+  static const String man03VenueModeLabel = 'Lokasi Sesi';
+  static const String man03CityLabel = 'Kota / Area Sesi';
+  static const String man03CustomTimeBtn = 'Pilih Tanggal & Jam Lain';
+  static const String man03CommunitySelectLabel = 'Pilih Komunitas';
+  static const String man03NoCommunitiesHint =
+      'Belum ada komunitas yang tersedia.';
+  static const String man03NoCourtsInCityHint =
+      'Belum ada lapangan terdaftar di kota ini. Gunakan tempat umum.';
+  static const String man04HostLabel = 'Host Sesi';
+  static const String man04NotesLabel = 'Catatan Sesi';
+  static const String man04EditScheduleDialogTitle = 'Ubah Jadwal / Lokasi';
+  static const String man04Delay1HourBtn = 'Tunda +1 Jam';
+  static const String man04Delay1DayBtn = 'Geser +1 Hari';
+  static const String man05ApproveBtn = 'Terima';
+  static const String man05RejectBtn = 'Tolak';
+  static const String man05HostBadge = 'Host';
+  static const String man05JoinedBadge = 'Bergabung';
+  static const String man05AttendedBadge = 'Hadir';
+  static const String man05AbsentBadge = 'Tidak Hadir';
+  static const String man06UnpaidBadge = 'Belum lunas';
+  static const String man08MapLaunchError =
+      'Tidak dapat membuka aplikasi peta eksternal.';
+  static const String man08SupportedSportsLabel = 'Olahraga Tersedia';
+  static const String man08CityLabel = 'Kota';
 }

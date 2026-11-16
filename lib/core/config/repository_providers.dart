@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:horas/core/config/app_config.dart';
+import 'package:horas/core/utils/session_reminder_service.dart';
 import 'package:horas/core/utils/shared_prefs_provider.dart';
 import 'package:horas/data/mock/mock_repositories.dart';
 import 'package:horas/data/mock/mock_store.dart';
@@ -78,9 +79,17 @@ final communityRepositoryProvider = Provider<CommunityRepository>((ref) {
   );
 });
 
+/// Layanan pengingat lokal sesi Main (`MAN-R11`).
+final sessionReminderServiceProvider = Provider<SessionReminderService>((ref) {
+  return LocalSessionReminderService();
+});
+
 /// 12. Provider [SessionRepository].
 final sessionRepositoryProvider = Provider<SessionRepository>((ref) {
-  return MockSessionRepository(ref.watch(mockStoreProvider));
+  return MockSessionRepository(
+    ref.watch(mockStoreProvider),
+    ref.watch(chatRepositoryProvider),
+  );
 });
 
 /// 13. Provider [CourtRepository].

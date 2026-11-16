@@ -62,6 +62,8 @@ final class PlaySession {
     this.participantCount = 1,
     this.waitlistCount = 0,
     this.isJoinedByMe = false,
+    this.isUpdated = false,
+    this.scheduleUpdatedAt,
     this.conversationId,
   });
 
@@ -89,6 +91,8 @@ final class PlaySession {
   final int participantCount;
   final int waitlistCount;
   final bool isJoinedByMe;
+  final bool isUpdated;
+  final DateTime? scheduleUpdatedAt;
   final String? conversationId;
   final DateTime createdAt;
 
@@ -122,6 +126,8 @@ final class PlaySession {
     int? participantCount,
     int? waitlistCount,
     bool? isJoinedByMe,
+    bool? isUpdated,
+    DateTime? scheduleUpdatedAt,
     String? conversationId,
   }) {
     return PlaySession(
@@ -149,6 +155,8 @@ final class PlaySession {
       participantCount: participantCount ?? this.participantCount,
       waitlistCount: waitlistCount ?? this.waitlistCount,
       isJoinedByMe: isJoinedByMe ?? this.isJoinedByMe,
+      isUpdated: isUpdated ?? this.isUpdated,
+      scheduleUpdatedAt: scheduleUpdatedAt ?? this.scheduleUpdatedAt,
       conversationId: conversationId ?? this.conversationId,
       createdAt: createdAt,
     );
@@ -176,6 +184,8 @@ final class PlaySession {
     'participantCount': participantCount,
     'waitlistCount': waitlistCount,
     'isJoinedByMe': isJoinedByMe,
+    'isUpdated': isUpdated,
+    'scheduleUpdatedAt': scheduleUpdatedAt?.toIso8601String(),
     'conversationId': conversationId,
     'createdAt': createdAt.toIso8601String(),
   };

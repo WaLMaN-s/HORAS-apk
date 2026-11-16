@@ -19,11 +19,11 @@ Keterangan status:
 | Beranda | BER | 10 | 8 | 2 | 8 |
 | Sekitar | SEK | 12 | 9 | 3 | 9 |
 | Tarombo | TAR | 8 | 7 | 1 | 7 |
-| Main | MAN | 9 | 9 | 0 | 0 |
+| Main | MAN | 9 | 9 | 0 | 9 |
 | Pesan | PSN | 6 | 6 | 0 | 0 |
 | Akun | AKN | 15 | 15 | 0 | 0 |
 | Sistem | SIS | 8 | 8 | 0 | 0 |
-| **Total** |  | **75** | **69** | **6** | **31** |
+| **Total** |  | **75** | **69** | **6** | **40** |
 
 ---
 
@@ -85,15 +85,15 @@ Keterangan status:
 ### 5. Main (MAN)
 | ID | Nama Halaman | Tujuan | Fase | Rute | Status |
 | --- | --- | --- | --- | --- | --- |
-| MAN-01 | Main (utama) | Daftar sesi di sekitar | 1 | `/main` | Belum |
-| MAN-02 | Filter sesi | Olahraga, hari, level, jarak, biaya | 1 | `/main/filter` | Belum |
-| MAN-03 | Buat sesi | Formulir sesi | 1 | `/main/sesi-buat` | Belum |
-| MAN-04 | Detail sesi | Info, gabung/keluar | 1 | `/main/sesi-detail` | Belum |
-| MAN-05 | Peserta dan daftar tunggu | Daftar peserta dengan badge | 1 | `/main/peserta` | Belum |
-| MAN-06 | Patungan | Biaya per orang dan status bayar | 1 | `/main/patungan` | Belum |
-| MAN-07 | Daftar lapangan | Lapangan yang sering dipakai | 1 | `/main/lapangan` | Belum |
-| MAN-08 | Detail/usul lapangan | Info lapangan, usulkan lapangan baru | 1 | `/main/lapangan-detail` | Belum |
-| MAN-09 | Riwayat sesi saya | Sesi yang dibuat dan diikuti | 1 | `/main/riwayat` | Belum |
+| MAN-01 | Main (utama) | Daftar sesi di sekitar | 1 | `/main` | Selesai |
+| MAN-02 | Filter sesi | Olahraga, hari, level, jarak, biaya | 1 | `/main/filter` | Selesai |
+| MAN-03 | Buat sesi | Formulir sesi | 1 | `/main/sesi-buat` | Selesai |
+| MAN-04 | Detail sesi | Info, gabung/keluar | 1 | `/main/sesi-detail` | Selesai |
+| MAN-05 | Peserta dan daftar tunggu | Daftar peserta dengan badge | 1 | `/main/peserta` | Selesai |
+| MAN-06 | Patungan | Biaya per orang dan status bayar | 1 | `/main/patungan` | Selesai |
+| MAN-07 | Daftar lapangan | Lapangan yang sering dipakai | 1 | `/main/lapangan` | Selesai |
+| MAN-08 | Detail/usul lapangan | Info lapangan, usulkan lapangan baru | 1 | `/main/lapangan-detail` | Selesai |
+| MAN-09 | Riwayat sesi saya | Sesi yang dibuat dan diikuti | 1 | `/main/riwayat` | Selesai |
 
 ### 6. Pesan (PSN)
 | ID | Nama Halaman | Tujuan | Fase | Rute | Status |
@@ -139,11 +139,10 @@ Keterangan status:
 ---
 
 ## Bagian Placeholder (`SegeraPage`)
-Halaman yang masih dirender menggunakan `SegeraPage` (44 halaman; `AUT-01` .. `AUT-07` selesai di Prompt 3, `BER-01`/`04..10` di Prompt 4, `SEK-01..08`/`12` di Prompt 5, `TAR-01..07` di Prompt 6):
+Halaman yang masih dirender menggunakan `SegeraPage` (35 halaman; `AUT-01` .. `AUT-07` selesai di Prompt 3, `BER-01`/`04..10` di Prompt 4, `SEK-01..08`/`12` di Prompt 5, `TAR-01..07` di Prompt 6, `MAN-01..09` di Prompt 7):
 - `BER-02` .. `BER-03` (`HomeModulePageRouter` - Fase 2 belum diaktifkan)
 - `SEK-09` .. `SEK-11` (`NearbyModulePageRouter` - Fase 2 belum diaktifkan)
 - `TAR-08` (`TaromboModulePageRouter` - Fase 2 belum diaktifkan)
-- `MAN-01` .. `MAN-09` (`PlayModulePlaceholderPage`)
 - `PSN-01` .. `PSN-06` (`MessagesModulePlaceholderPage`)
 - `AKN-01` .. `AKN-15` (`AccountModulePlaceholderPage`)
 - `SIS-01` .. `SIS-08` (`SystemModulePlaceholderPage`)

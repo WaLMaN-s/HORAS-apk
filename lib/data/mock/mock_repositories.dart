@@ -2594,9 +2594,37 @@ final class MockCommunityRepository implements CommunityRepository {
 // ── 12. MockSessionRepository ───────────────────────────────────────────────
 
 final class MockSessionRepository implements SessionRepository {
-  const MockSessionRepository(this._store);
+  const MockSessionRepository(this._store, [this._chatRepository]);
 
   final MockStore _store;
+  final ChatRepository? _chatRepository;
+
+  ChatRepository get _chatRepo => _chatRepository ?? MockChatRepository(_store);
+
+  PlaySession _decorateForViewer(PlaySession s) {
+    final uid = _store.currentUserId;
+    final joinedCount = _store.participants
+        .where(
+          (p) => p.sessionId == s.id && p.status == ParticipantStatus.joined,
+        )
+        .length;
+    final waitlistCount = _store.waitlistEntries
+        .where((w) => w.sessionId == s.id)
+        .length;
+    final joinedByMe =
+        uid != null &&
+        _store.participants.any(
+          (p) =>
+              p.sessionId == s.id &&
+              p.user.id == uid &&
+              p.status == ParticipantStatus.joined,
+        );
+    return s.copyWith(
+      participantCount: joinedCount,
+      waitlistCount: waitlistCount,
+      isJoinedByMe: joinedByMe,
+    );
+  }
 
   void _refreshCompletedSessions() {
     for (var i = 0; i < _store.sessions.length; i++) {
@@ -2606,16 +2634,10 @@ final class MockSessionRepository implements SessionRepository {
           _store.now.isAfter(s.endTime.add(const Duration(hours: 2)))) {
         _store.sessions[i] = s.copyWith(status: SessionStatus.completed);
       }
-      // MAN-R9: Chat sesi menjadi baca-saja 24 jam setelah selesai.
+      // MAN-R9: Chat sesi menjadi baca-saja 24 jam setelah selesai lewat ChatRepository.
       if (s.conversationId != null &&
           _store.now.isAfter(s.endTime.add(const Duration(hours: 24)))) {
-        final convIdx = _store.conversations.indexWhere(
-          (c) => c.id == s.conversationId,
-        );
-        if (convIdx >= 0 && !_store.conversations[convIdx].isReadOnly) {
-          _store.conversations[convIdx] = _store.conversations[convIdx]
-              .copyWith(isReadOnly: true);
-        }
+        _chatRepo.markConversationReadOnly(s.conversationId!);
       }
     }
   }
@@ -2644,6 +2666,7 @@ final class MockSessionRepository implements SessionRepository {
           if (skillLevel != null && s.skillLevel != skillLevel) return false;
           return true;
         })
+        .map(_decorateForViewer)
         .toList(growable: false);
     return Ok<List<PlaySession>>(list);
   }
@@ -2660,7 +2683,7 @@ final class MockSessionRepository implements SessionRepository {
         UnavailableError(message: AppStrings.stateContentUnavailableMessage),
       );
     }
-    return Ok<PlaySession>(s);
+    return Ok<PlaySession>(_decorateForViewer(s));
   }
 
   @override
@@ -2770,19 +2793,78 @@ final class MockSessionRepository implements SessionRepository {
       ),
     );
 
-    // MAN-R9: Chat sesi dibuat otomatis
-    _store.conversations.add(
-      Conversation(
-        id: convId,
-        type: ConversationType.sessionGroup,
-        title: session.title,
-        sessionId: sessionId,
-        participants: <PersonSummary>[hostSummary],
-        updatedAt: _store.now,
-      ),
-    );
+    // MAN-R9: Chat sesi dibuat otomatis lewat ChatRepository
+    await _chatRepo.createSessionGroupChat(session: session, host: hostSummary);
 
     return Ok<PlaySession>(session);
+  }
+
+  @override
+  Future<Result<PlaySession>> updateSessionSchedule({
+    required String sessionId,
+    DateTime? startTime,
+    DateTime? endTime,
+    String? courtId,
+    String? manualLocationSummary,
+    String? manualLocationFullDetail,
+  }) async {
+    final net = await _store.simulateNetworkCall();
+    if (net is Err<void>) return Err<PlaySession>(net.failure);
+
+    final idx = _store.sessions.indexWhere((s) => s.id == sessionId);
+    if (idx < 0) {
+      return const Err<PlaySession>(
+        UnavailableError(message: AppStrings.stateContentUnavailableMessage),
+      );
+    }
+    final current = _store.sessions[idx];
+    final nextStart = startTime ?? current.startTime;
+    final nextEnd = endTime ?? current.endTime;
+
+    final timeCheck = HorasPolicies.validateSessionCreation(
+      title: current.title,
+      startTime: nextStart,
+      endTime: nextEnd,
+      maxSlots: current.maxSlots,
+      feePerPersonRupiah: current.feePerPersonRupiah,
+      notes: current.notes,
+      activeHostedSessionsCount: 0,
+      now: _store.now,
+    );
+    if (timeCheck is Err<void>) return Err<PlaySession>(timeCheck.failure);
+
+    final court = courtId != null
+        ? _store.courts.where((c) => c.id == courtId).firstOrNull
+        : null;
+
+    final updated = current.copyWith(
+      startTime: nextStart,
+      endTime: nextEnd,
+      courtId: court?.id ?? current.courtId,
+      courtName: court?.name ?? current.courtName,
+      manualLocationSummary:
+          manualLocationSummary?.trim() ?? current.manualLocationSummary,
+      manualLocationFullDetail:
+          manualLocationFullDetail?.trim() ?? current.manualLocationFullDetail,
+      isUpdated: true,
+      scheduleUpdatedAt: _store.now,
+    );
+    _store.sessions[idx] = updated;
+
+    // MAN-R5: Peserta dinotifikasi dan boleh keluar tanpa catatan setelah edit jadwal/lapangan.
+    for (final p in _store.participants.where(
+      (p) => p.sessionId == sessionId && p.user.id != current.host.id,
+    )) {
+      _store.pushNotificationInternal(
+        recipientId: p.user.id,
+        type: NotificationType.sessionUpdatedOrCancelled,
+        title: 'Jadwal / Lokasi Sesi Diubah',
+        body:
+            'Sesi ${updated.title} mengalami perubahan jadwal/lapangan. Kamu dapat keluar tanpa catatan keandalan.',
+        deepLink: 'horas://app/main/sesi-detail',
+      );
+    }
+    return Ok<PlaySession>(_decorateForViewer(updated));
   }
 
   @override
@@ -2848,6 +2930,34 @@ final class MockSessionRepository implements SessionRepository {
     }
 
     final session = _store.sessions[idx];
+    if (session.status != SessionStatus.upcoming) {
+      return const Err<({Participant? participant, WaitlistEntry? waitlist})>(
+        ValidationError(
+          message: 'Sesi ini sudah selesai atau dibatalkan.',
+          field: 'sessionId',
+        ),
+      );
+    }
+
+    final alreadyParticipant = _store.participants
+        .where((p) => p.sessionId == sessionId && p.user.id == me.id)
+        .firstOrNull;
+    if (alreadyParticipant != null) {
+      return Ok<({Participant? participant, WaitlistEntry? waitlist})>((
+        participant: alreadyParticipant,
+        waitlist: null,
+      ));
+    }
+    final alreadyWaiting = _store.waitlistEntries
+        .where((w) => w.sessionId == sessionId && w.user.id == me.id)
+        .firstOrNull;
+    if (alreadyWaiting != null) {
+      return Ok<({Participant? participant, WaitlistEntry? waitlist})>((
+        participant: null,
+        waitlist: alreadyWaiting,
+      ));
+    }
+
     final currentJoinedCount = _store.participants
         .where(
           (p) =>
@@ -2890,21 +3000,20 @@ final class MockSessionRepository implements SessionRepository {
       joinedAt: _store.now,
     );
     _store.participants.add(participant);
-    _store.paymentShares.add(
-      PaymentShare(
-        id: _store.nextId('pay'),
-        sessionId: sessionId,
-        participant: meSummary,
-        amountRupiah: session.feePerPersonRupiah,
-        updatedAt: _store.now,
-      ),
-    );
-    _store.sessions[idx] = session.copyWith(
-      participantCount: currentJoinedCount + 1,
-      isJoinedByMe: true,
-    );
-
     if (partStatus == ParticipantStatus.joined) {
+      _store.paymentShares.add(
+        PaymentShare(
+          id: _store.nextId('pay'),
+          sessionId: sessionId,
+          participant: meSummary,
+          amountRupiah: session.feePerPersonRupiah,
+          updatedAt: _store.now,
+        ),
+      );
+      await _chatRepo.addParticipantToSessionChat(
+        sessionId: sessionId,
+        user: meSummary,
+      );
       _store.pushNotificationInternal(
         recipientId: me.id,
         type: NotificationType.sessionJoinOrWaitlistPromoted,
@@ -2913,6 +3022,17 @@ final class MockSessionRepository implements SessionRepository {
         deepLink: 'horas://app/main/sesi-detail',
       );
     }
+
+    final updatedJoinedCount = _store.participants
+        .where(
+          (p) =>
+              p.sessionId == sessionId && p.status == ParticipantStatus.joined,
+        )
+        .length;
+    _store.sessions[idx] = session.copyWith(
+      participantCount: updatedJoinedCount,
+      isJoinedByMe: partStatus == ParticipantStatus.joined,
+    );
 
     return Ok<({Participant? participant, WaitlistEntry? waitlist})>((
       participant: participant,
@@ -2930,6 +3050,29 @@ final class MockSessionRepository implements SessionRepository {
     if (me == null || idx < 0) return const Ok<void>(null);
 
     final session = _store.sessions[idx];
+    // Cek bila sedang di daftar tunggu
+    final wIdx = _store.waitlistEntries.indexWhere(
+      (w) => w.sessionId == sessionId && w.user.id == me.id,
+    );
+    if (wIdx >= 0) {
+      _store.waitlistEntries.removeAt(wIdx);
+      final remaining =
+          _store.waitlistEntries.where((w) => w.sessionId == sessionId).toList()
+            ..sort((a, b) => a.position.compareTo(b.position));
+      for (var i = 0; i < remaining.length; i++) {
+        final rIdx = _store.waitlistEntries.indexWhere(
+          (w) => w.id == remaining[i].id,
+        );
+        if (rIdx >= 0) {
+          _store.waitlistEntries[rIdx] = _store.waitlistEntries[rIdx].copyWith(
+            position: i + 1,
+          );
+        }
+      }
+      _store.sessions[idx] = session.copyWith(waitlistCount: remaining.length);
+      return const Ok<void>(null);
+    }
+
     final pIdx = _store.participants.indexWhere(
       (p) => p.sessionId == sessionId && p.user.id == me.id,
     );
@@ -2939,13 +3082,19 @@ final class MockSessionRepository implements SessionRepository {
     _store.paymentShares.removeWhere(
       (ps) => ps.sessionId == sessionId && ps.participant.id == me.id,
     );
+    await _chatRepo.removeParticipantFromSessionChat(
+      sessionId: sessionId,
+      userId: me.id,
+    );
 
     // MAN-R4 & AC-09: Keluar mendadak (< 3 jam sebelum mulai) menambah catatan keandalan & notifikasi ke host
-    if (HorasPolicies.shouldRecordLateLeaveMark(
-      sessionStartTime: session.startTime,
-      leaveTime: _store.now,
-      promotedFromWaitlistAt: leavingParticipant.promotedFromWaitlistAt,
-    )) {
+    if (leavingParticipant.status == ParticipantStatus.joined &&
+        HorasPolicies.shouldRecordLateLeaveMark(
+          sessionStartTime: session.startTime,
+          leaveTime: _store.now,
+          promotedFromWaitlistAt: leavingParticipant.promotedFromWaitlistAt,
+          scheduleUpdatedAt: session.scheduleUpdatedAt,
+        )) {
       _store.reliabilityMarks.add(
         ReliabilityMark(
           id: _store.nextId('rel'),
@@ -2965,57 +3114,72 @@ final class MockSessionRepository implements SessionRepository {
       );
     }
 
-    // MAN-R3 & AC-08: Promosikan urutan 1 di daftar tunggu FIFO secara otomatis
-    final sessionWaitlist =
-        _store.waitlistEntries.where((w) => w.sessionId == sessionId).toList()
-          ..sort((a, b) => a.position.compareTo(b.position));
-
-    if (sessionWaitlist.isNotEmpty) {
-      final firstWait = sessionWaitlist.first;
-      _store.waitlistEntries.removeWhere((w) => w.id == firstWait.id);
-
-      // Perbarui posisi sisa daftar tunggu
-      for (var i = 1; i < sessionWaitlist.length; i++) {
-        final wId = sessionWaitlist[i].id;
-        final wIdx = _store.waitlistEntries.indexWhere((w) => w.id == wId);
-        if (wIdx >= 0) {
-          _store.waitlistEntries[wIdx] = _store.waitlistEntries[wIdx].copyWith(
-            position: i,
-          );
-        }
-      }
-
-      _store.participants.add(
-        Participant(
-          id: _store.nextId('part'),
-          sessionId: sessionId,
-          user: firstWait.user,
-          status: ParticipantStatus.joined,
-          joinedAt: _store.now,
-          promotedFromWaitlistAt: _store.now,
-        ),
-      );
-      _store.paymentShares.add(
-        PaymentShare(
-          id: _store.nextId('pay'),
-          sessionId: sessionId,
-          participant: firstWait.user,
-          amountRupiah: session.feePerPersonRupiah,
-          updatedAt: _store.now,
-        ),
-      );
-
-      // AC-08: Kirim notifikasi ke pengguna yang naik dari daftar tunggu
-      _store.pushNotificationInternal(
-        recipientId: firstWait.user.id,
-        type: NotificationType.sessionJoinOrWaitlistPromoted,
-        title: 'Slot Terbuka! Kamu Masuk Sesi',
-        body:
-            'Kamu otomatis masuk dari daftar tunggu ke sesi ${session.title}.',
-        deepLink: 'horas://app/main/sesi-detail',
-      );
+    if (leavingParticipant.status == ParticipantStatus.joined) {
+      await _promoteNextFromWaitlist(session);
     }
 
+    _syncSessionCounters(idx, sessionId, isJoinedByMe: false);
+    return const Ok<void>(null);
+  }
+
+  Future<void> _promoteNextFromWaitlist(PlaySession session) async {
+    final sessionWaitlist =
+        _store.waitlistEntries.where((w) => w.sessionId == session.id).toList()
+          ..sort((a, b) => a.position.compareTo(b.position));
+    if (sessionWaitlist.isEmpty) return;
+
+    final firstWait = sessionWaitlist.first;
+    _store.waitlistEntries.removeWhere((w) => w.id == firstWait.id);
+    for (var i = 1; i < sessionWaitlist.length; i++) {
+      final wId = sessionWaitlist[i].id;
+      final wIdx = _store.waitlistEntries.indexWhere((w) => w.id == wId);
+      if (wIdx >= 0) {
+        _store.waitlistEntries[wIdx] = _store.waitlistEntries[wIdx].copyWith(
+          position: i,
+        );
+      }
+    }
+
+    _store.participants.add(
+      Participant(
+        id: _store.nextId('part'),
+        sessionId: session.id,
+        user: firstWait.user,
+        status: ParticipantStatus.joined,
+        joinedAt: _store.now,
+        promotedFromWaitlistAt: _store.now,
+      ),
+    );
+    _store.paymentShares.add(
+      PaymentShare(
+        id: _store.nextId('pay'),
+        sessionId: session.id,
+        participant: firstWait.user,
+        amountRupiah: session.feePerPersonRupiah,
+        updatedAt: _store.now,
+      ),
+    );
+    await _chatRepo.addParticipantToSessionChat(
+      sessionId: session.id,
+      user: firstWait.user,
+    );
+
+    // AC-08: Kirim notifikasi ke pengguna yang naik dari daftar tunggu
+    _store.pushNotificationInternal(
+      recipientId: firstWait.user.id,
+      type: NotificationType.sessionJoinOrWaitlistPromoted,
+      title: 'Slot Terbuka! Kamu Masuk Sesi',
+      body: 'Kamu otomatis masuk dari daftar tunggu ke sesi ${session.title}.',
+      deepLink: 'horas://app/main/sesi-detail',
+    );
+  }
+
+  void _syncSessionCounters(
+    int sessionIdx,
+    String sessionId, {
+    bool? isJoinedByMe,
+  }) {
+    final current = _store.sessions[sessionIdx];
     final remainingJoined = _store.participants
         .where(
           (p) =>
@@ -3025,13 +3189,132 @@ final class MockSessionRepository implements SessionRepository {
     final remainingWaitlist = _store.waitlistEntries
         .where((w) => w.sessionId == sessionId)
         .length;
-
-    _store.sessions[idx] = session.copyWith(
+    _store.sessions[sessionIdx] = current.copyWith(
       participantCount: remainingJoined,
       waitlistCount: remainingWaitlist,
-      isJoinedByMe: false,
+      isJoinedByMe: isJoinedByMe,
     );
+  }
+
+  @override
+  Future<Result<void>> respondToJoinRequest({
+    required String sessionId,
+    required String participantId,
+    required bool approve,
+  }) async {
+    final net = await _store.simulateNetworkCall();
+    if (net.isErr) return net;
+
+    final sIdx = _store.sessions.indexWhere((s) => s.id == sessionId);
+    final pIdx = _store.participants.indexWhere(
+      (p) => p.id == participantId && p.sessionId == sessionId,
+    );
+    if (sIdx < 0 || pIdx < 0) return const Ok<void>(null);
+    final session = _store.sessions[sIdx];
+    final p = _store.participants[pIdx];
+
+    if (approve) {
+      _store.participants[pIdx] = p.copyWith(status: ParticipantStatus.joined);
+      _store.paymentShares.add(
+        PaymentShare(
+          id: _store.nextId('pay'),
+          sessionId: sessionId,
+          participant: p.user,
+          amountRupiah: session.feePerPersonRupiah,
+          updatedAt: _store.now,
+        ),
+      );
+      await _chatRepo.addParticipantToSessionChat(
+        sessionId: sessionId,
+        user: p.user,
+      );
+      _store.pushNotificationInternal(
+        recipientId: p.user.id,
+        type: NotificationType.sessionJoinOrWaitlistPromoted,
+        title: 'Permintaan Gabung Disetujui',
+        body: 'Kamu disetujui bergabung di sesi ${session.title}.',
+        deepLink: 'horas://app/main/sesi-detail',
+      );
+    } else {
+      _store.participants.removeAt(pIdx);
+    }
+    _syncSessionCounters(sIdx, sessionId);
     return const Ok<void>(null);
+  }
+
+  @override
+  Future<Result<void>> removeParticipant({
+    required String sessionId,
+    required String participantId,
+  }) async {
+    final net = await _store.simulateNetworkCall();
+    if (net.isErr) return net;
+
+    final sIdx = _store.sessions.indexWhere((s) => s.id == sessionId);
+    final pIdx = _store.participants.indexWhere(
+      (p) => p.id == participantId && p.sessionId == sessionId,
+    );
+    if (sIdx < 0 || pIdx < 0) return const Ok<void>(null);
+    final session = _store.sessions[sIdx];
+    final removed = _store.participants.removeAt(pIdx);
+    _store.paymentShares.removeWhere(
+      (ps) => ps.sessionId == sessionId && ps.participant.id == removed.user.id,
+    );
+    await _chatRepo.removeParticipantFromSessionChat(
+      sessionId: sessionId,
+      userId: removed.user.id,
+    );
+    if (removed.status == ParticipantStatus.joined) {
+      await _promoteNextFromWaitlist(session);
+    }
+    _syncSessionCounters(sIdx, sessionId);
+    return const Ok<void>(null);
+  }
+
+  @override
+  Future<Result<Participant>> markAttendance({
+    required String sessionId,
+    required String participantId,
+    required bool attended,
+  }) async {
+    final net = await _store.simulateNetworkCall();
+    if (net is Err<void>) return Err<Participant>(net.failure);
+
+    final sIdx = _store.sessions.indexWhere((s) => s.id == sessionId);
+    final pIdx = _store.participants.indexWhere(
+      (p) => p.id == participantId && p.sessionId == sessionId,
+    );
+    if (sIdx < 0 || pIdx < 0) {
+      return const Err<Participant>(
+        UnavailableError(message: AppStrings.stateContentUnavailableMessage),
+      );
+    }
+
+    final session = _store.sessions[sIdx];
+    final updated = _store.participants[pIdx].copyWith(attended: attended);
+    _store.participants[pIdx] = updated;
+
+    // MAN-R4 & AC-09: Tidak hadir ditandai host menambah catatan keandalan & notifikasi
+    if (!attended) {
+      _store.reliabilityMarks.add(
+        ReliabilityMark(
+          id: _store.nextId('rel'),
+          userId: updated.user.id,
+          sessionId: sessionId,
+          reason: ReliabilityMarkReason.noShowMarkedByHost,
+          createdAt: _store.now,
+        ),
+      );
+      _store.pushNotificationInternal(
+        recipientId: session.host.id,
+        type: NotificationType.sessionUpdatedOrCancelled,
+        title: 'Catatan Ketidakhadiran Dicatat',
+        body:
+            '${updated.user.displayName} ditandai tidak hadir di sesi ${session.title}.',
+        deepLink: 'horas://app/main/peserta',
+      );
+    }
+    return Ok<Participant>(updated);
   }
 
   @override
@@ -3070,6 +3353,76 @@ final class MockSessionRepository implements SessionRepository {
         .where((ps) => ps.sessionId == sessionId)
         .toList(growable: false);
     return Ok<List<PaymentShare>>(list);
+  }
+
+  @override
+  Future<Result<List<PaymentShare>>> updatePatungan({
+    required String sessionId,
+    required int amountRupiah,
+    required bool isTotalAmount,
+  }) async {
+    final net = await _store.simulateNetworkCall();
+    if (net is Err<void>) return Err<List<PaymentShare>>(net.failure);
+
+    final sIdx = _store.sessions.indexWhere((s) => s.id == sessionId);
+    if (sIdx < 0) {
+      return const Err<List<PaymentShare>>(
+        UnavailableError(message: AppStrings.stateContentUnavailableMessage),
+      );
+    }
+    if (amountRupiah < 0 || amountRupiah > 50000000) {
+      return const Err<List<PaymentShare>>(
+        ValidationError(
+          message: 'Nominal patungan tidak valid.',
+          field: 'amountRupiah',
+        ),
+      );
+    }
+
+    final joinedCount = _store.participants
+        .where(
+          (p) =>
+              p.sessionId == sessionId && p.status == ParticipantStatus.joined,
+        )
+        .length
+        .clamp(1, 50);
+
+    final perPerson = isTotalAmount
+        ? HorasPolicies.calculatePatunganPerPerson(
+            totalRupiah: amountRupiah,
+            participantCount: joinedCount,
+          )
+        : HorasPolicies.calculatePatunganPerPerson(
+            totalRupiah: amountRupiah,
+            participantCount: 1,
+          );
+
+    if (perPerson > AppLimits.sessionMaxFeeRupiah) {
+      return const Err<List<PaymentShare>>(
+        ValidationError(
+          message: 'Biaya per orang melebihi batas maksimal Rp1.000.000.',
+          field: 'amountRupiah',
+        ),
+      );
+    }
+
+    _store.sessions[sIdx] = _store.sessions[sIdx].copyWith(
+      feePerPersonRupiah: perPerson,
+    );
+
+    for (var i = 0; i < _store.paymentShares.length; i++) {
+      if (_store.paymentShares[i].sessionId == sessionId) {
+        _store.paymentShares[i] = _store.paymentShares[i].copyWith(
+          amountRupiah: perPerson,
+          updatedAt: _store.now,
+        );
+      }
+    }
+    return Ok<List<PaymentShare>>(
+      _store.paymentShares
+          .where((ps) => ps.sessionId == sessionId)
+          .toList(growable: false),
+    );
   }
 
   @override
@@ -3126,6 +3479,7 @@ final class MockSessionRepository implements SessionRepository {
     final myJoinedSessionIds = _store.sessionIdsForUser(uid);
     final list = _store.sessions
         .where((s) => s.host.id == uid || myJoinedSessionIds.contains(s.id))
+        .map(_decorateForViewer)
         .toList(growable: false);
     return Ok<List<PlaySession>>(list);
   }
@@ -3201,6 +3555,18 @@ final class MockCourtRepository implements CourtRepository {
   }) async {
     final net = await _store.simulateNetworkCall();
     if (net is Err<void>) return Err<Court>(net.failure);
+
+    if (name.trim().isEmpty ||
+        address.trim().isEmpty ||
+        city.trim().isEmpty ||
+        supportedSports.isEmpty) {
+      return const Err<Court>(
+        ValidationError(
+          message: 'Nama lapangan, alamat, kota, dan olahraga wajib diisi.',
+          field: 'name',
+        ),
+      );
+    }
 
     final court = Court(
       id: _store.nextId('court'),
@@ -3613,32 +3979,24 @@ final class MockChatRepository implements ChatRepository {
     final convIdx = _store.conversations.indexWhere(
       (c) => c.communityId == communityId,
     );
-    if (convIdx >= 0) {
-      final conv = _store.conversations[convIdx];
-      if (!conv.participants.any((p) => p.id == user.id)) {
-        _store.conversations[convIdx] = conv.copyWith(
-          participants: <PersonSummary>[...conv.participants, user],
+    await _addParticipantToConvIndex(
+      convIdx: convIdx,
+      user: user,
+      fallbackBuilder: () {
+        final comm = _store.communities
+            .where((c) => c.id == communityId)
+            .firstOrNull;
+        if (comm == null) return null;
+        return Conversation(
+          id: comm.conversationId ?? 'conv-$communityId',
+          type: ConversationType.communityGroup,
+          title: comm.name,
+          communityId: communityId,
+          participants: <PersonSummary>[user],
+          updatedAt: _store.now,
         );
-        _store.notifyListeners();
-      }
-    } else {
-      final comm = _store.communities
-          .where((c) => c.id == communityId)
-          .firstOrNull;
-      if (comm != null) {
-        _store.conversations.add(
-          Conversation(
-            id: comm.conversationId ?? 'conv-$communityId',
-            type: ConversationType.communityGroup,
-            title: comm.name,
-            communityId: communityId,
-            participants: <PersonSummary>[user],
-            updatedAt: _store.now,
-          ),
-        );
-        _store.notifyListeners();
-      }
-    }
+      },
+    );
     return const Ok<void>(null);
   }
 
@@ -3650,16 +4008,119 @@ final class MockChatRepository implements ChatRepository {
     final convIdx = _store.conversations.indexWhere(
       (c) => c.communityId == communityId,
     );
-    if (convIdx >= 0) {
-      final conv = _store.conversations[convIdx];
-      _store.conversations[convIdx] = conv.copyWith(
-        participants: conv.participants
-            .where((p) => p.id != userId)
-            .toList(growable: false),
+    _removeParticipantAtConvIndex(convIdx, userId);
+    return const Ok<void>(null);
+  }
+
+  @override
+  Future<Result<Conversation>> createSessionGroupChat({
+    required PlaySession session,
+    required PersonSummary host,
+  }) async {
+    final convId = session.conversationId ?? 'conv-${session.id}';
+    final existingIdx = _store.conversations.indexWhere(
+      (c) => c.id == convId || c.sessionId == session.id,
+    );
+    if (existingIdx >= 0) {
+      return Ok<Conversation>(_store.conversations[existingIdx]);
+    }
+    final conv = Conversation(
+      id: convId,
+      type: ConversationType.sessionGroup,
+      title: session.title,
+      sessionId: session.id,
+      participants: <PersonSummary>[host],
+      updatedAt: _store.now,
+    );
+    _store.conversations.add(conv);
+    _store.notifyListeners();
+    return Ok<Conversation>(conv);
+  }
+
+  @override
+  Future<Result<void>> addParticipantToSessionChat({
+    required String sessionId,
+    required PersonSummary user,
+  }) async {
+    final convIdx = _store.conversations.indexWhere(
+      (c) => c.sessionId == sessionId,
+    );
+    await _addParticipantToConvIndex(
+      convIdx: convIdx,
+      user: user,
+      fallbackBuilder: () {
+        final session = _store.sessions
+            .where((s) => s.id == sessionId)
+            .firstOrNull;
+        if (session == null) return null;
+        return Conversation(
+          id: session.conversationId ?? 'conv-$sessionId',
+          type: ConversationType.sessionGroup,
+          title: session.title,
+          sessionId: sessionId,
+          participants: <PersonSummary>[user],
+          updatedAt: _store.now,
+        );
+      },
+    );
+    return const Ok<void>(null);
+  }
+
+  @override
+  Future<Result<void>> removeParticipantFromSessionChat({
+    required String sessionId,
+    required String userId,
+  }) async {
+    final convIdx = _store.conversations.indexWhere(
+      (c) => c.sessionId == sessionId,
+    );
+    _removeParticipantAtConvIndex(convIdx, userId);
+    return const Ok<void>(null);
+  }
+
+  @override
+  Future<Result<void>> markConversationReadOnly(String conversationId) async {
+    final idx = _store.conversations.indexWhere((c) => c.id == conversationId);
+    if (idx >= 0 && !_store.conversations[idx].isReadOnly) {
+      _store.conversations[idx] = _store.conversations[idx].copyWith(
+        isReadOnly: true,
       );
       _store.notifyListeners();
     }
     return const Ok<void>(null);
+  }
+
+  Future<void> _addParticipantToConvIndex({
+    required int convIdx,
+    required PersonSummary user,
+    required Conversation? Function() fallbackBuilder,
+  }) async {
+    if (convIdx >= 0) {
+      final conv = _store.conversations[convIdx];
+      if (!conv.participants.any((p) => p.id == user.id)) {
+        _store.conversations[convIdx] = conv.copyWith(
+          participants: <PersonSummary>[...conv.participants, user],
+        );
+        _store.notifyListeners();
+      }
+      return;
+    }
+    final created = fallbackBuilder();
+    if (created != null) {
+      _store.conversations.add(created);
+      _store.notifyListeners();
+    }
+  }
+
+  void _removeParticipantAtConvIndex(int convIdx, String userId) {
+    if (convIdx < 0) return;
+    final conv = _store.conversations[convIdx];
+    _store.conversations[convIdx] = conv.copyWith(
+      participants: conv.participants
+          .where((p) => p.id != userId)
+          .toList(growable: false),
+    );
+    _store.notifyListeners();
   }
 }
 

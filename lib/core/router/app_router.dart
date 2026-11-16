@@ -144,16 +144,19 @@ GoRouter createAppRouter({
               ),
             ],
           ),
-          // Tab 3: Main (MAN-01 .. MAN-09)
+          // Tab 3: Main (MAN-01 .. MAN-09 — Selesai di Prompt 7)
           StatefulShellBranch(
             routes: <RouteBase>[
-              _buildTabBranchRoute(
+              _buildTabBranchRouteWithState(
                 rootSpec: AppPages.man01,
                 childSpecs: AppPages.playPages.skip(1).toList(),
-                rootBuilder: (spec) =>
-                    PlayModulePlaceholderPage(pageSpec: spec, tabIndex: 3),
-                childBuilder: (spec) =>
-                    PlayModulePlaceholderPage(pageSpec: spec),
+                rootBuilder: (spec, state) => PlayModulePageRouter(
+                  pageSpec: spec,
+                  routerState: state,
+                  tabIndex: 3,
+                ),
+                childBuilder: (spec, state) =>
+                    PlayModulePageRouter(pageSpec: spec, routerState: state),
               ),
             ],
           ),

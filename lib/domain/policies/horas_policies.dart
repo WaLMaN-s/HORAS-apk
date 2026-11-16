@@ -620,7 +620,12 @@ abstract final class HorasPolicies {
     required DateTime sessionStartTime,
     required DateTime leaveTime,
     DateTime? promotedFromWaitlistAt,
+    DateTime? scheduleUpdatedAt,
   }) {
+    // MAN-R5: Jika host mengedit waktu/lapangan, peserta boleh keluar tanpa catatan keandalan.
+    if (scheduleUpdatedAt != null && !leaveTime.isBefore(scheduleUpdatedAt)) {
+      return false;
+    }
     // MAN-R3: peserta yang baru naik dari daftar tunggu dapat keluar tanpa catatan dalam 1 jam.
     if (promotedFromWaitlistAt != null &&
         leaveTime.difference(promotedFromWaitlistAt) <=
@@ -629,6 +634,54 @@ abstract final class HorasPolicies {
     }
     final diff = sessionStartTime.difference(leaveTime);
     return !diff.isNegative && diff < const Duration(hours: 3);
+  }
+
+  /// MAN-R11 & AKN-R5: Menggeser pengingat yang jatuh di jam tenang (22.00-06.00) ke pukul 06.00.
+  static DateTime adjustReminderForQuietHours(DateTime candidate) {
+    if (candidate.hour >= AppLimits.quietHoursStartHour) {
+      return DateTime(
+        candidate.year,
+        candidate.month,
+        candidate.day + 1,
+        AppLimits.quietHoursEndHour,
+        0,
+      );
+    }
+    if (candidate.hour < AppLimits.quietHoursEndHour) {
+      return DateTime(
+        candidate.year,
+        candidate.month,
+        candidate.day,
+        AppLimits.quietHoursEndHour,
+        0,
+      );
+    }
+    return candidate;
+  }
+
+  /// MAN-R11: Menghitung jadwal pengingat H-1 pukul 19.00 dan 2 jam sebelum mulai
+  /// dengan menghormati jam tenang 22.00-06.00.
+  static ({DateTime? reminderHMinus1, DateTime? reminder2HoursBefore})
+  computeSessionReminders({
+    required DateTime sessionStartTime,
+    required DateTime now,
+  }) {
+    final rawH1 = DateTime(
+      sessionStartTime.year,
+      sessionStartTime.month,
+      sessionStartTime.day - 1,
+      19,
+      0,
+    );
+    final h1 = adjustReminderForQuietHours(rawH1);
+
+    final raw2h = sessionStartTime.subtract(const Duration(hours: 2));
+    final h2 = adjustReminderForQuietHours(raw2h);
+
+    return (
+      reminderHMinus1: h1.isAfter(now) ? h1 : null,
+      reminder2HoursBefore: h2.isAfter(now) ? h2 : null,
+    );
   }
 
   static Result<void> checkSessionJoinReliability({
@@ -651,7 +704,7 @@ abstract final class HorasPolicies {
         return Err<void>(
           RateLimitedError(
             message:
-                'Kamu memiliki 3 catatan ketidakhadiran/keluar mendadak dalam 30 hari terakhir. Dapat bergabung sesi baru mulai ${restrictedUntil.toIso8601String()}.',
+                'Belum bisa bergabung selama 7 hari karena 3 catatan ketidakhadiran/keluar mendadak dalam 30 hari terakhir. Dapat mencoba lagi mulai ${restrictedUntil.toIso8601String()}.',
             retryAt: restrictedUntil,
             retryAfter: restrictedUntil.difference(now),
           ),

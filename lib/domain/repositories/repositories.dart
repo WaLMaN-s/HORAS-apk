@@ -293,13 +293,40 @@ abstract interface class SessionRepository {
     String notes = '',
     String? communityId,
   });
+  Future<Result<PlaySession>> updateSessionSchedule({
+    required String sessionId,
+    DateTime? startTime,
+    DateTime? endTime,
+    String? courtId,
+    String? manualLocationSummary,
+    String? manualLocationFullDetail,
+  });
   Future<Result<PlaySession>> cancelSession(String sessionId);
   Future<Result<({Participant? participant, WaitlistEntry? waitlist})>>
   joinSession(String sessionId);
   Future<Result<void>> leaveSession(String sessionId);
+  Future<Result<void>> respondToJoinRequest({
+    required String sessionId,
+    required String participantId,
+    required bool approve,
+  });
+  Future<Result<void>> removeParticipant({
+    required String sessionId,
+    required String participantId,
+  });
+  Future<Result<Participant>> markAttendance({
+    required String sessionId,
+    required String participantId,
+    required bool attended,
+  });
   Future<Result<List<Participant>>> getParticipants(String sessionId);
   Future<Result<List<WaitlistEntry>>> getWaitlist(String sessionId);
   Future<Result<List<PaymentShare>>> getPaymentShares(String sessionId);
+  Future<Result<List<PaymentShare>>> updatePatungan({
+    required String sessionId,
+    required int amountRupiah,
+    required bool isTotalAmount,
+  });
   Future<Result<PaymentShare>> markPaymentPaid(String paymentShareId);
   Future<Result<PaymentShare>> confirmPaymentReceived(String paymentShareId);
   Future<Result<List<PlaySession>>> getMySessionHistory();
@@ -360,6 +387,19 @@ abstract interface class ChatRepository {
     required String communityId,
     required String userId,
   });
+  Future<Result<Conversation>> createSessionGroupChat({
+    required PlaySession session,
+    required PersonSummary host,
+  });
+  Future<Result<void>> addParticipantToSessionChat({
+    required String sessionId,
+    required PersonSummary user,
+  });
+  Future<Result<void>> removeParticipantFromSessionChat({
+    required String sessionId,
+    required String userId,
+  });
+  Future<Result<void>> markConversationReadOnly(String conversationId);
 }
 
 /// 15. Repository Notifikasi (SIS-01, PRD bagian 9).

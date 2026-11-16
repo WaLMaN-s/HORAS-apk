@@ -37,7 +37,7 @@ abstract final class AppLimits {
   static const int communityDescMaxChars = 500;
   static const int communityJoinRequestExpiryDays = 14;
 
-  // Main (MAN-R1..R9, PRD 7.2)
+  // Main (MAN-R1..R11, PRD 7.2)
   static const int maxActiveSessionsPerHost = 5;
   static const int sessionMinSlots = 2;
   static const int sessionMaxSlots = 50;
@@ -47,6 +47,8 @@ abstract final class AppLimits {
   static const int reliabilityMarksThreshold = 3;
   static const int reliabilityWindowDays = 30;
   static const int reliabilityRestrictionDays = 7;
+  static const int quietHoursStartHour = 22;
+  static const int quietHoursEndHour = 6;
 
   // Pesan (PSN-R3..R9, PRD 7.2)
   static const int messageTextMaxChars = 2000;

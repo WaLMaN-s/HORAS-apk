@@ -26,6 +26,20 @@ abstract final class HorasPolicies {
     return const Ok<void>(null);
   }
 
+  static Result<void> validateEmail(String email) {
+    final trimmed = email.trim().toLowerCase();
+    final regex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+    if (!regex.hasMatch(trimmed)) {
+      return const Err<void>(
+        ValidationError(
+          message: 'Format alamat email tidak valid (mis. nama@gmail.com).',
+          field: 'email',
+        ),
+      );
+    }
+    return const Ok<void>(null);
+  }
+
   static Result<void> checkOtpSendAllowed({
     required List<DateTime> recentRequestTimes,
     required DateTime now,

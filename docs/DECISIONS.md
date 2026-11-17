@@ -185,3 +185,22 @@ Dokumen ini mencatat seluruh keputusan teknis, asumsi produk saat PRD ambigu, da
   4. **Pencegahan Konflik Scroll Horizontal (`_PostMediaGallery`):** Mengganti `BouncingScrollPhysics` menjadi `ClampingScrollPhysics` pada galeri foto postingan agar tidak bersaing gesture dengan scroll vertikal feed di perangkat mobile.
   5. **Ketahanan Tray Cerita (`_StoriesTray`):** Menerapkan `AutomaticKeepAliveClientMixin` (`wantKeepAlive = true`) agar baris story tidak dihancurkan dan dimuat ulang dari repository saat pengguna menggulir ke bawah dan kembali ke atas.
   6. **Viewport Pre-rendering (`scrollCacheExtent`):** Menambahkan `scrollCacheExtent: const ScrollCacheExtent.viewport(1.0)` pada daftar `BER-01`, `SEK-01`, dan `PSN-01` untuk merender kartu sebelum memasuki viewport, menghilangkan frame drop saat gulir cepat.
+
+### D-026: Pendaftaran & Masuk dengan Email / Akun Google serta Kotak Terpisah Username & Marga di Onboarding Langkah 1 (17 Nov 2026)
+- **Konteks:** Pengguna meminta perubahan alur anggota baru dan masuk:
+  1. Menghapus fitur pilihan kode negara di halaman Masuk (`AUT-03`) dan Daftar (`AUT-04`).
+  2. Mendukung pendaftaran/masuk menggunakan Email, Akun Google, atau Nomor HP (opsional salah satu).
+  3. Di Onboarding Profil Langkah 1 (`AUT-06`), menyediakan 2 kotak input terpisah: **Kotak 1: Username / Nama Tampil** dan **Kotak 2: Marga** (tetap wajib diisi meskipun mendaftar lewat Akun Google). Marga yang diinput otomatis terdaftar ke database marga (`margas` / `MockStore`).
+  4. Menghapus langkah 3 lama (Sub-Suku & Cari Marga) sehingga onboarding diringkas menjadi 3 langkah bersih.
+  5. Menyimpan akun Email, Username, dan Marga ke database sehingga saat login kembali menggunakan email/Google tersebut langsung terhubung ke akun yang sudah tersimpan.
+- **Keputusan:**
+  - Menambahkan kolom/properti `email` pada model `Profil`, penyimpanan lokal `MockStore` (`SharedPreferences`), tabel PostgreSQL `public.profiles`, dan Edge Function `auth-otp-guard` (`sign_in_email_or_google`).
+  - Memperbarui `AUT-03`, `AUT-04`, `AUT-06`, `AuthFlowController`, serta test suite `auth_flow_test.dart` (5/5 lulus).
+
+## D-027 · Penyebaran Backend Supabase ke Ubuntu Server Live & Systemd Service (17 Nov 2026)
+- **Konteks:** Pengguna meminta backend dipindahkan ke Ubuntu Server (`100.77.185.93` Tailscale / `192.168.1.15` LAN) agar dapat diakses live dari perangkat fisik dan emulator.
+- **Keputusan & Implementasi:**
+  1. **Instalasi Supabase CLI di Server:** Memasang Supabase CLI v3.2.0 di `~/.local/bin/supabase` pada server Ubuntu 24.04 (`HP 245 G7`).
+  2. **Migrasi Database & Edge Functions:** Skema database termigrasi penuh (0001–0008), data benih (`seed.sql`), dan Edge Function `auth-otp-guard` serta `process-image` berjalan pada port Kong 54321, PostgreSQL port 54322, dan Studio UI port 54323.
+  3. **Auto-Start Systemd Service (`horas-supabase.service`):** Memasang unit systemd di `/etc/systemd/system/horas-supabase.service` dengan ketergantungan `After=docker.service network-online.target` sehingga Supabase otomatis aktif saat server dinyalakan ulang.
+  4. **Profil Peluncuran VS Code:** Menambahkan konfigurasi `HORAS (Ubuntu Server Live Tailscale)` dan `HORAS (Ubuntu Server Live LAN)` di `.vscode/launch.json` dengan URL Supabase `http://100.77.185.93:54321` dan Publishable Anon Key `sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH`.

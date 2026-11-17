@@ -268,9 +268,67 @@ class AuthFlowController extends Notifier<AuthFlowState> {
     await ref.read(authRepositoryProvider).saveOnboardingDraft(nextDraft);
   }
 
-  /// Langkah 1 -> Langkah 2: Validasi nama tampil 2–40 karakter.
+  /// Masuk atau Daftar menggunakan Email / Akun Google.
+  ///
+  /// Bila akun email sudah terdaftar dan selesai onboarding di database, langsung masuk.
+  /// Bila akun baru atau belum selesai onboarding, diarahkan ke Onboarding Langkah 1
+  /// untuk wajib mengisi Username dan Marga.
+  Future<Profil?> signInWithEmailOrGoogle(
+    String email, {
+    bool requireRegistrationConsents = false,
+    String deviceName = 'Perangkat Android HORAS',
+    String platform = 'Android',
+  }) async {
+    final authRepo = ref.read(authRepositoryProvider);
+    if (requireRegistrationConsents && !state.allRegistrationConsentsChecked) {
+      state = state.copyWith(
+        error: const ValidationError(
+          message: AppStrings.aut04ErrorMustAcceptAll,
+          field: 'consents',
+        ),
+      );
+      return null;
+    }
+
+    final now = authRepo.currentTime;
+    if (authRepo.savedLegalConsent == null) {
+      await authRepo.saveLegalConsent(
+        LegalConsentRecord(
+          version: '1.0.0-draft',
+          acceptedPrivacyAndTermsAt: now,
+          acceptedCommunityGuidelinesAt: now,
+          confirmedAge17PlusAt: now,
+        ),
+      );
+    }
+
+    state = state.copyWith(isLoading: true, clearError: true);
+    final res = await authRepo.signInWithEmailOrGoogle(
+      email: email.trim(),
+      deviceName: deviceName,
+      platform: platform,
+    );
+
+    return res.fold(
+      onOk: (profil) {
+        final savedDraft = authRepo.getOnboardingDraft();
+        state = state.copyWith(isLoading: false, onboardingDraft: savedDraft);
+        return profil;
+      },
+      onErr: (err) {
+        state = state.copyWith(isLoading: false, error: err);
+        return null;
+      },
+    );
+  }
+
+  /// Langkah 1 -> Langkah 2: Validasi Username/Nama Tampil (2–40 karakter) DAN Marga di kotak terpisah.
   Future<bool> completeOnboardingStep1({
     required String displayName,
+    String? marga,
+    bool requireMarga = false,
+    bool? isCustomMarga,
+    SubEthnic? subEthnic,
     String? photoSeedOrPath,
   }) async {
     final check = HorasPolicies.validateDisplayName(displayName);
@@ -278,10 +336,31 @@ class AuthFlowController extends Notifier<AuthFlowState> {
       state = state.copyWith(error: check.failure);
       return false;
     }
+    final cleanMarga = (marga ?? state.onboardingDraft.marga).trim();
+    if (requireMarga && cleanMarga.length < 2) {
+      state = state.copyWith(
+        error: const ValidationError(
+          message: 'Masukkan margamu pada kotak Marga terlebih dahulu.',
+          field: 'marga',
+        ),
+      );
+      return false;
+    }
+    if (cleanMarga.length >= 2) {
+      await ref
+          .read(profileRepositoryProvider)
+          .submitCustomMarga(
+            margaName: cleanMarga,
+            subEthnic: subEthnic ?? state.onboardingDraft.subEthnic,
+          );
+    }
     await updateOnboardingDraft(
       (d) => d.copyWith(
         currentStep: 2,
         displayName: displayName.trim(),
+        marga: cleanMarga.isNotEmpty ? cleanMarga : d.marga,
+        isCustomMarga: isCustomMarga ?? d.isCustomMarga,
+        subEthnic: subEthnic ?? d.subEthnic,
         photoSeedOrPath: photoSeedOrPath ?? d.photoSeedOrPath,
       ),
     );

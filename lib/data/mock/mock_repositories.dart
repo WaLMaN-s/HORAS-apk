@@ -54,9 +54,22 @@ final class MockAuthRepository implements AuthRepository {
   @override
   Future<void> saveOnboardingDraft(OnboardingDraft draft) async {
     _store.onboardingDraft = draft;
+    if (draft.marga.trim().length >= 2) {
+      await _store.registerMargaInDatabase(
+        draft.marga,
+        subEthnic: draft.subEthnic,
+      );
+    }
     final me = _store.activeProfile;
     if (me != null && !me.onboardingCompleted) {
-      _store.usersById[me.id] = me.copyWith(onboardingStep: draft.currentStep);
+      _store.usersById[me.id] = me.copyWith(
+        onboardingStep: draft.currentStep,
+        displayName: draft.displayName.trim().isNotEmpty
+            ? draft.displayName.trim()
+            : me.displayName,
+        marga: draft.marga.trim().isNotEmpty ? draft.marga.trim() : me.marga,
+      );
+      await _store.persistSessionAndProfile();
     }
     await _store.prefs?.setString(
       kMockOnboardingDraftPrefsKey,
@@ -307,6 +320,137 @@ final class MockAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<Result<Profil>> signInWithEmailOrGoogle({
+    required String email,
+    String deviceName = 'Perangkat Android HORAS',
+    String platform = 'Android',
+  }) async {
+    final net = await _store.simulateNetworkCall(checkAccountStatus: false);
+    if (net is Err<void>) return Err<Profil>(net.failure);
+
+    final validEmail = HorasPolicies.validateEmail(email);
+    if (validEmail is Err<void>) return Err<Profil>(validEmail.failure);
+
+    final cleanEmail = email.trim().toLowerCase();
+
+    final banned = _store.usersById.values.any(
+      (u) =>
+          u.email?.toLowerCase() == cleanEmail &&
+          u.accountStatus == AccountStatus.permanentlyBanned,
+    );
+    if (banned) {
+      return const Err<Profil>(
+        SuspendedError(
+          message: 'Akun email ini telah diblokir secara permanen dari layanan HORAS.',
+          canAppeal: false,
+        ),
+      );
+    }
+
+    // Cari akun berdasarkan email yang sudah tersimpan di database
+    var user = _store.usersById.values
+        .where((u) => u.email?.toLowerCase() == cleanEmail)
+        .firstOrNull;
+
+    if (user == null) {
+      final newId = _store.nextId('u');
+      user = Profil(
+        id: newId,
+        phoneE164: '',
+        email: cleanEmail,
+        displayName: '',
+        gender: UserGender.male,
+        birthYear: 1998,
+        marga: '',
+        subEthnic: SubEthnic.toba,
+        city: 'Medan',
+        subdistrict: 'Medan Baru',
+        avatarSeed: 'avatar-$newId',
+        createdAt: _store.now,
+        onboardingStep: 1,
+        onboardingCompleted: false,
+      );
+      _store.usersById[newId] = user;
+    }
+
+    // AC-12: Login dalam 30 hari membatalkan penghapusan akun
+    final pendingDeletion = _store.accountDeletionsByUser[user.id];
+    if (pendingDeletion != null) {
+      final evaluated = HorasPolicies.evaluateAccountDeletionOnTime(
+        deletion: pendingDeletion,
+        now: _store.now,
+        userLoggedIn: true,
+      );
+      _store.accountDeletionsByUser[user.id] = evaluated;
+      if (evaluated.isPermanentlyDeleted) {
+        _store.purgePermanentlyDeletedUser(user.id);
+        return const Err<Profil>(
+          UnavailableError(
+            message:
+                'Akun ini telah dihapus permanen setelah masa tunggu 30 hari.',
+          ),
+        );
+      }
+      if (evaluated.isCancelled) {
+        _store.recentlyCancelledDeletionUserId = user.id;
+      }
+    }
+
+    // Catat riwayat masuk & perangkat aktif (maks 3 perangkat)
+    final logList = _store.loginHistoryByUser.putIfAbsent(
+      user.id,
+      () => <LoginHistoryEntry>[],
+    );
+    logList.insert(
+      0,
+      LoginHistoryEntry(
+        id: _store.nextId('log'),
+        userId: user.id,
+        deviceName: deviceName,
+        platform: platform,
+        city: user.city,
+        loggedInAt: _store.now,
+      ),
+    );
+
+    final existingDevices = _store.devicesByUserId[user.id] ?? const <Device>[];
+    final newDevice = Device(
+      id: _store.nextId('dev'),
+      userId: user.id,
+      deviceName: deviceName,
+      platform: platform,
+      loggedInAt: _store.now,
+      lastActiveAt: _store.now,
+      isCurrent: true,
+    );
+    final resolved = HorasPolicies.resolveDevicesOnNewLogin(
+      existingDevices: existingDevices,
+      newDevice: newDevice,
+    );
+    _store.devicesByUserId[user.id] = resolved.activeDevices;
+
+    if (resolved.evictedDevices.isNotEmpty) {
+      _store.pushNotificationInternal(
+        recipientId: user.id,
+        type: NotificationType.accountSecurity,
+        title: 'Perangkat Baru Masuk',
+        body:
+            'Login di $deviceName mengeluarkan perangkat tertua (${resolved.evictedDevices.first.deviceName}).',
+        deepLink: 'horas://app/akun/keamanan',
+      );
+    }
+
+    _store.currentUserId = user.id;
+    _store.persistedAccountIds.add(user.id);
+    await _writeSecureToken(
+      'mock-jwt-${user.id}-${_store.now.millisecondsSinceEpoch}',
+    );
+    await _store.persistSessionAndProfile();
+    _store.notifyListeners();
+    return Ok<Profil>(user);
+  }
+
+  @override
   Future<Result<Profil>> completeOnboarding({
     required String displayName,
     required UserGender gender,
@@ -341,6 +485,7 @@ final class MockAuthRepository implements AuthRepository {
       );
     }
 
+    await _store.registerMargaInDatabase(marga, subEthnic: subEthnic);
     final isStandardMarga = _store.margas.any(
       (m) => m.name.toLowerCase() == marga.trim().toLowerCase() && m.isVerified,
     );

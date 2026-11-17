@@ -187,26 +187,32 @@ abstract final class AppStrings {
       'Ikuti atau buat sesi badminton, futsal, voli, dan aktivitas bersama di sekitarmu.';
   static const String aut02BtnNext = 'Lanjut';
   static const String aut02BtnSkip = 'Lewati';
-  static const String aut02BtnLogin = 'Masuk dengan Nomor HP';
+  static const String aut02BtnLogin = 'Masuk Akun HORAS';
   static const String aut02BtnRegister = 'Daftar Anggota Baru';
 
   static const String aut03Title = 'Masuk';
-  static const String aut03Purpose = 'Input nomor HP';
+  static const String aut03Purpose = 'Input Email, Akun Google, atau Nomor HP';
   static const String aut03Subheading =
-      'Masukkan nomor HP aktifmu. Kami akan mengirimkan kode OTP 6 digit tanpa kata sandi.';
+      'Masuk menggunakan Email yang sudah terdaftar, Akun Google, atau Nomor HP (opsional salah satu).';
   static const String aut03CountryLabel = 'Kode Negara';
-  static const String aut03PhoneLabel = 'Nomor HP';
-  static const String aut03PhoneHint = '812 3456 7890';
-  static const String aut03SendOtpBtn = 'Kirim Kode OTP';
+  static const String aut03PhoneLabel = 'Email atau Nomor HP';
+  static const String aut03PhoneHint = 'nama@gmail.com atau 0812 3456 7890';
+  static const String aut03SendOtpBtn = 'Masuk Sekarang';
+  static const String aut03GoogleBtn = 'Lanjutkan dengan Akun Google';
+  static const String aut03OrDivider = 'ATAU';
+  static const String aut03GoogleSheetTitle = 'Pilih Akun Google';
+  static const String aut03GoogleEmailLabel = 'Email Akun Google';
+  static const String aut03GoogleEmailHint = 'nama.anda@gmail.com';
+  static const String aut03GoogleContinueBtn = 'Gunakan Akun Google Ini';
   static const String aut03LostNumberLink = 'Nomor tidak bisa diakses?';
   static const String aut03ToRegisterPrefix = 'Belum pernah mendaftar? ';
   static const String aut03ToRegisterAction = 'Daftar di sini';
 
-  static const String aut04Title = 'Daftar';
+  static const String aut04Title = 'Daftar Anggota Baru';
   static const String aut04Purpose =
-      'Persetujuan kebijakan, pedoman, konfirmasi usia 17+';
+      'Pendaftaran dengan Email, Akun Google, atau Nomor HP (opsional)';
   static const String aut04Subheading =
-      'Bergabung dengan keluarga besar HORAS. Setujui ketentuan dan konfirmasi usia sebelum verifikasi OTP.';
+      'Daftar menggunakan Email, Akun Google, atau Nomor HP (pilih salah satu). Di langkah berikutnya kamu wajib mengisi Username dan Marga di kotak terpisah.';
   static const String aut04ConsentPrivacyLabel =
       'Saya menyetujui Kebijakan Privasi dan Syarat Layanan HORAS.';
   static const String aut04ReadPrivacyBtn =
@@ -217,7 +223,7 @@ abstract final class AppStrings {
   static const String aut04ConsentAge17Label =
       'Saya menyatakan bahwa saat ini saya berusia 17 tahun atau lebih.';
   static const String aut04LegalDraftBadge = 'Draf, perlu tinjauan hukum';
-  static const String aut04ContinueToOtpBtn = 'Setuju & Kirim Kode OTP';
+  static const String aut04ContinueToOtpBtn = 'Setuju & Lanjutkan Pendaftaran';
   static const String aut04ToLoginPrefix = 'Sudah punya akun? ';
   static const String aut04ToLoginAction = 'Masuk';
   static const String aut04ErrorMustAcceptAll =
@@ -244,15 +250,18 @@ abstract final class AppStrings {
 
   static const String aut06Title = 'Onboarding Profil';
   static const String aut06Purpose =
-      'Empat langkah: nama dan foto, jenis kelamin dan tahun lahir, marga dan sub-suku, domisili dan minat';
-  static String aut06StepIndicator(int step) => 'Langkah $step dari 4';
+      'Tiga langkah: username & marga, jenis kelamin & tahun lahir, domisili & minat';
+  static String aut06StepIndicator(int step) => 'Langkah $step dari 3';
   static const String aut06DraftSavedNotice =
       'Draf otomatis tersimpan dan dapat dilanjutkan kapan saja.';
-  static const String aut06Step1Title = 'Nama Tampil & Foto Profil';
+  static const String aut06Step1Title = 'Username, Marga & Foto Profil';
   static const String aut06Step1Desc =
-      'Gunakan nama yang dikenal di keluarga atau komunitasmu (2–40 karakter).';
-  static const String aut06DisplayNameLabel = 'Nama Lengkap / Nama Tampil';
-  static const String aut06DisplayNameHint = 'Contoh: Rudi Simanjuntak';
+      'Isi Username/Nama dan Margamu pada kotak yang berbeda di bawah ini. Setiap marga yang kamu input otomatis tersimpan ke database.';
+  static const String aut06DisplayNameLabel = 'Username / Nama Tampil';
+  static const String aut06DisplayNameHint = 'Contoh: rudi_batak atau Rudi';
+  static const String aut06Step1MargaLabel = 'Marga';
+  static const String aut06Step1MargaHint =
+      'Ketik margamu (mis. Simanjuntak, Sinaga, Siregar)';
   static const String aut06PickPhotoGallery = 'Pilih dari Galeri';
   static const String aut06PickPhotoCamera = 'Ambil Foto Kamera';
   static const String aut06PhotoCompressedBadge =

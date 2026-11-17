@@ -165,6 +165,7 @@ final class SupabaseGateway {
     return Profil(
       id: row['id'] as String,
       phoneE164: (row['phone_e164'] as String?) ?? '',
+      email: row['email'] as String?,
       displayName: (row['display_name'] as String?) ?? '',
       gender: parseGender(row['gender'] as String?),
       birthYear: (row['birth_year'] as int?) ?? 1998,

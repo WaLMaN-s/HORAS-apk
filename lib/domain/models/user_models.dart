@@ -164,6 +164,7 @@ final class Profil {
     required this.subdistrict,
     required this.avatarSeed,
     required this.createdAt,
+    this.email,
     this.motherMarga,
     this.bio = '',
     this.hobbies = const <String>[],
@@ -184,6 +185,7 @@ final class Profil {
 
   final String id;
   final String phoneE164;
+  final String? email;
   final String displayName;
   final UserGender gender;
   final int birthYear;
@@ -212,6 +214,7 @@ final class Profil {
 
   Profil copyWith({
     String? phoneE164,
+    String? email,
     String? displayName,
     UserGender? gender,
     int? birthYear,
@@ -241,6 +244,7 @@ final class Profil {
     return Profil(
       id: id,
       phoneE164: phoneE164 ?? this.phoneE164,
+      email: email ?? this.email,
       displayName: displayName ?? this.displayName,
       gender: gender ?? this.gender,
       birthYear: birthYear ?? this.birthYear,
@@ -273,6 +277,7 @@ final class Profil {
   Map<String, Object?> toJson() => <String, Object?>{
     'id': id,
     'phoneE164': phoneE164,
+    'email': email,
     'displayName': displayName,
     'gender': gender.jsonCode,
     'birthYear': birthYear,
@@ -318,6 +323,7 @@ final class Profil {
     return Profil(
       id: (json['id'] as String?) ?? '',
       phoneE164: (json['phoneE164'] as String?) ?? '+628120000000',
+      email: json['email'] as String?,
       displayName: (json['displayName'] as String?) ?? '',
       gender: UserGender.fromJson(json['gender'] as String?),
       birthYear: (json['birthYear'] as int?) ?? 1995,

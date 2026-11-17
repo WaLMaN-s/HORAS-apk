@@ -1,0 +1,51 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "HORAS (Mock Backend)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": [
+        "--dart-define=USE_MOCK_BACKEND=true",
+        "--dart-define=ENV=dev"
+      ]
+    },
+    {
+      "name": "HORAS (Supabase Lokal Emulator)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": [
+        "--dart-define=USE_MOCK_BACKEND=false",
+        "--dart-define=ENV=dev",
+        "--dart-define=SUPABASE_URL=http://10.0.2.2:54321",
+        "--dart-define=SUPABASE_ANON_KEY=sb_publishable_ACJWlzQHlQpTmuWPtDPbHw_3BJgxAaX"
+      ]
+    },
+    {
+      "name": "HORAS (Ubuntu Server Live Tailscale)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": [
+        "--dart-define=USE_MOCK_BACKEND=false",
+        "--dart-define=ENV=prod",
+        "--dart-define=SUPABASE_URL=http://100.77.185.93:54321",
+        "--dart-define=SUPABASE_ANON_KEY=sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH"
+      ]
+    },
+    {
+      "name": "HORAS (Ubuntu Server Live LAN)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": [
+        "--dart-define=USE_MOCK_BACKEND=false",
+        "--dart-define=ENV=prod",
+        "--dart-define=SUPABASE_URL=http://192.168.1.15:54321",
+        "--dart-define=SUPABASE_ANON_KEY=sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH"
+      ]
+    }
+  ]
+}

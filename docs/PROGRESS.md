@@ -37,7 +37,7 @@ Keterangan status:
 | AUT-03 | Masuk | Input nomor HP | 1 | `/auth/masuk` | Selesai |
 | AUT-04 | Daftar | Persetujuan kebijakan, pedoman, konfirmasi usia 17+ | 1 | `/auth/daftar` | Selesai |
 | AUT-05 | Verifikasi OTP | Input kode 6 digit | 1 | `/auth/otp` | Selesai |
-| AUT-06 | Onboarding profil | Empat langkah: nama dan foto, jenis kelamin dan tahun lahir, marga dan sub-suku, domisili dan minat | 1 | `/auth/onboarding` | Selesai |
+| AUT-06 | Onboarding profil | Tiga langkah: Akun (Username & Marga terpisah, auto-save DB), jenis kelamin dan tahun lahir, domisili dan minat | 1 | `/auth/onboarding` | Selesai |
 | AUT-07 | Pemulihan akun | Mengganti nomor atau memulihkan akses | 1 | `/auth/pemulihan` | Selesai |
 
 ### 2. Beranda (BER)
@@ -179,3 +179,14 @@ Seluruh fitur Fase 2 telah selesai diimplementasikan pada lapisan domain, data m
 
 ## Penyempurnaan UI Chat (`PSN-01`..`PSN-04`)
 - Menata ulang menu pesan (`psn01_conversations_page.dart`), permintaan pesan (`psn02_message_requests_page.dart`), gelembung obrolan & bilah ketik (`chat_thread_widgets.dart`), serta ruang obrolan privat/grup (`psn03_private_chat_page.dart`, `psn04_group_chat_page.dart`) menjadi tata letak rapat bergaya Instagram DM tanpa kartu dan jarak berlebih, dengan pengelompokan gelembung pesan pengirim yang sama (< 5 menit).
+
+## Pembaruan Alur Pendaftaran & Masuk Anggota Baru (`AUT-03`, `AUT-04`, `AUT-06`)
+- Menghapus pemilih kode negara di `AUT-03` dan `AUT-04`.
+- Menambahkan dukungan daftar/masuk dengan Email, Akun Google, atau Nomor HP (opsional salah satu), serta menyimpan `email`, `displayName` (Username), dan `marga` di database (Mock & Supabase) agar dapat langsung digunakan saat login kembali.
+- Memisahkan kotak input **Username / Nama Tampil** dan kotak input **Marga** pada Onboarding Profil Langkah 1 (`AUT-06`), wajib diisi termasuk bagi pendaftar via Akun Google. Marga yang diinput otomatis tersimpan ke tabel database marga. Onboarding diringkas menjadi 3 langkah bersih.
+
+## Penyebaran Supabase ke Ubuntu Server Live (`100.77.185.93`)
+- Supabase CLI v3.2.0 terpasang dan aktif di Ubuntu Server 24.04.
+- Skema migrasi 0001–0008, seed data Batak (wilayah, marga, aturan partuturan Toba v0, komunitas), dan Edge Function `auth-otp-guard` & `process-image` live.
+- Layanan otomatis berjalan di latar belakang via systemd (`horas-supabase.service`, auto-start on reboot).
+- Profil VS Code `HORAS (Ubuntu Server Live Tailscale)` dan `HORAS (Ubuntu Server Live LAN)` siap digunakan untuk menjalankan aplikasi Flutter ke server backend live.

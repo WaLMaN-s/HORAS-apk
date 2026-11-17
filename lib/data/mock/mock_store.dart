@@ -26,6 +26,7 @@ const String kMockOnboardingDraftPrefsKey = 'horas.mock.onboarding_draft';
 const String kMockFeedCachePrefsKey = 'horas.mock.feed_cache_page1';
 const String kMockPostDraftPrefsKey = 'horas.mock.post_draft';
 const String kMockSearchHistoryPrefsKey = 'horas.mock.search_history';
+const String kMockCustomMargasPrefsKey = 'horas.mock.custom_margas';
 const String kSecureAuthTokenKey = 'horas.auth.access_token';
 
 /// Penyimpanan in-memory pusat untuk seluruh repository tiruan (Prompt 2 Bagian C & D).
@@ -237,6 +238,30 @@ final class MockStore {
   Profil? get activeProfile =>
       currentUserId != null ? usersById[currentUserId!] : null;
 
+  /// Mendaftarkan marga yang diinput pengguna ke dalam database marga agar tersimpan permanen.
+  Future<void> registerMargaInDatabase(
+    String rawMarga, {
+    SubEthnic subEthnic = SubEthnic.toba,
+  }) async {
+    final clean = rawMarga.trim();
+    if (clean.length < 2) return;
+    final exists = margas.any(
+      (m) => m.name.toLowerCase() == clean.toLowerCase(),
+    );
+    if (!exists) {
+      margas.add(
+        MargaEntry(name: clean, subEthnic: subEthnic, isVerified: true),
+      );
+    }
+    final p = prefs;
+    if (p != null) {
+      await p.setString(
+        kMockCustomMargasPrefsKey,
+        jsonEncode(margas.map((m) => m.toJson()).toList()),
+      );
+    }
+  }
+
   /// Menyimpan sesi login, daftar akun terdaftar/diubah, profil sendiri, dan privasi ke `SharedPreferences` (Bagian C).
   Future<void> persistSessionAndProfile() async {
     final p = prefs;
@@ -302,6 +327,20 @@ final class MockStore {
               usersById[restored.id] = restored;
               persistedAccountIds.add(restored.id);
               _bumpSeqFromRestoredId(restored.id);
+              if (restored.marga.trim().length >= 2 &&
+                  !margas.any(
+                    (m) =>
+                        m.name.toLowerCase() ==
+                        restored.marga.trim().toLowerCase(),
+                  )) {
+                margas.add(
+                  MargaEntry(
+                    name: restored.marga.trim(),
+                    subEthnic: restored.subEthnic,
+                    isVerified: true,
+                  ),
+                );
+              }
             }
           }
         }

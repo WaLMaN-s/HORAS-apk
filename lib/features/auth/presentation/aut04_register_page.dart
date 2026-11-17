@@ -62,12 +62,83 @@ class _Aut04RegisterPageState extends ConsumerState<Aut04RegisterPage> {
   }
 
   Future<void> _onRegisterSubmit() async {
+    final input = _phoneController.text.trim();
     final controller = ref.read(authFlowControllerProvider.notifier);
-    final ok = await controller.submitRegistrationConsentsAndSendOtp(
-      _phoneController.text,
-    );
+
+    if (input.contains('@')) {
+      final profil = await controller.signInWithEmailOrGoogle(
+        input,
+        requireRegistrationConsents: true,
+      );
+      if (profil != null && mounted) {
+        if (profil.onboardingCompleted) {
+          context.go(AppPages.berandaPath);
+        } else {
+          context.go(AppPages.aut06.routePath);
+        }
+      }
+      return;
+    }
+
+    final ok = await controller.submitRegistrationConsentsAndSendOtp(input);
     if (ok && mounted) {
       context.go(AppPages.aut05.routePath);
+    }
+  }
+
+  Future<void> _onGoogleRegisterPressed() async {
+    final controller = ref.read(authFlowControllerProvider.notifier);
+    final state = ref.read(authFlowControllerProvider);
+    if (!state.allRegistrationConsentsChecked) {
+      controller.setPrivacyConsent(true);
+      controller.setGuidelinesConsent(true);
+      controller.setAge17Confirmed(true);
+    }
+
+    final emailCtrl = TextEditingController(
+      text: _phoneController.text.contains('@')
+          ? _phoneController.text.trim()
+          : '',
+    );
+    final selectedEmail = await AppBottomSheet.show<String>(
+      context,
+      title: AppStrings.aut03GoogleSheetTitle,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          AppTextField(
+            label: AppStrings.aut03GoogleEmailLabel,
+            hintText: AppStrings.aut03GoogleEmailHint,
+            controller: emailCtrl,
+            keyboardType: TextInputType.emailAddress,
+            leadingIcon: Icons.alternate_email_rounded,
+          ),
+          const SizedBox(height: AppSpacing.md),
+          AppButton(
+            label: AppStrings.aut03GoogleContinueBtn,
+            isExpanded: true,
+            leadingIcon: Icons.account_circle_outlined,
+            onPressed: () {
+              Navigator.of(context).pop(emailCtrl.text.trim());
+            },
+          ),
+        ],
+      ),
+    );
+
+    if (selectedEmail == null || selectedEmail.isEmpty || !mounted) return;
+    _phoneController.text = selectedEmail;
+    final profil = await controller.signInWithEmailOrGoogle(
+      selectedEmail,
+      requireRegistrationConsents: true,
+    );
+    if (profil != null && mounted) {
+      if (profil.onboardingCompleted) {
+        context.go(AppPages.berandaPath);
+      } else {
+        context.go(AppPages.aut06.routePath);
+      }
     }
   }
 
@@ -99,30 +170,23 @@ class _Aut04RegisterPageState extends ConsumerState<Aut04RegisterPage> {
               ),
               const SizedBox(height: AppSpacing.lg),
 
-              // Kode negara + Nomor HP
-              Text(AppStrings.aut03CountryLabel, style: typo.captionStrong),
-              const SizedBox(height: AppSpacing.xs),
-              Wrap(
-                spacing: AppSpacing.sm,
-                runSpacing: AppSpacing.sm,
-                children: <Widget>[
-                  for (final opt in kSupportedCountryDialOptions.take(5))
-                    AppChip(
-                      label: opt.countryName,
-                      isSelected: state.countryDialCode == opt.dialCode,
-                      onTap: () => controller.setCountryDialCode(opt.dialCode),
-                    ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.md),
+              // Input Email atau Nomor HP (Tanpa pilihan kode negara)
               AppTextField(
-                label:
-                    '${AppStrings.aut03PhoneLabel} (${state.countryDialCode})',
+                label: AppStrings.aut03PhoneLabel,
                 hintText: AppStrings.aut03PhoneHint,
                 controller: _phoneController,
-                keyboardType: TextInputType.phone,
-                leadingIcon: Icons.phone_android_rounded,
+                keyboardType: TextInputType.emailAddress,
+                leadingIcon: Icons.person_add_alt_1_outlined,
                 onChanged: controller.setNationalPhone,
+              ),
+              const SizedBox(height: AppSpacing.md),
+
+              AppButton(
+                label: AppStrings.aut03GoogleBtn,
+                variant: AppButtonVariant.secondary,
+                isExpanded: true,
+                leadingIcon: Icons.account_circle_outlined,
+                onPressed: _onGoogleRegisterPressed,
               ),
               const SizedBox(height: AppSpacing.lg),
 

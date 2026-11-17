@@ -9,9 +9,8 @@ import 'package:horas/core/widgets/widgets.dart';
 import 'package:horas/features/auth/presentation/auth_flow_controller.dart';
 import 'package:material_ui/material_ui.dart';
 
-/// AUT-03 Masuk: Input nomor HP dengan kode negara (+62 bawaan, daftar negara diaspora),
-/// validasi E.164, hanya OTP (tanpa sandi, tanpa Google/Apple, tanpa Lupa password),
-/// dan tautan kecil "Nomor tidak bisa diakses?" ke `AUT-07` (AUT-R1, AUT-R8).
+/// AUT-03 Masuk: Masuk dengan Email yang sudah terdaftar di database, Akun Google,
+/// atau Nomor HP (opsional salah satu, tanpa pilihan kode negara).
 class Aut03LoginPage extends ConsumerStatefulWidget {
   const Aut03LoginPage({super.key});
 
@@ -29,10 +28,70 @@ class _Aut03LoginPageState extends ConsumerState<Aut03LoginPage> {
   }
 
   Future<void> _onSendOtp() async {
+    final input = _phoneController.text.trim();
     final controller = ref.read(authFlowControllerProvider.notifier);
-    final ok = await controller.sendOtpForLogin(_phoneController.text);
+
+    if (input.contains('@')) {
+      final profil = await controller.signInWithEmailOrGoogle(input);
+      if (profil != null && mounted) {
+        if (profil.onboardingCompleted) {
+          context.go(AppPages.berandaPath);
+        } else {
+          context.go(AppPages.aut06.routePath);
+        }
+      }
+      return;
+    }
+
+    final ok = await controller.sendOtpForLogin(input);
     if (ok && mounted) {
       context.go(AppPages.aut05.routePath);
+    }
+  }
+
+  Future<void> _onGoogleSignInPressed() async {
+    final emailCtrl = TextEditingController(
+      text: _phoneController.text.contains('@')
+          ? _phoneController.text.trim()
+          : '',
+    );
+    final selectedEmail = await AppBottomSheet.show<String>(
+      context,
+      title: AppStrings.aut03GoogleSheetTitle,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          AppTextField(
+            label: AppStrings.aut03GoogleEmailLabel,
+            hintText: AppStrings.aut03GoogleEmailHint,
+            controller: emailCtrl,
+            keyboardType: TextInputType.emailAddress,
+            leadingIcon: Icons.alternate_email_rounded,
+          ),
+          const SizedBox(height: AppSpacing.md),
+          AppButton(
+            label: AppStrings.aut03GoogleContinueBtn,
+            isExpanded: true,
+            leadingIcon: Icons.account_circle_outlined,
+            onPressed: () {
+              Navigator.of(context).pop(emailCtrl.text.trim());
+            },
+          ),
+        ],
+      ),
+    );
+
+    if (selectedEmail == null || selectedEmail.isEmpty || !mounted) return;
+    _phoneController.text = selectedEmail;
+    final controller = ref.read(authFlowControllerProvider.notifier);
+    final profil = await controller.signInWithEmailOrGoogle(selectedEmail);
+    if (profil != null && mounted) {
+      if (profil.onboardingCompleted) {
+        context.go(AppPages.berandaPath);
+      } else {
+        context.go(AppPages.aut06.routePath);
+      }
     }
   }
 
@@ -80,30 +139,12 @@ class _Aut03LoginPageState extends ConsumerState<Aut03LoginPage> {
               ),
               const SizedBox(height: AppSpacing.lg),
 
-              // Pemilih kode negara (+62 bawaan + negara diaspora)
-              Text(AppStrings.aut03CountryLabel, style: typo.captionStrong),
-              const SizedBox(height: AppSpacing.xs),
-              Wrap(
-                spacing: AppSpacing.sm,
-                runSpacing: AppSpacing.sm,
-                children: <Widget>[
-                  for (final opt in kSupportedCountryDialOptions)
-                    AppChip(
-                      label: opt.countryName,
-                      isSelected: state.countryDialCode == opt.dialCode,
-                      onTap: () => controller.setCountryDialCode(opt.dialCode),
-                    ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.lg),
-
               AppTextField(
-                label:
-                    '${AppStrings.aut03PhoneLabel} (${state.countryDialCode})',
+                label: AppStrings.aut03PhoneLabel,
                 hintText: AppStrings.aut03PhoneHint,
                 controller: _phoneController,
-                keyboardType: TextInputType.phone,
-                leadingIcon: Icons.phone_android_rounded,
+                keyboardType: TextInputType.emailAddress,
+                leadingIcon: Icons.person_outline_rounded,
                 errorText: err?.message,
                 onChanged: controller.setNationalPhone,
               ),
@@ -125,6 +166,32 @@ class _Aut03LoginPageState extends ConsumerState<Aut03LoginPage> {
                 isExpanded: true,
                 isLoading: state.isLoading,
                 onPressed: _onSendOtp,
+              ),
+              const SizedBox(height: AppSpacing.md),
+
+              Row(
+                children: <Widget>[
+                  Expanded(child: Divider(color: colors.border)),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.sm,
+                    ),
+                    child: Text(
+                      AppStrings.aut03OrDivider,
+                      style: typo.caption.copyWith(color: colors.textMuted),
+                    ),
+                  ),
+                  Expanded(child: Divider(color: colors.border)),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.md),
+
+              AppButton(
+                label: AppStrings.aut03GoogleBtn,
+                variant: AppButtonVariant.secondary,
+                isExpanded: true,
+                leadingIcon: Icons.account_circle_outlined,
+                onPressed: _onGoogleSignInPressed,
               ),
               const SizedBox(height: AppSpacing.lg),
 

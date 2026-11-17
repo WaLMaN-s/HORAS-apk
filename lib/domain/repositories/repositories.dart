@@ -37,6 +37,11 @@ abstract interface class AuthRepository {
     required String deviceName,
     required String platform,
   });
+  Future<Result<Profil>> signInWithEmailOrGoogle({
+    required String email,
+    String deviceName = 'Perangkat Android HORAS',
+    String platform = 'Android',
+  });
   Future<Result<Profil>> completeOnboarding({
     required String displayName,
     required UserGender gender,

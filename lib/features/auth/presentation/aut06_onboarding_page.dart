@@ -2,6 +2,7 @@ import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:horas/core/config/repository_providers.dart';
+import 'package:horas/core/errors/app_failure.dart';
 import 'package:horas/core/errors/result.dart';
 import 'package:horas/core/l10n/app_strings.dart';
 import 'package:horas/core/router/app_pages.dart';
@@ -29,11 +30,8 @@ class Aut06OnboardingPage extends ConsumerStatefulWidget {
 class _Aut06OnboardingPageState extends ConsumerState<Aut06OnboardingPage> {
   late final TextEditingController _nameController;
   late final TextEditingController _margaSearchController;
-  late final TextEditingController _customMargaController;
-  late final TextEditingController _motherMargaController;
   late final TextEditingController _campusOfficeController;
 
-  List<MargaEntry> _allMargas = const <MargaEntry>[];
   List<WilayahCity> _allCities = const <WilayahCity>[];
 
   static const List<String> _hobbyOptions = <String>[
@@ -56,26 +54,16 @@ class _Aut06OnboardingPageState extends ConsumerState<Aut06OnboardingPage> {
     final draft = ref.read(authFlowControllerProvider).onboardingDraft;
     _nameController = TextEditingController(text: draft.displayName);
     _margaSearchController = TextEditingController(text: draft.marga);
-    _customMargaController = TextEditingController(
-      text: draft.isCustomMarga ? draft.marga : '',
-    );
-    _motherMargaController = TextEditingController(text: draft.motherMarga);
     _campusOfficeController = TextEditingController(text: draft.campusOrOffice);
     _loadMasterLists();
   }
 
   Future<void> _loadMasterLists() async {
-    final margaRes = await ref
-        .read(profileRepositoryProvider)
-        .getStandardMargaList();
     final cityRes = await ref
         .read(nearbyRepositoryProvider)
         .getAvailableCities();
     if (!mounted) return;
     setState(() {
-      if (margaRes is Ok<List<MargaEntry>>) {
-        _allMargas = margaRes.value;
-      }
       if (cityRes is Ok<List<WilayahCity>>) {
         _allCities = cityRes.value;
       }
@@ -86,8 +74,6 @@ class _Aut06OnboardingPageState extends ConsumerState<Aut06OnboardingPage> {
   void dispose() {
     _nameController.dispose();
     _margaSearchController.dispose();
-    _customMargaController.dispose();
-    _motherMargaController.dispose();
     _campusOfficeController.dispose();
     super.dispose();
   }
@@ -177,13 +163,13 @@ class _Aut06OnboardingPageState extends ConsumerState<Aut06OnboardingPage> {
               ),
               const SizedBox(height: AppSpacing.sm),
               Row(
-                children: List<Widget>.generate(4, (idx) {
-                  final active = (idx + 1) <= draft.currentStep;
+                children: List<Widget>.generate(3, (idx) {
+                  final active = (idx + 1) <= draft.currentStep.clamp(1, 3);
                   return Expanded(
                     child: Container(
                       height: 6,
                       margin: EdgeInsets.only(
-                        right: idx < 3 ? AppSpacing.xs : 0,
+                        right: idx < 2 ? AppSpacing.xs : 0,
                       ),
                       decoration: BoxDecoration(
                         color: active ? colors.buttonPrimary : colors.border,
@@ -197,8 +183,7 @@ class _Aut06OnboardingPageState extends ConsumerState<Aut06OnboardingPage> {
 
               if (draft.currentStep == 1) _buildStep1(context, flowState),
               if (draft.currentStep == 2) _buildStep2(context, flowState),
-              if (draft.currentStep == 3) _buildStep3(context, flowState),
-              if (draft.currentStep == 4) _buildStep4(context, flowState),
+              if (draft.currentStep >= 3) _buildStep4(context, flowState),
             ],
           ),
         ),
@@ -208,9 +193,13 @@ class _Aut06OnboardingPageState extends ConsumerState<Aut06OnboardingPage> {
 
   Widget _buildStep1(BuildContext context, AuthFlowState flowState) {
     final controller = ref.read(authFlowControllerProvider.notifier);
+    final authRepo = ref.watch(authRepositoryProvider);
+    final activeEmail = authRepo.currentSessionProfile?.email;
     final draft = flowState.onboardingDraft;
     final colors = context.colors;
     final typo = context.typo;
+    final err = flowState.error;
+    final errField = err is ValidationError ? err.field : null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -221,6 +210,33 @@ class _Aut06OnboardingPageState extends ConsumerState<Aut06OnboardingPage> {
           AppStrings.aut06Step1Desc,
           style: typo.body.copyWith(color: colors.textMuted),
         ),
+        if (activeEmail != null && activeEmail.isNotEmpty) ...<Widget>[
+          const SizedBox(height: AppSpacing.sm),
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.sm),
+            decoration: BoxDecoration(
+              color: colors.surface,
+              borderRadius: AppRadius.buttonRadius,
+              border: Border.all(color: colors.accent),
+            ),
+            child: Row(
+              children: <Widget>[
+                Icon(
+                  Icons.alternate_email_rounded,
+                  size: AppSizes.iconMd,
+                  color: colors.accent,
+                ),
+                const SizedBox(width: AppSpacing.xs),
+                Expanded(
+                  child: Text(
+                    'Terhubung dengan email: $activeEmail',
+                    style: typo.captionStrong.copyWith(color: colors.accent),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
         const SizedBox(height: AppSpacing.lg),
         Center(
           child: Column(
@@ -260,15 +276,32 @@ class _Aut06OnboardingPageState extends ConsumerState<Aut06OnboardingPage> {
           ),
         ),
         const SizedBox(height: AppSpacing.lg),
+
+        // KOTAK INPUT 1: Username / Nama Tampil
         AppTextField(
           label: AppStrings.aut06DisplayNameLabel,
           hintText: AppStrings.aut06DisplayNameHint,
           controller: _nameController,
           maxLength: 40,
-          errorText: flowState.error?.message,
+          leadingIcon: Icons.person_outline_rounded,
+          errorText: errField == 'displayName' ? err?.message : null,
           onChanged: (val) => controller.updateOnboardingDraft(
             (d) => d.copyWith(displayName: val),
           ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+
+        // KOTAK INPUT 2: Marga (Kotak Terpisah, tanpa pilihan marga chip, otomatis masuk database)
+        AppTextField(
+          label: AppStrings.aut06Step1MargaLabel,
+          hintText: AppStrings.aut06Step1MargaHint,
+          controller: _margaSearchController,
+          leadingIcon: Icons.badge_outlined,
+          errorText: errField == 'marga'
+              ? err?.message
+              : (errField != 'displayName' ? err?.message : null),
+          onChanged: (val) =>
+              controller.updateOnboardingDraft((d) => d.copyWith(marga: val)),
         ),
         const SizedBox(height: AppSpacing.xl),
         AppButton(
@@ -276,6 +309,8 @@ class _Aut06OnboardingPageState extends ConsumerState<Aut06OnboardingPage> {
           isExpanded: true,
           onPressed: () => controller.completeOnboardingStep1(
             displayName: _nameController.text,
+            marga: _margaSearchController.text,
+            requireMarga: true,
           ),
         ),
       ],
@@ -368,155 +403,6 @@ class _Aut06OnboardingPageState extends ConsumerState<Aut06OnboardingPage> {
           onPressed: () => controller.completeOnboardingStep2(
             gender: draft.gender,
             birthYear: draft.birthYear,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStep3(BuildContext context, AuthFlowState flowState) {
-    final controller = ref.read(authFlowControllerProvider.notifier);
-    final draft = flowState.onboardingDraft;
-    final colors = context.colors;
-    final typo = context.typo;
-
-    final query = _margaSearchController.text.trim().toLowerCase();
-    final filteredMargas = _allMargas
-        .where((m) {
-          if (query.isEmpty) return m.subEthnic == draft.subEthnic;
-          return m.name.toLowerCase().contains(query);
-        })
-        .take(12)
-        .toList();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        Text(AppStrings.aut06Step3Title, style: typo.h1),
-        const SizedBox(height: AppSpacing.xs),
-        Text(
-          AppStrings.aut06Step3Desc,
-          style: typo.body.copyWith(color: colors.textMuted),
-        ),
-        const SizedBox(height: AppSpacing.md),
-
-        // AUT-R7: Catatan jelas bahwa marga, sub-suku, dan jenis kelamin terkunci setelah onboarding
-        Container(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          decoration: BoxDecoration(
-            color: colors.confidenceAmberSurface,
-            borderRadius: AppRadius.cardRadius,
-            border: Border.all(color: colors.confidenceAmber),
-          ),
-          child: Text(
-            AppStrings.aut06LockWarningBanner,
-            style: typo.captionStrong.copyWith(color: colors.confidenceAmber),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.lg),
-
-        Text(AppStrings.aut06SubEthnicLabel, style: typo.captionStrong),
-        const SizedBox(height: AppSpacing.sm),
-        Wrap(
-          spacing: AppSpacing.sm,
-          runSpacing: AppSpacing.sm,
-          children: <Widget>[
-            for (final sub in SubEthnic.values)
-              AppChip(
-                label: sub.displayName,
-                isSelected: draft.subEthnic == sub,
-                onTap: () => controller.updateOnboardingDraft(
-                  (d) => d.copyWith(subEthnic: sub),
-                ),
-              ),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.lg),
-
-        if (!draft.isCustomMarga) ...<Widget>[
-          AppTextField(
-            label: AppStrings.aut06MargaSearchLabel,
-            hintText: AppStrings.aut06MargaSearchHint,
-            controller: _margaSearchController,
-            leadingIcon: Icons.search_rounded,
-            errorText: flowState.error?.message,
-            onChanged: (val) {
-              setState(() {});
-              controller.updateOnboardingDraft((d) => d.copyWith(marga: val));
-            },
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Wrap(
-            spacing: AppSpacing.sm,
-            runSpacing: AppSpacing.sm,
-            children: <Widget>[
-              for (final entry in filteredMargas)
-                AppChip(
-                  label: entry.name,
-                  isSelected:
-                      draft.marga.toLowerCase() == entry.name.toLowerCase(),
-                  onTap: () {
-                    _margaSearchController.text = entry.name;
-                    controller.updateOnboardingDraft(
-                      (d) => d.copyWith(
-                        marga: entry.name,
-                        subEthnic: entry.subEthnic,
-                      ),
-                    );
-                  },
-                ),
-            ],
-          ),
-        ] else ...<Widget>[
-          AppTextField(
-            label: AppStrings.aut06CustomMargaInputLabel,
-            hintText: AppStrings.aut06MargaSearchHint,
-            controller: _customMargaController,
-            errorText: flowState.error?.message,
-            onChanged: (val) =>
-                controller.updateOnboardingDraft((d) => d.copyWith(marga: val)),
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            AppStrings.aut06CustomMargaNotice,
-            style: typo.caption.copyWith(color: colors.confidenceAmber),
-          ),
-        ],
-        const SizedBox(height: AppSpacing.sm),
-
-        // AUT-R6: Opsi "Marga belum ada"
-        Align(
-          alignment: Alignment.centerLeft,
-          child: AppChip(
-            label: AppStrings.aut06MargaNotListedToggle,
-            isSelected: draft.isCustomMarga,
-            onTap: () => controller.updateOnboardingDraft(
-              (d) => d.copyWith(isCustomMarga: !d.isCustomMarga),
-            ),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.lg),
-
-        AppTextField(
-          label: AppStrings.aut06MotherMargaLabel,
-          hintText: AppStrings.aut06MotherMargaHint,
-          controller: _motherMargaController,
-          onChanged: (val) => controller.updateOnboardingDraft(
-            (d) => d.copyWith(motherMarga: val),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.xl),
-
-        AppButton(
-          label: AppStrings.aut06BtnNextStep,
-          isExpanded: true,
-          onPressed: () => controller.completeOnboardingStep3(
-            subEthnic: draft.subEthnic,
-            marga: draft.isCustomMarga
-                ? _customMargaController.text
-                : draft.marga,
-            isCustomMarga: draft.isCustomMarga,
-            motherMarga: _motherMargaController.text,
           ),
         ),
       ],

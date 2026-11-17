@@ -50,7 +50,7 @@ CREATE POLICY "Stories dapat dilihat pembuat dan pengikut aktif"
     author_id = auth.uid() OR
     EXISTS (
       SELECT 1 FROM public.follows
-      WHERE follower_id = auth.uid() AND following_id = author_id
+      WHERE follower_id = auth.uid() AND followee_id = author_id
     )
   );
 
@@ -145,7 +145,7 @@ CREATE POLICY "Anggota dan publik dapat melihat kegiatan komunitas terbuka"
       WHERE c.id = community_id AND (
         c.access_type = 'open' OR
         EXISTS (
-          SELECT 1 FROM public.community_members cm
+          SELECT 1 FROM public.community_memberships cm
           WHERE cm.community_id = c.id AND cm.user_id = auth.uid()
         )
       )
@@ -156,7 +156,7 @@ CREATE POLICY "Pengurus dapat membuat kegiatan komunitas"
   ON public.community_events FOR INSERT
   WITH CHECK (
     EXISTS (
-      SELECT 1 FROM public.community_members cm
+      SELECT 1 FROM public.community_memberships cm
       WHERE cm.community_id = community_id
         AND cm.user_id = auth.uid()
         AND cm.role IN ('owner', 'manager')
@@ -167,7 +167,7 @@ CREATE POLICY "Pengurus dapat memperbarui atau membatalkan kegiatan"
   ON public.community_events FOR UPDATE
   USING (
     EXISTS (
-      SELECT 1 FROM public.community_members cm
+      SELECT 1 FROM public.community_memberships cm
       WHERE cm.community_id = community_id
         AND cm.user_id = auth.uid()
         AND cm.role IN ('owner', 'manager')
@@ -203,3 +203,64 @@ ALTER TABLE public.partuturan_dictionary ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Kamus partuturan dapat dibaca publik"
   ON public.partuturan_dictionary FOR SELECT
   USING (true);
+
+-- 6. Dukungan Email / Akun Google pada tabel profiles
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS email TEXT UNIQUE;
+
+CREATE INDEX IF NOT EXISTS idx_profiles_email_lower ON public.profiles (lower(email));
+
+CREATE OR REPLACE FUNCTION public.handle_new_auth_user()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  INSERT INTO public.profiles (id, phone_e164, email, avatar_seed)
+  VALUES (
+    NEW.id,
+    NULLIF(NEW.phone, ''),
+    NULLIF(lower(btrim(NEW.email)), ''),
+    'avatar-' || substring(NEW.id::text FROM 1 FOR 8)
+  )
+  ON CONFLICT (id) DO UPDATE
+    SET email = COALESCE(EXCLUDED.email, public.profiles.email),
+        phone_e164 = COALESCE(EXCLUDED.phone_e164, public.profiles.phone_e164);
+
+  INSERT INTO public.user_roles (user_id, role)
+  VALUES (NEW.id, 'user')
+  ON CONFLICT (user_id, role) DO NOTHING;
+
+  RETURN NEW;
+END;
+$$;
+
+-- 7. Setiap marga yang diinput pengguna otomatis tersimpan di tabel public.marga
+CREATE OR REPLACE FUNCTION public.auto_register_profile_marga()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_clean text := btrim(COALESCE(NEW.marga, ''));
+BEGIN
+  IF char_length(v_clean) >= 2 THEN
+    INSERT INTO public.marga (id, name, sub_ethnic, is_verified)
+    VALUES (
+      'marga-' || lower(regexp_replace(v_clean, '[^a-zA-Z0-9]+', '-', 'g')),
+      v_clean,
+      COALESCE(NEW.sub_ethnic, 'toba'),
+      true
+    )
+    ON CONFLICT (name) DO NOTHING;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_auto_register_profile_marga ON public.profiles;
+CREATE TRIGGER trg_auto_register_profile_marga
+  AFTER INSERT OR UPDATE OF marga ON public.profiles
+  FOR EACH ROW EXECUTE FUNCTION public.auto_register_profile_marga();

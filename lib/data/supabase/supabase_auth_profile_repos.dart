@@ -273,6 +273,60 @@ final class SupabaseAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<Result<Profil>> signInWithEmailOrGoogle({
+    required String email,
+    String deviceName = 'Perangkat Android HORAS',
+    String platform = 'Android',
+  }) async {
+    final emailCheck = HorasPolicies.validateEmail(email);
+    if (emailCheck is Err<void>) {
+      return Err<Profil>(emailCheck.failure);
+    }
+    final cleanEmail = email.trim().toLowerCase();
+    final deviceKey = _getOrCreateDeviceKey();
+
+    try {
+      final res = await _gw.client.functions.invoke(
+        'auth-otp-guard',
+        body: <String, Object?>{
+          'action': 'sign_in_email_or_google',
+          'email': cleanEmail,
+          'deviceKey': deviceKey,
+          'deviceName': deviceName,
+          'platform': platform,
+        },
+      );
+      final data = res.data;
+      if (res.status >= 400 || data is! Map || data['ok'] != true) {
+        return Err<Profil>(
+          SupabaseErrorMapper.map(
+            FunctionException(status: res.status, details: data),
+          ),
+        );
+      }
+
+      final sessionMap = data['session'] as Map?;
+      final refreshToken = sessionMap?['refresh_token'] as String?;
+      if (refreshToken != null && refreshToken.isNotEmpty) {
+        await _gw.client.auth.setSession(refreshToken);
+      }
+
+      _gw.hadDeletionRecentlyCancelled = data['deletionCancelled'] == true;
+      final profile = await restoreSessionProfile();
+      if (profile == null) {
+        return Err<Profil>(
+          SupabaseErrorMapper.map(
+            const UnavailableError(message: 'Profil belum siap.'),
+          ),
+        );
+      }
+      return Ok<Profil>(profile);
+    } on Object catch (e, st) {
+      return Err<Profil>(SupabaseErrorMapper.map(e, st));
+    }
+  }
+
+  @override
   Future<Result<Profil>> completeOnboarding({
     required String displayName,
     required UserGender gender,

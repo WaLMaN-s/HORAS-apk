@@ -485,6 +485,9 @@ final class SupabaseChatRepository implements ChatRepository {
     required String text,
     String? photoSeed,
     String? replyToMessageId,
+    String? voiceNoteSeed,
+    int? voiceNoteDurationSeconds,
+    String? stickerSeed,
     bool enqueueOnOffline = true,
   }) async {
     try {
@@ -749,6 +752,34 @@ final class SupabaseChatRepository implements ChatRepository {
             .update(<String, Object?>{'is_read_only': true})
             .eq('id', conversationId);
       });
+
+  @override
+  Future<Result<Conversation>> createCustomGroupChat({
+    required String title,
+    required List<String> memberUserIds,
+    String? photoSeed,
+  }) => _gw.guard(() async {
+    final me = _gw.currentSessionProfile;
+    final row = await _gw.client
+        .from('conversations')
+        .insert(<String, Object?>{
+          'type': 'userGroup',
+          'title': title,
+          'photo_seed': photoSeed,
+          'is_read_only': false,
+        })
+        .select()
+        .single();
+    final convId = row['id'] as String;
+    final allMembers = <String>{if (me != null) me.id, ...memberUserIds};
+    for (final uid in allMembers) {
+      await _gw.client.from('conversation_participants').insert(
+        <String, Object?>{'conversation_id': convId, 'user_id': uid},
+      );
+    }
+    final convRes = await getConversationById(convId);
+    return (convRes as Ok<Conversation>).value;
+  });
 
   void dispose() {
     _reconnectTimer?.cancel();

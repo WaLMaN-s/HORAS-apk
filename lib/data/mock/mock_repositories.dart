@@ -1361,6 +1361,8 @@ final class MockPostRepository implements PostRepository {
             entry.key: entry.value,
       };
       final ratio = i < mediaAspectRatios.length ? mediaAspectRatios[i] : 1.0;
+      final isVideo =
+          mediaSeeds[i].startsWith('video-') || mediaSeeds[i].contains('video');
       mediaItems.add(
         PostMedia(
           id: '$postId-m$i',
@@ -1370,6 +1372,8 @@ final class MockPostRepository implements PostRepository {
           aspectRatio: ratio,
           exifLocationStripped: true,
           metadata: Map<String, String>.unmodifiable(sanitizedMetadata),
+          isVideo: isVideo,
+          durationSeconds: isVideo ? 15 : 0,
         ),
       );
     }
@@ -1846,6 +1850,37 @@ final class MockSearchRepository implements SearchRepository {
         .toList(growable: false);
 
     return Ok<List<Community>>(results);
+  }
+
+  @override
+  Future<Result<List<Church>>> searchChurches({
+    required String query,
+    String? city,
+  }) async {
+    final net = await _store.simulateNetworkCall();
+    if (net is Err<void>) return Err<List<Church>>(net.failure);
+    if (_store.isEmptyState) return const Ok<List<Church>>(<Church>[]);
+
+    final results = _store.getChurches(city: city, query: query);
+    return Ok<List<Church>>(results);
+  }
+
+  @override
+  Future<Result<List<Post>>> searchPublicPosts({required String query}) async {
+    final net = await _store.simulateNetworkCall();
+    if (net is Err<void>) return Err<List<Post>>(net.failure);
+    if (_store.isEmptyState) return const Ok<List<Post>>(<Post>[]);
+
+    final q = query.trim().toLowerCase();
+    final results = _store.posts.where((p) {
+      if (p.visibility != PostVisibility.publicPost) return false;
+      if (q.startsWith('#')) {
+        return p.hashtags.any((h) => '#${h.toLowerCase()}' == q);
+      }
+      return p.text.toLowerCase().contains(q) ||
+          p.hashtags.any((h) => h.toLowerCase().contains(q));
+    }).toList();
+    return Ok<List<Post>>(results);
   }
 }
 
@@ -4036,6 +4071,9 @@ final class MockChatRepository implements ChatRepository {
     required String text,
     String? photoSeed,
     String? replyToMessageId,
+    String? voiceNoteSeed,
+    int? voiceNoteDurationSeconds,
+    String? stickerSeed,
   }) async {
     final net = await _store.simulateNetworkCall();
     if (net is Err<void>) return Err<Message>(net.failure);
@@ -4077,10 +4115,13 @@ final class MockChatRepository implements ChatRepository {
     }
 
     final clean = text.trim();
-    if (clean.isEmpty && (photoSeed == null || photoSeed.trim().isEmpty)) {
+    if (clean.isEmpty &&
+        (photoSeed == null || photoSeed.trim().isEmpty) &&
+        (voiceNoteSeed == null || voiceNoteSeed.trim().isEmpty) &&
+        (stickerSeed == null || stickerSeed.trim().isEmpty)) {
       return const Err<Message>(
         ValidationError(
-          message: 'Tulis pesan atau pilih foto terlebih dahulu.',
+          message: 'Tulis pesan, rekam suara, pilih stiker, atau pilih foto terlebih dahulu.',
           field: 'text',
         ),
       );
@@ -4098,10 +4139,17 @@ final class MockChatRepository implements ChatRepository {
       id: _store.nextId('msg'),
       conversationId: conversationId,
       sender: _store.toPersonSummary(me),
-      text: clean,
+      text: clean.isNotEmpty
+          ? clean
+          : (voiceNoteSeed != null
+                ? 'Pesan Suara (${voiceNoteDurationSeconds ?? 0}d)'
+                : (stickerSeed != null ? 'Stiker Batak' : '')),
       photoSeed: photoSeed,
       replyToMessageId: replyToMessageId,
       deliveryStatus: MessageDeliveryStatus.delivered,
+      voiceNoteSeed: voiceNoteSeed,
+      voiceNoteDurationSeconds: voiceNoteDurationSeconds,
+      stickerSeed: stickerSeed,
       createdAt: _store.now,
     );
     _store.messagesByConversationId
@@ -4681,6 +4729,33 @@ final class MockChatRepository implements ChatRepository {
           .toList(growable: false),
     );
     _store.notifyListeners();
+  }
+
+  @override
+  Future<Result<Conversation>> createCustomGroupChat({
+    required String title,
+    required List<String> memberUserIds,
+    String? photoSeed,
+  }) async {
+    final net = await _store.simulateNetworkCall();
+    if (net is Err<void>) return Err<Conversation>(net.failure);
+
+    final cleanTitle = title.trim();
+    if (cleanTitle.isEmpty) {
+      return const Err<Conversation>(
+        ValidationError(
+          message: 'Nama grup tidak boleh kosong.',
+          field: 'title',
+        ),
+      );
+    }
+
+    final conv = _store.createCustomGroupChat(
+      title: cleanTitle,
+      memberUserIds: memberUserIds,
+      photoSeed: photoSeed,
+    );
+    return Ok<Conversation>(conv);
   }
 }
 
@@ -5917,5 +5992,332 @@ final class StoreBackedNavigationBadgeRepository
       (sum, c) => sum + c.unreadCount,
     );
     return (unreadMessages: unreadMsgs, unreadNotifications: unreadNotifs);
+  }
+}
+
+// ── 24. MockStoryRepository (BER-02, BER-03, BER-R12) ────────────────────────
+
+final class MockStoryRepository implements StoryRepository {
+  const MockStoryRepository(this._store);
+
+  final MockStore _store;
+
+  @override
+  Future<Result<List<Story>>> getStories() async {
+    final net = await _store.simulateNetworkCall();
+    if (net is Err<void>) return Err<List<Story>>(net.failure);
+    if (_store.isEmptyState) return const Ok<List<Story>>(<Story>[]);
+    return Ok<List<Story>>(_store.getActiveStories());
+  }
+
+  @override
+  Future<Result<Story>> createStory({
+    required String mediaSeed,
+    required bool isVideo,
+    required int durationSeconds,
+    String caption = '',
+  }) async {
+    final net = await _store.simulateNetworkCall();
+    if (net is Err<void>) return Err<Story>(net.failure);
+
+    if (durationSeconds > 15) {
+      return const Err<Story>(
+        ValidationError(
+          message: 'Durasi video story maksimal 15 detik (BER-R12).',
+          field: 'durationSeconds',
+        ),
+      );
+    }
+
+    final story = _store.createStory(
+      mediaSeed: mediaSeed,
+      isVideo: isVideo,
+      durationSeconds: durationSeconds,
+      caption: caption,
+    );
+    _store.notifyListeners();
+    return Ok<Story>(story);
+  }
+
+  @override
+  Future<Result<List<StoryViewer>>> getStoryViewers(String storyId) async {
+    final net = await _store.simulateNetworkCall();
+    if (net is Err<void>) return Err<List<StoryViewer>>(net.failure);
+    return Ok<List<StoryViewer>>(_store.getStoryViewers(storyId));
+  }
+
+  @override
+  Future<Result<void>> markStoryViewed(String storyId) async {
+    _store.markStoryViewed(storyId);
+    _store.notifyListeners();
+    return const Ok<void>(null);
+  }
+
+  @override
+  Future<Result<void>> deleteStory(String storyId) async {
+    _store.deleteStory(storyId);
+    _store.notifyListeners();
+    return const Ok<void>(null);
+  }
+}
+
+// ── 25. MockEventRepository (SEK-09, SEK-R12) ────────────────────────────────
+
+final class MockEventRepository implements EventRepository {
+  const MockEventRepository(this._store);
+
+  final MockStore _store;
+
+  @override
+  Future<Result<List<CommunityEvent>>> getEvents(String communityId) async {
+    final net = await _store.simulateNetworkCall();
+    if (net is Err<void>) return Err<List<CommunityEvent>>(net.failure);
+    if (_store.isEmptyState) {
+      return const Ok<List<CommunityEvent>>(<CommunityEvent>[]);
+    }
+    return Ok<List<CommunityEvent>>(_store.getEventsForCommunity(communityId));
+  }
+
+  @override
+  Future<Result<CommunityEvent>> getEventById(String eventId) async {
+    final net = await _store.simulateNetworkCall();
+    if (net is Err<void>) return Err<CommunityEvent>(net.failure);
+
+    final event = _store.getEventById(eventId);
+    if (event == null) {
+      return const Err<CommunityEvent>(
+        UnavailableError(message: 'Kegiatan tidak ditemukan.'),
+      );
+    }
+    return Ok<CommunityEvent>(event);
+  }
+
+  @override
+  Future<Result<CommunityEvent>> createEvent({
+    required String communityId,
+    required String title,
+    required String description,
+    required DateTime startTime,
+    required DateTime endTime,
+    required String locationName,
+    String? mapLink,
+    int? capacity,
+  }) async {
+    final net = await _store.simulateNetworkCall();
+    if (net is Err<void>) return Err<CommunityEvent>(net.failure);
+
+    final cleanTitle = title.trim();
+    if (cleanTitle.isEmpty) {
+      return const Err<CommunityEvent>(
+        ValidationError(
+          message: 'Judul kegiatan tidak boleh kosong.',
+          field: 'title',
+        ),
+      );
+    }
+
+    // SEK-R12: Tidak dapat dibuat di masa lalu
+    if (startTime.isBefore(_store.now)) {
+      return const Err<CommunityEvent>(
+        ValidationError(
+          message: AppStrings.sek09PastDateError,
+          field: 'startTime',
+        ),
+      );
+    }
+
+    final event = _store.createCommunityEvent(
+      communityId: communityId,
+      title: cleanTitle,
+      description: description.trim(),
+      startTime: startTime,
+      endTime: endTime,
+      locationName: locationName.trim(),
+      mapLink: mapLink?.trim(),
+      capacity: capacity,
+    );
+    _store.notifyListeners();
+    return Ok<CommunityEvent>(event);
+  }
+
+  @override
+  Future<Result<CommunityEvent>> cancelEvent(String eventId) async {
+    final net = await _store.simulateNetworkCall();
+    if (net is Err<void>) return Err<CommunityEvent>(net.failure);
+
+    try {
+      final cancelled = _store.cancelCommunityEvent(eventId);
+      _store.notifyListeners();
+      return Ok<CommunityEvent>(cancelled);
+    } on AppError catch (e) {
+      return Err<CommunityEvent>(e);
+    }
+  }
+
+  @override
+  Future<Result<CommunityEvent>> rsvpEvent({
+    required String eventId,
+    required EventRsvpStatus status,
+  }) async {
+    final net = await _store.simulateNetworkCall();
+    if (net is Err<void>) return Err<CommunityEvent>(net.failure);
+
+    try {
+      final updated = _store.rsvpCommunityEvent(
+        eventId: eventId,
+        status: status,
+      );
+      _store.notifyListeners();
+      return Ok<CommunityEvent>(updated);
+    } on AppError catch (e) {
+      return Err<CommunityEvent>(e);
+    }
+  }
+
+  @override
+  Future<Result<List<EventAttendee>>> getEventAttendees(String eventId) async {
+    final net = await _store.simulateNetworkCall();
+    if (net is Err<void>) return Err<List<EventAttendee>>(net.failure);
+    return Ok<List<EventAttendee>>(_store.getEventAttendees(eventId));
+  }
+}
+
+// ── 26. MockChurchRepository (SEK-10, SEK-11, SEK-R13) ───────────────────────
+
+final class MockChurchRepository implements ChurchRepository {
+  const MockChurchRepository(this._store);
+
+  final MockStore _store;
+
+  @override
+  Future<Result<List<Church>>> getChurches({
+    String? city,
+    ChurchDenomination? denomination,
+    String? query,
+  }) async {
+    final net = await _store.simulateNetworkCall();
+    if (net is Err<void>) return Err<List<Church>>(net.failure);
+    if (_store.isEmptyState) return const Ok<List<Church>>(<Church>[]);
+
+    final list = _store.getChurches(
+      city: city,
+      denomination: denomination,
+      query: query,
+    );
+    return Ok<List<Church>>(list);
+  }
+
+  @override
+  Future<Result<Church>> getChurchById(String churchId) async {
+    final net = await _store.simulateNetworkCall();
+    if (net is Err<void>) return Err<Church>(net.failure);
+
+    final church = _store.getChurchById(churchId);
+    if (church == null) {
+      return const Err<Church>(
+        UnavailableError(message: 'Gereja tidak ditemukan.'),
+      );
+    }
+    return Ok<Church>(church);
+  }
+
+  @override
+  Future<Result<Church>> proposeChurch({
+    required String name,
+    required ChurchDenomination denomination,
+    required String address,
+    required String city,
+    required List<ChurchServiceSchedule> serviceSchedules,
+    String contactPhone = '',
+    String contactEmail = '',
+  }) async {
+    final net = await _store.simulateNetworkCall();
+    if (net is Err<void>) return Err<Church>(net.failure);
+
+    final cleanName = name.trim();
+    if (cleanName.isEmpty) {
+      return const Err<Church>(
+        ValidationError(
+          message: 'Nama gereja tidak boleh kosong.',
+          field: 'name',
+        ),
+      );
+    }
+
+    final church = _store.proposeChurch(
+      name: cleanName,
+      denomination: denomination,
+      address: address.trim(),
+      city: city.trim(),
+      serviceSchedules: serviceSchedules,
+      contactPhone: contactPhone.trim(),
+      contactEmail: contactEmail.trim(),
+    );
+    _store.notifyListeners();
+    return Ok<Church>(church);
+  }
+
+  @override
+  Future<Result<Church>> setMyHomeChurch(
+    String churchId, {
+    bool isVisible = false,
+  }) async {
+    final net = await _store.simulateNetworkCall();
+    if (net is Err<void>) return Err<Church>(net.failure);
+
+    try {
+      final updated = _store.setMyHomeChurch(churchId, isVisible: isVisible);
+      _store.notifyListeners();
+      return Ok<Church>(updated);
+    } on AppError catch (e) {
+      return Err<Church>(e);
+    }
+  }
+
+  @override
+  Future<Result<List<CommunityEvent>>> getChurchEvents(String churchId) async {
+    final net = await _store.simulateNetworkCall();
+    if (net is Err<void>) return Err<List<CommunityEvent>>(net.failure);
+    // Kembalikan kegiatan terkait atau kegiatan komunitas berdekatan
+    return Ok<List<CommunityEvent>>(_store.communityEvents);
+  }
+}
+
+// ── 27. MockPartuturanDictionaryRepository (TAR-08) ──────────────────────────
+
+final class MockPartuturanDictionaryRepository
+    implements PartuturanDictionaryRepository {
+  const MockPartuturanDictionaryRepository(this._store);
+
+  final MockStore _store;
+
+  @override
+  Future<Result<List<PartuturanDictionaryEntry>>> searchEntries({
+    String query = '',
+    SubEthnic? subEthnic,
+  }) async {
+    final net = await _store.simulateNetworkCall();
+    if (net is Err<void>) {
+      return Err<List<PartuturanDictionaryEntry>>(net.failure);
+    }
+    if (_store.isEmptyState) {
+      return const Ok<List<PartuturanDictionaryEntry>>(
+        <PartuturanDictionaryEntry>[],
+      );
+    }
+
+    final list = _store.searchPartuturanDictionary(
+      query: query,
+      subEthnic: subEthnic,
+    );
+    return Ok<List<PartuturanDictionaryEntry>>(list);
+  }
+
+  @override
+  PartuturanRuleStatus getSubEthnicStatus(SubEthnic subEthnic) {
+    // Toba divalidasi/aktif, sub-suku lainnya mode netral (TAR-R6, TAR-08)
+    return subEthnic == SubEthnic.toba
+        ? PartuturanRuleStatus.active
+        : PartuturanRuleStatus.neutral;
   }
 }

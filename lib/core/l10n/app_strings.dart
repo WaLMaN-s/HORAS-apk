@@ -1385,6 +1385,8 @@ abstract final class AppStrings {
   static const String sis06EvidenceLabel =
       'Bukti (surat penunjukan/keterangan pengurus, atau konfirmasi pengurus pusat)';
   static const String sis06ContactLabel = 'Kontak Pengurus Resmi';
+  static const String sis06ContactHelper =
+      'Nomor telepon atau email pengurus resmi yang dapat dihubungi.';
   static const String sis06SubmitBtn = 'Ajukan Verifikasi Komunitas';
   static const String sis06SuccessToast =
       'Pengajuan verifikasi komunitas dikirim.';
@@ -1397,4 +1399,106 @@ abstract final class AppStrings {
 
   static const String sis08PublicReadNotice =
       'Pedoman Komunitas HORAS dapat dibaca bebas tanpa login (SIS-R7).';
+
+  // ── Fase 2 (Story, Video, Gereja, Kegiatan, Kamus, Voice Note, Stiker, Grup, Peta) ──
+  static const String ber01StoriesTitle = 'Cerita';
+  static const String ber01YourStory = 'Cerita Anda';
+  static const String ber01ChooseCreateType = 'Mau buat apa hari ini?';
+  static const String ber01CreatePostOption = 'Postingan Feed';
+  static const String ber01CreateStoryOption = 'Cerita (24 Jam)';
+  static const String ber01CreateStoryBtn = 'Buat Cerita';
+
+  static const String ber02StoryViews = 'Dilihat';
+  static const String ber02NoViewsYet = 'Belum ada yang melihat cerita ini.';
+  static const String ber02ViewersTitle = 'Daftar Penonton';
+  static const String ber02FollowersOnlyNotice =
+      'Hanya pengikut yang dapat melihat cerita Anda.';
+
+  static const String ber03CaptionHint = 'Tambahkan keterangan cerita...';
+  static const String ber03DurationNotice = 'Maksimal 15 detik (BER-R12)';
+  static const String ber03VideoLimitNotice =
+      'Video cerita melebihi batas 15 detik.';
+  static const String ber03PublishBtn = 'Bagikan ke Cerita';
+  static const String ber03PickMediaBtn = 'Pilih Foto / Video';
+  static const String ber03PhotoLabel = 'Foto Cerita';
+  static const String ber03VideoLabel = 'Video Cerita';
+
+  static const String ber05AddVideoBtn = 'Pilih Video (Maks 60 Detik)';
+  static const String ber05VideoExceedsLimit =
+      'Durasi video maksimal 60 detik (BER-R2).';
+
+  static const String ber10TabChurches = 'Gereja';
+  static const String ber10TabPosts = 'Postingan';
+
+  static const String sek09RsvpHadir = 'Hadir';
+  static const String sek09RsvpMungkin = 'Mungkin';
+  static const String sek09RsvpTidak = 'Tidak';
+  static const String sek09CancelEventBtn = 'Batalkan Kegiatan';
+  static const String sek09CancelConfirmTitle = 'Batalkan Kegiatan Ini?';
+  static const String sek09CancelConfirmBody =
+      'Kegiatan akan dibatalkan dan seluruh anggota yang telah RSVP akan menerima notifikasi pembatalan.';
+  static const String sek09CreateEventTitle = 'Buat Kegiatan Komunitas';
+  static const String sek09PastDateError =
+      'Waktu mulai kegiatan tidak dapat dibuat di masa lampau.';
+  static const String sek09CapacityLabel = 'Kapasitas Peserta (Opsional)';
+  static const String sek09CapacityUnlimited = 'Tanpa Batas';
+  static const String sek09AttendeesTitle = 'Daftar Kehadiran (RSVP)';
+  static const String sek09ReminderNotice =
+      'Pengingat akan dikirim otomatis H-1 sebelum kegiatan.';
+  static const String sek09EmptyEvents = 'Belum ada kegiatan yang dijadwalkan.';
+  static const String sek09EventCancelledBadge = 'Dibatalkan';
+
+  static const String sek10SearchHint = 'Cari nama gereja atau kota...';
+  static const String sek10DenominationAll = 'Semua Denominasi';
+  static const String sek10ProposeChurchBtn = 'Usulkan Gereja';
+  static const String sek10ProposeChurchTitle = 'Formulir Usulkan Gereja Baru';
+  static const String sek10MemberCountHidden =
+      'Jumlah jemaat belum mencapai minimal 5 orang.';
+  static String sek10MemberCountFormat(int count) => '$count jemaat di HORAS';
+  static const String sek10VerifiedBadge = 'Terverifikasi';
+  static const String sek10UnverifiedBadge = 'Belum diverifikasi';
+  static const String sek10EmptyChurches =
+      'Belum ada gereja yang sesuai filter.';
+
+  static const String sek11ServiceSchedules = 'Jadwal Ibadah';
+  static const String sek11Contacts = 'Kontak & Informasi';
+  static const String sek11SetHomeChurchBtn = 'Jadikan Gereja Asal Saya';
+  static const String sek11HomeChurchNotice =
+      'Gereja asal Anda bawaannya tersembunyi dari publik.';
+  static const String sek11AdminPrivacyNotice =
+      'Admin gereja hanya mengelola jadwal dan kegiatan, tidak dapat melihat data pribadi jemaat.';
+  static const String sek11VerifyChurchBtn = 'Ajukan Verifikasi Gereja Resmi';
+  static const String sek11ChurchEventsTitle = 'Kegiatan Gereja';
+
+  static const String tar08SearchHint =
+      'Cari istilah partuturan, makna, atau contoh...';
+  static const String tar08ActiveRule = 'Aturan aktif';
+  static const String tar08NeutralMode = 'Mode netral';
+  static const String tar08TermCategory = 'Kategori Partuturan';
+  static const String tar08ExampleLabel = 'Contoh Penggunaan:';
+  static const String tar08SubEthnicLabel = 'Pilih Sub-suku:';
+  static const String tar08EmptyDictionary =
+      'Istilah tidak ditemukan dalam kamus partuturan.';
+
+  static const String psn03VoiceNoteBtn = 'Pesan Suara';
+  static const String psn03StickerBtn = 'Stiker Batak';
+  static const String psn03RecordingVoiceNote = 'Merekam pesan suara...';
+  static const String psn03CancelRecording = 'Batal';
+  static const String psn03SendVoiceNote = 'Kirim Suara';
+
+  static const String psn01CreateGroupBtn = 'Buat Grup';
+  static const String psn01CreateGroupTitle = 'Buat Grup Baru';
+  static const String psn01GroupNameLabel = 'Nama Grup';
+  static const String psn01SelectMembersLabel = 'Pilih Anggota Grup';
+  static const String psn01CreateGroupSubmit = 'Buat Grup Percakapan';
+
+  static const String man03RecurringSwitch = 'Sesi Berulang Rutin';
+  static const String man03RecurringIntervalWeekly = 'Mingguan';
+  static const String man03RecurringIntervalBiweekly = 'Dua Mingguan';
+  static const String man03RecurringIntervalMonthly = 'Bulanan';
+
+  static const String man07ViewList = 'Daftar';
+  static const String man07ViewMap = 'Peta Lapangan';
+  static const String man07MapDisclaimer =
+      'Peta menggunakan ubin publik OpenStreetMap (fair-use). Sebelum produksi, gunakan penyedia peta berlisensi/mandiri.';
 }

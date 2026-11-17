@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:go_router/go_router.dart';
 import 'package:horas/core/l10n/app_strings.dart';
@@ -246,7 +247,7 @@ class PostCard extends StatelessWidget {
                     ],
                     if (post.text.isNotEmpty) ...<Widget>[
                       const SizedBox(height: AppSpacing.xs),
-                      Text(post.text, style: typo.body),
+                      _PostContentText(text: post.text),
                     ],
                     if (post.media.isNotEmpty) ...<Widget>[
                       const SizedBox(height: AppSpacing.sm + AppSpacing.xxs),
@@ -349,11 +350,111 @@ class PostCard extends StatelessWidget {
   }
 }
 
+class _PostContentText extends StatelessWidget {
+  const _PostContentText({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final typo = context.typo;
+
+    final words = text.split(' ');
+    final spans = <InlineSpan>[];
+
+    for (var i = 0; i < words.length; i++) {
+      final word = words[i];
+      final isLast = i == words.length - 1;
+      final space = isLast ? '' : ' ';
+
+      if (word.startsWith('#') && word.length > 1) {
+        spans.add(
+          TextSpan(
+            text: '$word$space',
+            style: typo.body.copyWith(
+              color: colors.primary,
+              fontWeight: FontWeight.w600,
+            ),
+            recognizer: TapGestureRecognizer()
+              ..onTap = () {
+                final query = Uri.encodeComponent(word);
+                context.push('${AppPages.ber10.routePath}?q=$query');
+              },
+          ),
+        );
+      } else {
+        spans.add(TextSpan(text: '$word$space', style: typo.body));
+      }
+    }
+
+    return Text.rich(TextSpan(children: spans));
+  }
+}
+
 class _PostMediaGallery extends StatelessWidget {
   const _PostMediaGallery({required this.media, this.onMediaTap});
 
   final List<PostMedia> media;
   final VoidCallback? onMediaTap;
+
+  Widget _buildMediaItem(
+    BuildContext context,
+    PostMedia item, {
+    double? width,
+    double? height,
+  }) {
+    Widget imageWidget = PlaceholderImage(
+      seed: item.seed,
+      width: width ?? double.infinity,
+      height: height,
+      borderRadius: AppRadius.photoRadius,
+    );
+
+    if (item.isVideo) {
+      imageWidget = Stack(
+        alignment: Alignment.center,
+        children: <Widget>[
+          imageWidget,
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.55),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.play_arrow_rounded,
+              color: Colors.white,
+              size: 30,
+            ),
+          ),
+          if (item.durationSeconds > 0)
+            Positioned(
+              bottom: 8,
+              right: 8,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.75),
+                  borderRadius: BorderRadius.circular(AppRadius.button),
+                ),
+                child: Text(
+                  '${item.durationSeconds}d',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      );
+    }
+
+    return imageWidget;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -370,11 +471,7 @@ class _PostMediaGallery extends StatelessWidget {
           ),
           child: AspectRatio(
             aspectRatio: item.aspectRatio.clamp(0.8, 1.65),
-            child: PlaceholderImage(
-              seed: item.seed,
-              width: double.infinity,
-              borderRadius: AppRadius.photoRadius,
-            ),
+            child: _buildMediaItem(context, item),
           ),
         ),
       );
@@ -400,12 +497,7 @@ class _PostMediaGallery extends StatelessWidget {
                   width: AppSizes.strokeThin,
                 ),
               ),
-              child: PlaceholderImage(
-                seed: item.seed,
-                width: 232,
-                height: 224,
-                borderRadius: AppRadius.photoRadius,
-              ),
+              child: _buildMediaItem(context, item, width: 232, height: 224),
             ),
           );
         },

@@ -382,6 +382,8 @@ final class SupabasePostRepository implements PostRepository {
               aspectRatio: (m['aspect_ratio'] as num?)?.toDouble() ?? 1.0,
               exifLocationStripped: (m['exif_stripped'] as bool?) ?? true,
               metadata: meta,
+              isVideo: (m['is_video'] as bool?) ?? urlOrSeed.contains('video'),
+              durationSeconds: (m['duration_seconds'] as int?) ?? 0,
             ),
           );
     }
@@ -923,6 +925,40 @@ final class SupabaseSearchRepository implements SearchRepository {
         )
         .toList(growable: false);
   });
+
+  @override
+  Future<Result<List<Church>>> searchChurches({
+    required String query,
+    String? city,
+  }) => _gw.guard(() async {
+    final clean = query.trim();
+    var q = _gw.client.from('churches').select();
+    if (clean.isNotEmpty) {
+      q = q.or(
+        'name.ilike.%$clean%,city.ilike.%$clean%,address.ilike.%$clean%',
+      );
+    }
+    if (city != null && city.trim().isNotEmpty) {
+      q = q.ilike('city', city.trim());
+    }
+    final rows = await q.order('name');
+    return rows.map((r) => Church.fromJson(r)).toList(growable: false);
+  });
+
+  @override
+  Future<Result<List<Post>>> searchPublicPosts({required String query}) =>
+      _gw.guard(() async {
+        final clean = query.trim();
+        var q = _gw.client
+            .from('posts')
+            .select()
+            .eq('visibility', 'publicPost');
+        if (clean.isNotEmpty) {
+          q = q.ilike('text', '%$clean%');
+        }
+        final rows = await q.order('created_at', ascending: false).limit(20);
+        return rows.map((r) => Post.fromJson(r)).toList(growable: false);
+      });
 }
 
 /// 10. Implementasi Supabase untuk [NearbyRepository] (SEK-01..SEK-03, AC-07).

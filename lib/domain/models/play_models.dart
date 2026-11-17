@@ -65,6 +65,8 @@ final class PlaySession {
     this.isUpdated = false,
     this.scheduleUpdatedAt,
     this.conversationId,
+    this.isRecurring = false,
+    this.recurringInterval,
   });
 
   final String id;
@@ -94,6 +96,8 @@ final class PlaySession {
   final bool isUpdated;
   final DateTime? scheduleUpdatedAt;
   final String? conversationId;
+  final bool isRecurring;
+  final String? recurringInterval;
   final DateTime createdAt;
 
   /// Lokasi yang aman ditampilkan sesuai apakah pelihat sudah bergabung (MAN-R8).
@@ -187,6 +191,8 @@ final class PlaySession {
     'isUpdated': isUpdated,
     'scheduleUpdatedAt': scheduleUpdatedAt?.toIso8601String(),
     'conversationId': conversationId,
+    'isRecurring': isRecurring,
+    'recurringInterval': recurringInterval,
     'createdAt': createdAt.toIso8601String(),
   };
 }
@@ -324,6 +330,8 @@ final class Court {
     this.imageSeed = 'court-default',
     this.wrongInfoReportCount = 0,
     this.status = CourtModerationStatus.approved,
+    this.latitude,
+    this.longitude,
   });
 
   final String id;
@@ -338,6 +346,8 @@ final class Court {
   final String imageSeed;
   final int wrongInfoReportCount;
   final CourtModerationStatus status;
+  final double? latitude;
+  final double? longitude;
 
   Court copyWith({int? wrongInfoReportCount, CourtModerationStatus? status}) {
     return Court(
@@ -367,6 +377,8 @@ final class Court {
     'imageSeed': imageSeed,
     'wrongInfoReportCount': wrongInfoReportCount,
     'status': status.name,
+    'latitude': latitude,
+    'longitude': longitude,
   };
 }
 

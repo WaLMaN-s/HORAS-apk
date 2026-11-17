@@ -18,6 +18,8 @@ final class PostMedia {
     this.aspectRatio = 1.0,
     this.exifLocationStripped = true,
     this.metadata = const <String, String>{},
+    this.isVideo = false,
+    this.durationSeconds = 0,
   });
 
   final String id;
@@ -27,6 +29,8 @@ final class PostMedia {
   final double aspectRatio;
   final bool exifLocationStripped;
   final Map<String, String> metadata;
+  final bool isVideo;
+  final int durationSeconds;
 
   Map<String, Object?> toJson() => <String, Object?>{
     'id': id,
@@ -36,6 +40,8 @@ final class PostMedia {
     'aspectRatio': aspectRatio,
     'exifLocationStripped': exifLocationStripped,
     'metadata': metadata,
+    'isVideo': isVideo,
+    'durationSeconds': durationSeconds,
   };
 
   factory PostMedia.fromJson(Map<String, Object?> json) {
@@ -54,6 +60,8 @@ final class PostMedia {
       aspectRatio: (json['aspectRatio'] as num?)?.toDouble() ?? 1.0,
       exifLocationStripped: (json['exifLocationStripped'] as bool?) ?? true,
       metadata: safeMeta,
+      isVideo: (json['isVideo'] as bool?) ?? false,
+      durationSeconds: (json['durationSeconds'] as int?) ?? 0,
     );
   }
 }
@@ -208,6 +216,15 @@ final class Post {
           : null,
     );
   }
+
+  List<String> get hashtags {
+    final exp = RegExp(r'#([A-Za-z0-9_]+)');
+    return exp
+        .allMatches(text)
+        .map((m) => m.group(1) ?? '')
+        .where((s) => s.isNotEmpty)
+        .toList(growable: false);
+  }
 }
 
 /// Draf postingan yang tersimpan bila unggahan gagal (Alur A6, BER-04).
@@ -344,4 +361,135 @@ final class SavedPost {
     'post': post.toJson(),
     'savedAt': savedAt.toIso8601String(),
   };
+}
+
+/// Cerita singkat 24 jam di Beranda (BER-02, BER-03, BER-R12).
+final class Story {
+  const Story({
+    required this.id,
+    required this.author,
+    required this.mediaSeed,
+    required this.createdAt,
+    required this.expiresAt,
+    this.caption = '',
+    this.isVideo = false,
+    this.durationSeconds = 5,
+    this.viewerCount = 0,
+    this.isViewedByMe = false,
+  });
+
+  final String id;
+  final PersonSummary author;
+  final String mediaSeed;
+  final String caption;
+  final bool isVideo;
+  final int durationSeconds;
+  final DateTime createdAt;
+  final DateTime expiresAt;
+  final int viewerCount;
+  final bool isViewedByMe;
+
+  bool get isExpired => DateTime.now().isAfter(expiresAt);
+
+  Story copyWith({int? viewerCount, bool? isViewedByMe}) {
+    return Story(
+      id: id,
+      author: author,
+      mediaSeed: mediaSeed,
+      caption: caption,
+      isVideo: isVideo,
+      durationSeconds: durationSeconds,
+      createdAt: createdAt,
+      expiresAt: expiresAt,
+      viewerCount: viewerCount ?? this.viewerCount,
+      isViewedByMe: isViewedByMe ?? this.isViewedByMe,
+    );
+  }
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    'id': id,
+    'author': author.toJson(),
+    'mediaSeed': mediaSeed,
+    'caption': caption,
+    'isVideo': isVideo,
+    'durationSeconds': durationSeconds,
+    'createdAt': createdAt.toIso8601String(),
+    'expiresAt': expiresAt.toIso8601String(),
+    'viewerCount': viewerCount,
+    'isViewedByMe': isViewedByMe,
+  };
+
+  factory Story.fromJson(Map<String, Object?> json) {
+    return Story(
+      id: (json['id'] as String?) ?? '',
+      author: json['author'] is Map<String, Object?>
+          ? PersonSummary.fromJson(json['author'] as Map<String, Object?>)
+          : const PersonSummary(
+              id: '',
+              displayName: '',
+              gender: UserGender.male,
+              marga: '',
+              subEthnic: SubEthnic.toba,
+              city: '',
+              proximity: AreaProximity.diKotamu,
+              avatarSeed: '',
+            ),
+      mediaSeed: (json['mediaSeed'] as String?) ?? '',
+      caption: (json['caption'] as String?) ?? '',
+      isVideo: (json['isVideo'] as bool?) ?? false,
+      durationSeconds: (json['durationSeconds'] as int?) ?? 5,
+      createdAt:
+          DateTime.tryParse((json['createdAt'] as String?) ?? '') ??
+          DateTime.now(),
+      expiresAt:
+          DateTime.tryParse((json['expiresAt'] as String?) ?? '') ??
+          DateTime.now().add(const Duration(hours: 24)),
+      viewerCount: (json['viewerCount'] as int?) ?? 0,
+      isViewedByMe: (json['isViewedByMe'] as bool?) ?? false,
+    );
+  }
+}
+
+/// Riwayat penonton story yang hanya dapat dilihat pembuat (BER-R12).
+final class StoryViewer {
+  const StoryViewer({
+    required this.id,
+    required this.storyId,
+    required this.viewer,
+    required this.viewedAt,
+  });
+
+  final String id;
+  final String storyId;
+  final PersonSummary viewer;
+  final DateTime viewedAt;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    'id': id,
+    'storyId': storyId,
+    'viewer': viewer.toJson(),
+    'viewedAt': viewedAt.toIso8601String(),
+  };
+
+  factory StoryViewer.fromJson(Map<String, Object?> json) {
+    return StoryViewer(
+      id: (json['id'] as String?) ?? '',
+      storyId: (json['storyId'] as String?) ?? '',
+      viewer: json['viewer'] is Map<String, Object?>
+          ? PersonSummary.fromJson(json['viewer'] as Map<String, Object?>)
+          : const PersonSummary(
+              id: '',
+              displayName: '',
+              gender: UserGender.male,
+              marga: '',
+              subEthnic: SubEthnic.toba,
+              city: '',
+              proximity: AreaProximity.diKotamu,
+              avatarSeed: '',
+            ),
+      viewedAt:
+          DateTime.tryParse((json['viewedAt'] as String?) ?? '') ??
+          DateTime.now(),
+    );
+  }
 }

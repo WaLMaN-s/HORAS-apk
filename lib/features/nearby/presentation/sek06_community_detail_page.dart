@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:horas/core/config/feature_flags.dart';
 import 'package:horas/core/config/repository_providers.dart';
 import 'package:horas/core/errors/app_failure.dart';
 import 'package:horas/core/errors/result.dart';
@@ -34,6 +35,7 @@ class _Sek06CommunityDetailPageState
   Community? _community;
   List<Membership> _members = const <Membership>[];
   List<Announcement> _announcements = const <Announcement>[];
+  List<CommunityEvent> _events = const <CommunityEvent>[];
   JoinRequest? _myPendingJoinRequest;
   String? _currentUserId;
 
@@ -78,10 +80,12 @@ class _Sek06CommunityDetailPageState
     final membersFuture = commRepo.getMembers(comm.id);
     final announcementsFuture = commRepo.getAnnouncements(comm.id);
     final myReqsFuture = commRepo.getMyJoinRequests();
+    final eventsFuture = ref.read(eventRepositoryProvider).getEvents(comm.id);
 
     final membersRes = await membersFuture;
     final annRes = await announcementsFuture;
     final myReqsRes = await myReqsFuture;
+    final eventsRes = await eventsFuture;
     if (!mounted) return;
 
     final pending = myReqsRes is Ok<List<JoinRequest>>
@@ -97,6 +101,9 @@ class _Sek06CommunityDetailPageState
       _announcements = annRes is Ok<List<Announcement>>
           ? annRes.value
           : const <Announcement>[];
+      _events = eventsRes is Ok<List<CommunityEvent>>
+          ? eventsRes.value
+          : const <CommunityEvent>[];
       _myPendingJoinRequest = pending;
     });
   }
@@ -393,6 +400,49 @@ class _Sek06CommunityDetailPageState
                   ),
                 ),
               ),
+
+          if (ref.watch(featureFlagsProvider).events) ...<Widget>[
+            const SizedBox(height: AppSpacing.xl),
+            Row(
+              children: <Widget>[
+                Expanded(
+                  child: SectionHeader(
+                    title: 'Kegiatan Komunitas (${_events.length})',
+                  ),
+                ),
+                if (isOwnerOrManager)
+                  TextButton.icon(
+                    onPressed: () {
+                      context.push(
+                        '${AppPages.sek09.routePath}?communityId=${widget.communityId}',
+                      );
+                    },
+                    icon: const Icon(Icons.add, size: AppSizes.iconSm),
+                    label: const Text('Buat'),
+                  ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            if (_events.isEmpty)
+              Text(AppStrings.sek09EmptyEvents, style: typo.caption)
+            else
+              for (final event in _events)
+                Card(
+                  margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                  child: ListTile(
+                    leading: const Icon(Icons.event),
+                    title: Text(event.title, style: typo.bodyStrong),
+                    subtitle: Text(
+                      '${event.startTime.toLocal().toString().substring(0, 16)} · ${event.locationName}',
+                      style: typo.caption,
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => context.push(
+                      '${AppPages.sek09.routePath}?id=${event.id}',
+                    ),
+                  ),
+                ),
+          ],
 
           const SizedBox(height: AppSpacing.xl),
           const SectionHeader(title: AppStrings.sek06MembersSection),

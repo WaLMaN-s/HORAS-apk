@@ -1,6 +1,7 @@
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:horas/core/config/feature_flags.dart';
 import 'package:horas/core/l10n/app_strings.dart';
 import 'package:horas/core/theme/app_theme.dart';
 import 'package:horas/core/theme/app_tokens.dart';
@@ -115,6 +116,31 @@ class _Ber05MediaPickerPageState extends ConsumerState<Ber05MediaPickerPage> {
     });
   }
 
+  void _addSampleVideo([int duration = 30]) {
+    if (_items.length >= AppLimits.postMaxPhotos) return;
+    if (duration > 60) {
+      AppToast.show(
+        context,
+        message: AppStrings.ber05VideoExceedsLimit,
+        variant: AppToastVariant.error,
+      );
+      return;
+    }
+    setState(() {
+      final seq = _sampleSeq++;
+      _items.add(
+        SelectedMediaItem(
+          id: 'video-sample-$seq',
+          seed: 'video-batak-sample-$seq',
+          originalBytesCount: 2 * 1024 * 1024,
+          aspectRatio: 16 / 9,
+          isVideo: true,
+          durationSeconds: duration,
+        ),
+      );
+    });
+  }
+
   void _setCropRatio(int index, double ratio) {
     setState(() {
       _items[index] = _items[index].copyWith(aspectRatio: ratio);
@@ -125,6 +151,7 @@ class _Ber05MediaPickerPageState extends ConsumerState<Ber05MediaPickerPage> {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final typo = context.typo;
+    final flags = ref.watch(featureFlagsProvider);
 
     if (_permissionDenied) {
       return Scaffold(
@@ -179,6 +206,14 @@ class _Ber05MediaPickerPageState extends ConsumerState<Ber05MediaPickerPage> {
                       Wrap(
                         spacing: AppSpacing.xs,
                         children: <Widget>[
+                          if (flags.video)
+                            AppButton(
+                              label: AppStrings.ber05AddVideoBtn,
+                              variant: AppButtonVariant.secondary,
+                              isDisabled:
+                                  _items.length >= AppLimits.postMaxPhotos,
+                              onPressed: () => _addSampleVideo(30),
+                            ),
                           AppButton(
                             label: AppStrings.ber05PickFromGalleryBtn,
                             variant: AppButtonVariant.secondary,

@@ -292,6 +292,45 @@ final navigationBadgeRepositoryProvider = Provider<NavigationBadgeRepository>((
   return StoreBackedNavigationBadgeRepository(ref.watch(mockStoreProvider));
 });
 
+/// 24. Provider [StoryRepository] (BER-02, BER-03, BER-R12).
+final storyRepositoryProvider = Provider<StoryRepository>((ref) {
+  final config = ref.watch(appConfigProvider);
+  if (!config.useMockBackend) {
+    return SupabaseStoryRepository(ref.watch(supabaseGatewayProvider));
+  }
+  return MockStoryRepository(ref.watch(mockStoreProvider));
+});
+
+/// 25. Provider [EventRepository] (SEK-09, SEK-R12).
+final eventRepositoryProvider = Provider<EventRepository>((ref) {
+  final config = ref.watch(appConfigProvider);
+  if (!config.useMockBackend) {
+    return SupabaseEventRepository(ref.watch(supabaseGatewayProvider));
+  }
+  return MockEventRepository(ref.watch(mockStoreProvider));
+});
+
+/// 26. Provider [ChurchRepository] (SEK-10, SEK-11, SEK-R13).
+final churchRepositoryProvider = Provider<ChurchRepository>((ref) {
+  final config = ref.watch(appConfigProvider);
+  if (!config.useMockBackend) {
+    return SupabaseChurchRepository(ref.watch(supabaseGatewayProvider));
+  }
+  return MockChurchRepository(ref.watch(mockStoreProvider));
+});
+
+/// 27. Provider [PartuturanDictionaryRepository] (TAR-08, TAR-R6).
+final partuturanDictionaryRepositoryProvider =
+    Provider<PartuturanDictionaryRepository>((ref) {
+      final config = ref.watch(appConfigProvider);
+      if (!config.useMockBackend) {
+        return SupabasePartuturanDictionaryRepository(
+          ref.watch(supabaseGatewayProvider),
+        );
+      }
+      return MockPartuturanDictionaryRepository(ref.watch(mockStoreProvider));
+    });
+
 /// Stream live jumlah lencana belum dibaca (Pesan & Notifikasi) untuk bilah atas.
 final unreadCountsProvider = StreamProvider<UnreadCounts>((ref) {
   final badges = ref.watch(navigationBadgeRepositoryProvider);

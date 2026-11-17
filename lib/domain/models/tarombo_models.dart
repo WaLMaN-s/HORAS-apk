@@ -1,3 +1,4 @@
+import 'package:horas/domain/models/sub_ethnic.dart';
 import 'package:horas/domain/models/user_models.dart';
 import 'package:horas/domain/partuturan/partuturan_confidence.dart';
 
@@ -177,4 +178,69 @@ final class PartuturanFeedback {
     'ruleVersion': ruleVersion,
     'createdAt': createdAt.toIso8601String(),
   };
+}
+
+/// Status validasi aturan partuturan per sub-suku (TAR-08, TAR-R6).
+enum PartuturanRuleStatus {
+  active('Aturan aktif'),
+  neutral('Mode netral');
+
+  const PartuturanRuleStatus(this.label);
+  final String label;
+}
+
+/// Entri kamus partuturan (TAR-08).
+final class PartuturanDictionaryEntry {
+  const PartuturanDictionaryEntry({
+    required this.id,
+    required this.term,
+    required this.meaning,
+    required this.example,
+    required this.subEthnic,
+    required this.category,
+    this.status = PartuturanRuleStatus.active,
+    this.isValidated = true,
+  });
+
+  final String id;
+  final String term;
+  final String meaning;
+  final String example;
+  final SubEthnic subEthnic;
+  final String category;
+  final PartuturanRuleStatus status;
+  final bool isValidated;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    'id': id,
+    'term': term,
+    'meaning': meaning,
+    'example': example,
+    'subEthnic': subEthnic.name,
+    'category': category,
+    'status': status.name,
+    'isValidated': isValidated,
+  };
+
+  factory PartuturanDictionaryEntry.fromJson(Map<String, Object?> json) {
+    SubEthnic parseSub(String? raw) {
+      for (final s in SubEthnic.values) {
+        if (s.name == raw) return s;
+      }
+      return SubEthnic.toba;
+    }
+
+    return PartuturanDictionaryEntry(
+      id: (json['id'] as String?) ?? '',
+      term: (json['term'] as String?) ?? '',
+      meaning: (json['meaning'] as String?) ?? '',
+      example: (json['example'] as String?) ?? '',
+      subEthnic: parseSub(json['subEthnic'] as String?),
+      category: (json['category'] as String?) ?? 'Umum',
+      status: json['status'] == 'neutral'
+          ? PartuturanRuleStatus.neutral
+          : PartuturanRuleStatus.active,
+      isValidated: (json['isValidated'] as bool?) ?? true,
+    );
+  }
 }

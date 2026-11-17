@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:horas/core/config/feature_flags.dart';
 import 'package:horas/core/config/repository_providers.dart';
 import 'package:horas/core/l10n/app_strings.dart';
 import 'package:horas/core/router/app_pages.dart';
@@ -155,6 +156,46 @@ class Sek01NearbyPage extends ConsumerWidget {
                     }
                   },
                 ),
+                if (ref.watch(featureFlagsProvider).church) ...<Widget>[
+                  const SizedBox(height: AppSpacing.sm),
+                  InkWell(
+                    onTap: () => context.push(AppPages.sek10.routePath),
+                    borderRadius: BorderRadius.circular(AppRadius.card),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
+                        vertical: AppSpacing.sm,
+                      ),
+                      decoration: BoxDecoration(
+                        color: colors.chipInactive,
+                        borderRadius: BorderRadius.circular(AppRadius.card),
+                        border: Border.all(
+                          color: colors.border.withValues(alpha: 0.5),
+                        ),
+                      ),
+                      child: Row(
+                        children: <Widget>[
+                          Icon(
+                            Icons.church_outlined,
+                            color: colors.primary,
+                            size: AppSizes.iconMd,
+                          ),
+                          const SizedBox(width: AppSpacing.sm),
+                          Expanded(
+                            child: Text(
+                              '${AppStrings.sek10Title} · Temukan gereja & jadwal ibadah',
+                              style: typo.captionStrong,
+                            ),
+                          ),
+                          const Icon(
+                            Icons.chevron_right,
+                            size: AppSizes.iconSm,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
                 if (state.filter.hasActiveFilters &&
                     state.segment == NearbyMainSegment.orang) ...<Widget>[
                   const SizedBox(height: AppSpacing.sm),

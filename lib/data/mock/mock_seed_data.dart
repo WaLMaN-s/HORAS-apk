@@ -893,6 +893,8 @@ abstract final class MockSeedData {
         estimatedPriceText: 'Perkiraan Rp60.000/jam',
         openingHours: '07.00 - 23.00 WIB',
         imageSeed: 'court-gor-manunggal',
+        latitude: 3.5952,
+        longitude: 98.6722,
       ),
       Court(
         id: 'court-02',
@@ -903,6 +905,8 @@ abstract final class MockSeedData {
         estimatedPriceText: 'Perkiraan Rp120.000/jam',
         openingHours: '08.00 - 24.00 WIB',
         imageSeed: 'court-setia-budi',
+        latitude: 3.5714,
+        longitude: 98.6415,
       ),
       Court(
         id: 'court-03',
@@ -913,6 +917,8 @@ abstract final class MockSeedData {
         estimatedPriceText: 'Perkiraan Rp90.000/jam',
         openingHours: '06.00 - 23.00 WIB',
         imageSeed: 'court-tebet-arena',
+        latitude: -6.2361,
+        longitude: 106.8524,
       ),
       Court(
         id: 'court-04',
@@ -927,6 +933,8 @@ abstract final class MockSeedData {
         estimatedPriceText: 'Perkiraan Rp100.000/jam',
         openingHours: '06.00 - 22.00 WIB',
         imageSeed: 'court-rawamangun',
+        latitude: -6.1942,
+        longitude: 106.8925,
       ),
       Court(
         id: 'court-05',
@@ -941,6 +949,8 @@ abstract final class MockSeedData {
         estimatedPriceText: 'Perkiraan Rp75.000/jam',
         openingHours: '06.00 - 21.00 WIB',
         imageSeed: 'court-saraga-bdg',
+        latitude: -6.8915,
+        longitude: 107.6105,
       ),
       Court(
         id: 'court-06',
@@ -954,6 +964,8 @@ abstract final class MockSeedData {
         estimatedPriceText: 'Perkiraan Rp65.000/jam',
         openingHours: '07.00 - 22.00 WIB',
         imageSeed: 'court-lodaya-bdg',
+        latitude: -6.9298,
+        longitude: 107.6258,
       ),
       Court(
         id: 'court-07',
@@ -967,6 +979,8 @@ abstract final class MockSeedData {
         estimatedPriceText: 'Perkiraan Rp70.000/jam',
         openingHours: '08.00 - 23.00 WIB',
         imageSeed: 'court-banda-baru',
+        latitude: 1.1301,
+        longitude: 104.0529,
       ),
       Court(
         id: 'court-08',
@@ -977,6 +991,8 @@ abstract final class MockSeedData {
         estimatedPriceText: 'Perkiraan Rp110.000/jam',
         openingHours: '09.00 - 23.00 WIB',
         imageSeed: 'court-imperium-btm',
+        latitude: 1.0543,
+        longitude: 103.9612,
       ),
       Court(
         id: 'court-09',
@@ -991,6 +1007,8 @@ abstract final class MockSeedData {
         estimatedPriceText: 'Perkiraan Rp50.000/jam',
         openingHours: '07.00 - 22.00 WIB',
         imageSeed: 'court-merdeka-pms',
+        latitude: 2.9591,
+        longitude: 99.0687,
       ),
       Court(
         id: 'court-10',
@@ -1001,6 +1019,8 @@ abstract final class MockSeedData {
         estimatedPriceText: 'Perkiraan Rp0 (Fasilitas Umum)',
         openingHours: '05.30 - 21.00 WIB',
         imageSeed: 'court-taman-bunga-pms',
+        latitude: 2.9612,
+        longitude: 99.0654,
       ),
     ];
   }
@@ -1212,4 +1232,368 @@ abstract final class MockSeedData {
       answer: 'HORAS hanya membantu menghitung biaya patungan per orang (dibulatkan ke atas Rp500) dan mencatat status konfirmasi host. Seluruh pembayaran dilakukan langsung antar-peserta di luar aplikasi.',
     ),
   ];
+
+  /// 5 Gereja Batak untuk Direktori (SEK-10, SEK-11, SEK-R13).
+  static List<Church> buildChurches() {
+    return const <Church>[
+      Church(
+        id: 'church-01',
+        name: 'HKBP Sudirman Medan',
+        denomination: ChurchDenomination.hkbp,
+        address: 'Jl. Jenderal Sudirman No. 10',
+        city: 'Medan',
+        serviceSchedules: <ChurchServiceSchedule>[
+          ChurchServiceSchedule(
+            dayOfWeek: 'Minggu',
+            time: '06.00 WIB',
+            language: 'Batak Toba',
+          ),
+          ChurchServiceSchedule(
+            dayOfWeek: 'Minggu',
+            time: '09.00 WIB',
+            language: 'Bahasa Indonesia',
+          ),
+          ChurchServiceSchedule(
+            dayOfWeek: 'Minggu',
+            time: '17.00 WIB',
+            language: 'Batak Toba',
+          ),
+        ],
+        contactPhone: '+628126000001',
+        contactEmail: 'sekretariat@hkbpsudirmanmedan.org',
+        isVerified: true,
+        memberCount: 42, // >= 5, tampil
+      ),
+      Church(
+        id: 'church-02',
+        name: 'GKPI Menteng Jakarta',
+        denomination: ChurchDenomination.gkpi,
+        address: 'Jl. Menteng Raya No. 24',
+        city: 'Jakarta Pusat',
+        serviceSchedules: <ChurchServiceSchedule>[
+          ChurchServiceSchedule(
+            dayOfWeek: 'Minggu',
+            time: '08.30 WIB',
+            language: 'Bahasa Indonesia',
+          ),
+          ChurchServiceSchedule(
+            dayOfWeek: 'Minggu',
+            time: '10.30 WIB',
+            language: 'Batak Toba',
+          ),
+        ],
+        contactPhone: '+628126000002',
+        contactEmail: 'info@gkpimenteng.org',
+        isVerified: true,
+        memberCount: 18, // >= 5, tampil
+      ),
+      Church(
+        id: 'church-03',
+        name: 'HKI Pematangsiantar Kota',
+        denomination: ChurchDenomination.hki,
+        address: 'Jl. Gereja No. 14',
+        city: 'Pematangsiantar',
+        serviceSchedules: <ChurchServiceSchedule>[
+          ChurchServiceSchedule(
+            dayOfWeek: 'Minggu',
+            time: '09.00 WIB',
+            language: 'Batak Toba',
+          ),
+        ],
+        contactPhone: '+628126000003',
+        contactEmail: 'kantor@hkisiantar.org',
+        isVerified: false,
+        memberCount: 7, // >= 5, tampil
+      ),
+      Church(
+        id: 'church-04',
+        name: 'GKPS Cikini',
+        denomination: ChurchDenomination.gkps,
+        address: 'Jl. Cikini Raya No. 35',
+        city: 'Jakarta Pusat',
+        serviceSchedules: <ChurchServiceSchedule>[
+          ChurchServiceSchedule(
+            dayOfWeek: 'Minggu',
+            time: '09.00 WIB',
+            language: 'Simalungun',
+          ),
+        ],
+        contactPhone: '+628126000004',
+        isVerified: true,
+        memberCount: 2, // < 5, disembunyikan sesuai SEK-R13
+      ),
+      Church(
+        id: 'church-05',
+        name: 'GBKP Rawamangun',
+        denomination: ChurchDenomination.gbkp,
+        address: 'Jl. Balai Pustaka Timur No. 8',
+        city: 'Jakarta Timur',
+        serviceSchedules: <ChurchServiceSchedule>[
+          ChurchServiceSchedule(
+            dayOfWeek: 'Minggu',
+            time: '08.00 WIB',
+            language: 'Karo',
+          ),
+          ChurchServiceSchedule(
+            dayOfWeek: 'Minggu',
+            time: '10.00 WIB',
+            language: 'Bahasa Indonesia',
+          ),
+        ],
+        contactPhone: '+628126000005',
+        isVerified: false,
+        memberCount: 3, // < 5, disembunyikan sesuai SEK-R13
+      ),
+    ];
+  }
+
+  /// Kegiatan Komunitas & Gereja (SEK-09, SEK-R12).
+  static List<CommunityEvent> buildCommunityEvents(DateTime baseNow) {
+    return <CommunityEvent>[
+      CommunityEvent(
+        id: 'evt-01',
+        communityId: 'com-01',
+        communityName: 'Punguan Parsadaan Simanjuntak Sitolu Sada Ina',
+        title: 'Bona Taon & Silaturahmi Awal Tahun Parsadaan',
+        description: 'Ibadah syukur awal tahun, ramah tamah, makan bersama arsik dan panggang khas Batak, serta pengenalan naposobulung.',
+        startTime: baseNow.add(const Duration(days: 3, hours: 2)),
+        endTime: baseNow.add(const Duration(days: 3, hours: 6)),
+        locationName: 'Wisma Taman Sari, Medan',
+        mapLink: 'https://maps.google.com/?q=Wisma+Taman+Sari+Medan',
+        capacity: 150,
+        myRsvp: EventRsvpStatus.hadir,
+        attendeeCount: 48,
+        isCancelled: false,
+      ),
+      CommunityEvent(
+        id: 'evt-02',
+        communityId: 'com-01',
+        communityName: 'Punguan Parsadaan Simanjuntak Sitolu Sada Ina',
+        title: 'Latihan Koor & Gondang Naposobulung',
+        description: 'Persiapan mengisi puji-pujian pada kebaktian padang bulan depan. Diharapkan seluruh pemuda/i hadir tepat waktu.',
+        startTime: baseNow.add(const Duration(days: 1)),
+        endTime: baseNow.add(const Duration(days: 1, hours: 2)),
+        locationName: 'Sopo Marpingkir Punguan, Medan',
+        capacity: 40,
+        myRsvp: EventRsvpStatus.mungkin,
+        attendeeCount: 16,
+        isCancelled: false,
+      ),
+      CommunityEvent(
+        id: 'evt-03',
+        communityId: 'com-02',
+        communityName: 'Naposobulung Batak Jabodetabek',
+        title: 'Futsal & Kopi Darat Naposo Jabodetabek',
+        description: 'Ajang silaturahmi olahraga santai antar-naposobulung perantau di Jakarta.',
+        startTime: baseNow.add(const Duration(days: 5, hours: 3)),
+        endTime: baseNow.add(const Duration(days: 5, hours: 5)),
+        locationName: 'Futsal Cilandak Town Square, Jakarta Selatan',
+        capacity: 30,
+        myRsvp: EventRsvpStatus.none,
+        attendeeCount: 12,
+        isCancelled: false,
+      ),
+      CommunityEvent(
+        id: 'evt-04',
+        communityId: 'com-02',
+        communityName: 'Naposobulung Batak Jabodetabek',
+        title: 'Seminar Karier & Networking Profesional Muda Batak',
+        description: 'Sharing session seputar dunia kerja teknologi, hukum, dan keuangan.',
+        startTime: baseNow.subtract(const Duration(days: 2)),
+        endTime: baseNow.subtract(const Duration(days: 2, hours: -3)),
+        locationName: 'Auditorium Perpustakaan Nasional RI, Jakarta Pusat',
+        capacity: 100,
+        myRsvp: EventRsvpStatus.hadir,
+        attendeeCount: 88,
+        isCancelled: false,
+      ),
+    ];
+  }
+
+  /// Entri Kamus Partuturan Multi Sub-Suku (TAR-08, TAR-R6).
+  static List<PartuturanDictionaryEntry> buildPartuturanDictionary() {
+    return const <PartuturanDictionaryEntry>[
+      // Toba (Aturan aktif)
+      PartuturanDictionaryEntry(
+        id: 'dict-01',
+        term: 'Tulang',
+        meaning: 'Saudara laki-laki kandung dari ibu, atau pria semarga dengan ibu pada generasi yang sejajar dengan ibu (pihak hula-hula utama).',
+        example: '"Horas Tulang, mohon doa restunya untuk perantauan saya."',
+        subEthnic: SubEthnic.toba,
+        category: 'Hula-hula',
+        status: PartuturanRuleStatus.active,
+        isValidated: true,
+      ),
+      PartuturanDictionaryEntry(
+        id: 'dict-02',
+        term: 'Nantulang',
+        meaning: 'Istri dari Tulang (saudara laki-laki ibu).',
+        example: '"Nantulang, namboru menitipkan oleh-oleh ini."',
+        subEthnic: SubEthnic.toba,
+        category: 'Hula-hula',
+        status: PartuturanRuleStatus.active,
+        isValidated: true,
+      ),
+      PartuturanDictionaryEntry(
+        id: 'dict-03',
+        term: 'Lae',
+        meaning: 'Panggilan antar-pria: saudara laki-laki istri, atau suami dari saudara perempuan, atau pria anak dari Tulang (sebaya).',
+        example: '"Horas Lae! Kapan kita main bulutangkis lagi?"',
+        subEthnic: SubEthnic.toba,
+        category: 'Sebaya / Kerabat',
+        status: PartuturanRuleStatus.active,
+        isValidated: true,
+      ),
+      PartuturanDictionaryEntry(
+        id: 'dict-04',
+        term: 'Ito / Iboto',
+        meaning: 'Saudara perempuan bagi pria, atau saudara laki-laki bagi wanita dalam hubungan semarga atau dongan tubu.',
+        example: '"Ito, tolong kirimkan catatan silsilah ompung kita."',
+        subEthnic: SubEthnic.toba,
+        category: 'Dongan Tubu',
+        status: PartuturanRuleStatus.active,
+        isValidated: true,
+      ),
+      PartuturanDictionaryEntry(
+        id: 'dict-05',
+        term: 'Amangboru',
+        meaning:
+            'Suami dari saudara perempuan ayah (suami namboru, pihak boru).',
+        example: '"Horas Amangboru, selamat atas pernikahan eda kami."',
+        subEthnic: SubEthnic.toba,
+        category: 'Boru',
+        status: PartuturanRuleStatus.active,
+        isValidated: true,
+      ),
+      PartuturanDictionaryEntry(
+        id: 'dict-06',
+        term: 'Namboru',
+        meaning: 'Saudara perempuan kandung atau semarga dari ayah.',
+        example: '"Namboru selalu mengingatkan kami untuk rajin berdoa."',
+        subEthnic: SubEthnic.toba,
+        category: 'Boru',
+        status: PartuturanRuleStatus.active,
+        isValidated: true,
+      ),
+      PartuturanDictionaryEntry(
+        id: 'dict-07',
+        term: 'Pariban',
+        meaning: 'Anak perempuan dari Tulang (bagi pria), atau anak laki-laki dari Namboru (bagi wanita). Hubungan kekerabatan yang sangat akrab.',
+        example: '"Pariban kita yang di Balige baru saja lulus kuliah."',
+        subEthnic: SubEthnic.toba,
+        category: 'Kerabat Akrab',
+        status: PartuturanRuleStatus.active,
+        isValidated: true,
+      ),
+      PartuturanDictionaryEntry(
+        id: 'dict-08',
+        term: 'Bere',
+        meaning: 'Anak dari saudara perempuan bagi pria (anak dari ito). Generasi di bawah dari pihak boru.',
+        example: '"Bere kami sangat berprestasi di sekolah."',
+        subEthnic: SubEthnic.toba,
+        category: 'Boru',
+        status: PartuturanRuleStatus.active,
+        isValidated: true,
+      ),
+
+      // Karo (Mode netral)
+      PartuturanDictionaryEntry(
+        id: 'dict-09',
+        term: 'Mama',
+        meaning: 'Paman / saudara laki-laki ibu dalam tutur siwaluh suku Karo (setara Tulang di Toba).',
+        example: '"Mejuah-juah Mama, salam keleng ate ras keluarga."',
+        subEthnic: SubEthnic.karo,
+        category: 'Kalimbubu',
+        status: PartuturanRuleStatus.neutral,
+        isValidated: false,
+      ),
+      PartuturanDictionaryEntry(
+        id: 'dict-10',
+        term: 'Mami',
+        meaning: 'Istri dari Mama (saudara laki-laki ibu) dalam adat Karo (setara Nantulang).',
+        example: '"Mami tengah mempersiapkan pesta adat nterem."',
+        subEthnic: SubEthnic.karo,
+        category: 'Kalimbubu',
+        status: PartuturanRuleStatus.neutral,
+        isValidated: false,
+      ),
+      PartuturanDictionaryEntry(
+        id: 'dict-11',
+        term: 'Impal',
+        meaning: 'Anak paman (anak Mama) bagi perempuan atau anak bibi bagi laki-laki dalam kekerabatan Karo (setara Pariban).',
+        example: '"Impal, mari kita hadiri kerja tahun di kabanjahe."',
+        subEthnic: SubEthnic.karo,
+        category: 'Kerabat',
+        status: PartuturanRuleStatus.neutral,
+        isValidated: false,
+      ),
+      PartuturanDictionaryEntry(
+        id: 'dict-12',
+        term: 'Turang',
+        meaning: 'Saudara berlainan jenis kelamin dalam marga / suku Karo (setara Ito).',
+        example: '"Mejuah-juah Turang senina ras kalimbubu."',
+        subEthnic: SubEthnic.karo,
+        category: 'Senina',
+        status: PartuturanRuleStatus.neutral,
+        isValidated: false,
+      ),
+
+      // Simalungun (Mode netral)
+      PartuturanDictionaryEntry(
+        id: 'dict-13',
+        term: 'Botou',
+        meaning: 'Panggilan untuk saudara perempuan bagi pria atau saudara laki-laki bagi wanita di Simalungun.',
+        example: '"Horas Botou, sonaha kabar ni huta?"',
+        subEthnic: SubEthnic.simalungun,
+        category: 'Sanina',
+        status: PartuturanRuleStatus.neutral,
+        isValidated: false,
+      ),
+      PartuturanDictionaryEntry(
+        id: 'dict-14',
+        term: 'Tondong',
+        meaning: 'Pihak keluarga pemberi wanita dalam adat Simalungun (setara Hula-hula di Toba atau Kalimbubu di Karo).',
+        example: '"Tondong kami sangat dihormati dalam pesta unjuk."',
+        subEthnic: SubEthnic.simalungun,
+        category: 'Tondong',
+        status: PartuturanRuleStatus.neutral,
+        isValidated: false,
+      ),
+
+      // Pakpak (Mode netral)
+      PartuturanDictionaryEntry(
+        id: 'dict-15',
+        term: 'Kula-kula',
+        meaning:
+            'Pihak kerabat pemberi perempuan dalam sulang silima suku Pakpak.',
+        example: '"Njuah-njuah Kula-kula simenjalo sulang."',
+        subEthnic: SubEthnic.pakpak,
+        category: 'Kula-kula',
+        status: PartuturanRuleStatus.neutral,
+        isValidated: false,
+      ),
+
+      // Mandailing & Angkola (Mode netral)
+      PartuturanDictionaryEntry(
+        id: 'dict-16',
+        term: 'Mora',
+        meaning: 'Pihak pemberi gadis dalam dalihan na tolu Mandailing dan Angkola yang wajib dimuliakan (setara Hula-hula).',
+        example: '"Hula-hula/Mora diposisikan paling terhormat dalam adat."',
+        subEthnic: SubEthnic.mandailing,
+        category: 'Mora',
+        status: PartuturanRuleStatus.neutral,
+        isValidated: false,
+      ),
+      PartuturanDictionaryEntry(
+        id: 'dict-17',
+        term: 'Kahanggi',
+        meaning: 'Kerabat semarga segenerasi dalam adat Mandailing/Angkola (setara Dongan Tubu).',
+        example: '"Kahanggi saling mendukung di perantauan."',
+        subEthnic: SubEthnic.mandailing,
+        category: 'Kahanggi',
+        status: PartuturanRuleStatus.neutral,
+        isValidated: false,
+      ),
+    ];
+  }
 }

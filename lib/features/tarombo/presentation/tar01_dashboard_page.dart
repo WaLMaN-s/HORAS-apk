@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:horas/core/config/feature_flags.dart';
 import 'package:horas/core/config/repository_providers.dart';
 import 'package:horas/core/errors/result.dart';
 import 'package:horas/core/l10n/app_strings.dart';
@@ -327,6 +328,13 @@ class Tar01DashboardPage extends ConsumerWidget {
                 leadingIcon: Icons.calculate_outlined,
                 onPressed: () => context.push(AppPages.tar06.routePath),
               ),
+              if (ref.watch(featureFlagsProvider).partuturanDictionary)
+                AppButton(
+                  label: AppStrings.tar08Title,
+                  variant: AppButtonVariant.secondary,
+                  leadingIcon: Icons.menu_book_outlined,
+                  onPressed: () => context.push(AppPages.tar08.routePath),
+                ),
               AppButton(
                 label: state.incomingClaims.isNotEmpty
                     ? '${AppStrings.tar01ConfirmationsBtn} (${state.incomingClaims.length})'

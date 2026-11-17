@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:horas/app.dart';
 import 'package:horas/core/config/app_config.dart';
+import 'package:horas/core/config/feature_flags.dart';
 import 'package:horas/core/config/repository_providers.dart';
 import 'package:horas/core/errors/app_failure.dart';
 import 'package:horas/core/errors/result.dart';
@@ -144,6 +145,7 @@ void main() {
         final container = ProviderContainer(
           overrides: [
             enableMockNetworkLatencyProvider.overrideWithValue(false),
+            featureFlagsProvider.overrideWithValue(const FeatureFlags()),
           ],
         );
         addTearDown(container.dispose);

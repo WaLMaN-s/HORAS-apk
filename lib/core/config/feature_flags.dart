@@ -19,6 +19,63 @@ final class FeatureFlags {
     this.courtMap = false,
   });
 
+  /// Konfigurasi lengkap Fase 2 dengan seluruh fitur aktif.
+  static const FeatureFlags phase2 = FeatureFlags(
+    stories: true,
+    video: true,
+    hashtags: true,
+    church: true,
+    events: true,
+    partuturanDictionary: true,
+    voiceNote: true,
+    stickers: true,
+    userGroups: true,
+    recurringSessions: true,
+    courtMap: true,
+  );
+
+  /// Konstruktor berbasis `--dart-define` dengan bawaan Fase 2 aktif (`defaultValue: true`).
+  factory FeatureFlags.fromEnvironment() {
+    const enablePhase2 = bool.fromEnvironment(
+      'ENABLE_PHASE_2',
+      defaultValue: true,
+    );
+    return const FeatureFlags(
+      stories: bool.fromEnvironment('FLAG_STORIES', defaultValue: enablePhase2),
+      video: bool.fromEnvironment('FLAG_VIDEO', defaultValue: enablePhase2),
+      hashtags: bool.fromEnvironment(
+        'FLAG_HASHTAGS',
+        defaultValue: enablePhase2,
+      ),
+      church: bool.fromEnvironment('FLAG_CHURCH', defaultValue: enablePhase2),
+      events: bool.fromEnvironment('FLAG_EVENTS', defaultValue: enablePhase2),
+      partuturanDictionary: bool.fromEnvironment(
+        'FLAG_PARTUTURAN_DICTIONARY',
+        defaultValue: enablePhase2,
+      ),
+      voiceNote: bool.fromEnvironment(
+        'FLAG_VOICE_NOTE',
+        defaultValue: enablePhase2,
+      ),
+      stickers: bool.fromEnvironment(
+        'FLAG_STICKERS',
+        defaultValue: enablePhase2,
+      ),
+      userGroups: bool.fromEnvironment(
+        'FLAG_USER_GROUPS',
+        defaultValue: enablePhase2,
+      ),
+      recurringSessions: bool.fromEnvironment(
+        'FLAG_RECURRING_SESSIONS',
+        defaultValue: enablePhase2,
+      ),
+      courtMap: bool.fromEnvironment(
+        'FLAG_COURT_MAP',
+        defaultValue: enablePhase2,
+      ),
+    );
+  }
+
   /// BER-02, BER-03, BER-R12: baris story, penampil story, buat story.
   final bool stories;
 
@@ -113,6 +170,8 @@ final class FeatureFlags {
 }
 
 /// Provider global untuk [FeatureFlags].
+///
+/// Pada Fase 2, seluruh flag dibuka secara bawaan melalui [FeatureFlags.fromEnvironment].
 final featureFlagsProvider = Provider<FeatureFlags>((ref) {
-  return const FeatureFlags();
+  return FeatureFlags.fromEnvironment();
 });

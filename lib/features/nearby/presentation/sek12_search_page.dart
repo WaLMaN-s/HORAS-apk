@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:horas/core/config/feature_flags.dart';
 import 'package:horas/core/config/repository_providers.dart';
 import 'package:horas/core/errors/app_failure.dart';
 import 'package:horas/core/errors/result.dart';
@@ -12,7 +13,7 @@ import 'package:horas/domain/models/models.dart';
 import 'package:horas/features/nearby/presentation/nearby_widgets.dart';
 import 'package:material_ui/material_ui.dart';
 
-/// SEK-12 Pencarian Sekitar: mencari Orang dan Komunitas (Gereja = Fase 2 off, `AC-13`).
+/// SEK-12 Pencarian Sekitar: mencari Orang dan Komunitas (dan Gereja di Fase 2).
 class Sek12SearchPage extends ConsumerStatefulWidget {
   const Sek12SearchPage({super.key});
 
@@ -27,6 +28,7 @@ class _Sek12SearchPageState extends ConsumerState<Sek12SearchPage> {
   AppError? _error;
   List<PersonSummary> _people = const <PersonSummary>[];
   List<Community> _communities = const <Community>[];
+  List<Church> _churches = const <Church>[];
   List<String> _history = const <String>[];
 
   @override
@@ -52,12 +54,17 @@ class _Sek12SearchPageState extends ConsumerState<Sek12SearchPage> {
     });
 
     final repo = ref.read(searchRepositoryProvider);
+    final flags = ref.read(featureFlagsProvider);
     await repo.addSearchHistory(clean);
     final peopleFuture = repo.searchPeople(query: clean);
     final commFuture = repo.searchCommunities(query: clean);
+    final churchFuture = flags.church
+        ? repo.searchChurches(query: clean)
+        : Future.value(const Ok<List<Church>>(<Church>[]));
 
     final peopleRes = await peopleFuture;
     final commRes = await commFuture;
+    final churchRes = await churchFuture;
 
     if (!mounted) return;
     if (peopleRes is Err<List<PersonSummary>>) {
@@ -83,6 +90,9 @@ class _Sek12SearchPageState extends ConsumerState<Sek12SearchPage> {
       _communities = (commRes as Ok<List<Community>>).value
           .where((c) => c.type != CommunityType.church)
           .toList(growable: false);
+      if (churchRes is Ok<List<Church>>) {
+        _churches = churchRes.value;
+      }
       _history = repo.getSearchHistory();
     });
   }
@@ -90,9 +100,11 @@ class _Sek12SearchPageState extends ConsumerState<Sek12SearchPage> {
   @override
   Widget build(BuildContext context) {
     final typo = context.typo;
+    final flags = ref.watch(featureFlagsProvider);
+    final tabCount = flags.church ? 3 : 2;
 
     return DefaultTabController(
-      length: 2,
+      length: tabCount,
       child: Scaffold(
         appBar: AppBar(
           title: AppTextField(
@@ -105,10 +117,12 @@ class _Sek12SearchPageState extends ConsumerState<Sek12SearchPage> {
             onSuffixTap: () => _executeSearch(_queryCtrl.text),
           ),
           bottom: _hasSearched
-              ? const TabBar(
+              ? TabBar(
                   tabs: <Widget>[
-                    Tab(text: AppStrings.ber10TabPeople),
-                    Tab(text: AppStrings.ber10TabCommunities),
+                    const Tab(text: AppStrings.ber10TabPeople),
+                    const Tab(text: AppStrings.ber10TabCommunities),
+                    if (flags.church)
+                      const Tab(text: AppStrings.ber10TabChurches),
                   ],
                 )
               : null,
@@ -148,12 +162,12 @@ class _Sek12SearchPageState extends ConsumerState<Sek12SearchPage> {
                   ],
                 ],
               )
-            : _buildResultsBody(),
+            : _buildResultsBody(flags),
       ),
     );
   }
 
-  Widget _buildResultsBody() {
+  Widget _buildResultsBody(FeatureFlags flags) {
     if (_isLoading) {
       return const SingleChildScrollView(
         child: StateView.loading(itemCount: 4),
@@ -205,6 +219,32 @@ class _Sek12SearchPageState extends ConsumerState<Sek12SearchPage> {
                   );
                 },
               ),
+        if (flags.church)
+          _churches.isEmpty
+              ? StateView.empty(
+                  message: AppStrings.sek10EmptyChurches,
+                  actionLabel: AppStrings.actionRetry,
+                  onAction: () => _executeSearch(_queryCtrl.text),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.all(AppSpacing.screenMargin),
+                  itemCount: _churches.length,
+                  itemBuilder: (context, index) {
+                    final ch = _churches[index];
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                      child: ListTile(
+                        leading: const Icon(Icons.church_outlined),
+                        title: Text(ch.name),
+                        subtitle: Text('${ch.denomination.label} · ${ch.city}'),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => context.push(
+                          '${AppPages.sek11.routePath}?id=${ch.id}',
+                        ),
+                      ),
+                    );
+                  },
+                ),
       ],
     );
   }

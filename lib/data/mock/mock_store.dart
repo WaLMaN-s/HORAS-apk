@@ -133,6 +133,17 @@ final class MockStore {
       <String, List<DateTime>>{};
   final List<AppNotification> notifications = <AppNotification>[];
 
+  // Fase 2 (Story, Kegiatan, Gereja, Kamus)
+  final List<Story> stories = <Story>[];
+  final Map<String, List<StoryViewer>> storyViewersByStoryId =
+      <String, List<StoryViewer>>{};
+  final List<CommunityEvent> communityEvents = <CommunityEvent>[];
+  final Map<String, List<EventAttendee>> eventAttendeesByEventId =
+      <String, List<EventAttendee>>{};
+  final List<Church> churches = <Church>[];
+  final List<PartuturanDictionaryEntry> partuturanDictionary =
+      <PartuturanDictionaryEntry>[];
+
   final StreamController<List<Conversation>> conversationsStreamController =
       StreamController<List<Conversation>>.broadcast();
   final Map<String, StreamController<List<Message>>> messageStreamsByConv =
@@ -453,6 +464,12 @@ final class MockStore {
     strikes.clear();
     appeals.clear();
     verificationRequests.clear();
+    stories.clear();
+    storyViewersByStoryId.clear();
+    communityEvents.clear();
+    eventAttendeesByEventId.clear();
+    churches.clear();
+    partuturanDictionary.clear();
     dataExportJobs.clear();
     accountDeletionsByUser.clear();
     notificationPrefsByUser.clear();
@@ -1714,5 +1731,407 @@ final class MockStore {
         createdAt: baseNow.subtract(const Duration(days: 1)),
       ),
     ]);
+
+    // Benih Fase 2 (Gereja, Kegiatan, Kamus, Story)
+    churches.addAll(MockSeedData.buildChurches());
+    communityEvents.addAll(MockSeedData.buildCommunityEvents(baseNow));
+    partuturanDictionary.addAll(MockSeedData.buildPartuturanDictionary());
+
+    final u02StoryAuthor = toPersonSummary(
+      usersById['u-02']!,
+      viewer: usersById['u-01'],
+    );
+    final u04StoryAuthor = toPersonSummary(
+      usersById['u-04']!,
+      viewer: usersById['u-01'],
+    );
+    stories.addAll(<Story>[
+      Story(
+        id: 'story-01',
+        author: u02StoryAuthor,
+        mediaSeed: 'story-bona-taon',
+        caption: 'Bona Taon 2026 Parsadaan di Medan! Horas!',
+        createdAt: baseNow.subtract(const Duration(hours: 3)),
+        expiresAt: baseNow.add(const Duration(hours: 21)),
+        durationSeconds: 5,
+        viewerCount: 6,
+      ),
+      Story(
+        id: 'story-02',
+        author: u04StoryAuthor,
+        mediaSeed: 'story-koor-naposo',
+        isVideo: true,
+        durationSeconds: 12,
+        caption: 'Latihan koor naposo persiapan festival gereja',
+        createdAt: baseNow.subtract(const Duration(hours: 5)),
+        expiresAt: baseNow.add(const Duration(hours: 19)),
+        viewerCount: 4,
+      ),
+    ]);
+    storyViewersByStoryId['story-01'] = <StoryViewer>[
+      StoryViewer(
+        id: 'view-01',
+        storyId: 'story-01',
+        viewer: toPersonSummary(usersById['u-03']!, viewer: usersById['u-01']),
+        viewedAt: baseNow.subtract(const Duration(hours: 2)),
+      ),
+    ];
+  }
+
+  // ── Fase 2 Helpers ─────────────────────────────────────────────────────────
+
+  /// Cerita 24 Jam (BER-02, BER-03, BER-R12)
+  List<Story> getActiveStories() {
+    return stories.where((s) => now.isBefore(s.expiresAt)).toList();
+  }
+
+  Story createStory({
+    required String mediaSeed,
+    required bool isVideo,
+    required int durationSeconds,
+    String caption = '',
+  }) {
+    final authorProfile = activeProfile ?? usersById['u-01']!;
+    final story = Story(
+      id: 'story-${DateTime.now().microsecondsSinceEpoch}',
+      author: toPersonSummary(authorProfile, viewer: activeProfile),
+      mediaSeed: mediaSeed,
+      caption: caption,
+      isVideo: isVideo,
+      durationSeconds: durationSeconds,
+      createdAt: now,
+      expiresAt: now.add(const Duration(hours: 24)),
+    );
+    stories.insert(0, story);
+    return story;
+  }
+
+  List<StoryViewer> getStoryViewers(String storyId) {
+    return storyViewersByStoryId[storyId] ?? const <StoryViewer>[];
+  }
+
+  void markStoryViewed(String storyId) {
+    final idx = stories.indexWhere((s) => s.id == storyId);
+    if (idx != -1) {
+      final cur = stories[idx];
+      if (!cur.isViewedByMe) {
+        stories[idx] = cur.copyWith(
+          isViewedByMe: true,
+          viewerCount: cur.viewerCount + 1,
+        );
+        final viewerProfile = activeProfile ?? usersById['u-01']!;
+        storyViewersByStoryId
+            .putIfAbsent(storyId, () => <StoryViewer>[])
+            .add(
+              StoryViewer(
+                id: 'view-${DateTime.now().microsecondsSinceEpoch}',
+                storyId: storyId,
+                viewer: toPersonSummary(viewerProfile, viewer: activeProfile),
+                viewedAt: now,
+              ),
+            );
+      }
+    }
+  }
+
+  void deleteStory(String storyId) {
+    stories.removeWhere((s) => s.id == storyId);
+    storyViewersByStoryId.remove(storyId);
+  }
+
+  /// Kegiatan Komunitas & Gereja (SEK-09, SEK-R12)
+  List<CommunityEvent> getEventsForCommunity(String communityId) {
+    return communityEvents.where((e) => e.communityId == communityId).toList();
+  }
+
+  CommunityEvent? getEventById(String eventId) {
+    final list = communityEvents.where((e) => e.id == eventId).toList();
+    return list.isNotEmpty ? list.first : null;
+  }
+
+  CommunityEvent createCommunityEvent({
+    required String communityId,
+    required String title,
+    required String description,
+    required DateTime startTime,
+    required DateTime endTime,
+    required String locationName,
+    String? mapLink,
+    int? capacity,
+  }) {
+    final comm = communities.where((c) => c.id == communityId).firstOrNull;
+    final event = CommunityEvent(
+      id: 'evt-${DateTime.now().microsecondsSinceEpoch}',
+      communityId: communityId,
+      communityName: comm?.name ?? '',
+      title: title,
+      description: description,
+      startTime: startTime,
+      endTime: endTime,
+      locationName: locationName,
+      mapLink: mapLink,
+      capacity: capacity,
+      myRsvp: EventRsvpStatus.hadir,
+      attendeeCount: 1,
+    );
+    communityEvents.insert(0, event);
+
+    // Otomatis daftarkan pembuat
+    final userProfile = activeProfile ?? usersById['u-01']!;
+    eventAttendeesByEventId
+        .putIfAbsent(event.id, () => <EventAttendee>[])
+        .add(
+          EventAttendee(
+            id: 'att-${DateTime.now().microsecondsSinceEpoch}',
+            eventId: event.id,
+            user: toPersonSummary(userProfile, viewer: activeProfile),
+            status: EventRsvpStatus.hadir,
+            updatedAt: now,
+          ),
+        );
+    return event;
+  }
+
+  CommunityEvent cancelCommunityEvent(String eventId) {
+    final idx = communityEvents.indexWhere((e) => e.id == eventId);
+    if (idx != -1) {
+      final cancelled = communityEvents[idx].copyWith(isCancelled: true);
+      communityEvents[idx] = cancelled;
+
+      // Beri notifikasi ke seluruh peserta yang RSVP (SEK-R12)
+      final attendees = eventAttendeesByEventId[eventId] ?? <EventAttendee>[];
+      for (final att in attendees) {
+        notifications.add(
+          AppNotification(
+            id: 'notif-${DateTime.now().microsecondsSinceEpoch}-${att.user.id}',
+            recipientId: att.user.id,
+            type: NotificationType.sessionUpdatedOrCancelled,
+            title: 'Kegiatan Dibatalkan',
+            body:
+                'Kegiatan "${cancelled.title}" telah dibatalkan oleh pengurus.',
+            deepLink: 'horas://app/sekitar/kegiatan-detail?id=${cancelled.id}',
+            createdAt: now,
+          ),
+        );
+      }
+      return cancelled;
+    }
+    throw const ServerError(
+      message: 'Kegiatan tidak ditemukan.',
+      referenceCode: 'EVT-NOT-FOUND',
+    );
+  }
+
+  CommunityEvent rsvpCommunityEvent({
+    required String eventId,
+    required EventRsvpStatus status,
+  }) {
+    final idx = communityEvents.indexWhere((e) => e.id == eventId);
+    if (idx == -1) {
+      throw const ServerError(
+        message: 'Kegiatan tidak ditemukan.',
+        referenceCode: 'EVT-NOT-FOUND',
+      );
+    }
+    final cur = communityEvents[idx];
+    final userProfile = activeProfile ?? usersById['u-01']!;
+    final userSummary = toPersonSummary(userProfile, viewer: activeProfile);
+
+    final attendees = eventAttendeesByEventId.putIfAbsent(
+      eventId,
+      () => <EventAttendee>[],
+    );
+    final attIdx = attendees.indexWhere((a) => a.user.id == userSummary.id);
+
+    int countDelta = 0;
+    if (status == EventRsvpStatus.hadir) {
+      if (cur.myRsvp != EventRsvpStatus.hadir) countDelta = 1;
+    } else {
+      if (cur.myRsvp == EventRsvpStatus.hadir) countDelta = -1;
+    }
+
+    if (attIdx != -1) {
+      attendees[attIdx] = EventAttendee(
+        id: attendees[attIdx].id,
+        eventId: eventId,
+        user: userSummary,
+        status: status,
+        updatedAt: now,
+      );
+    } else {
+      attendees.add(
+        EventAttendee(
+          id: 'att-${DateTime.now().microsecondsSinceEpoch}',
+          eventId: eventId,
+          user: userSummary,
+          status: status,
+          updatedAt: now,
+        ),
+      );
+    }
+
+    final updated = cur.copyWith(
+      myRsvp: status,
+      attendeeCount: (cur.attendeeCount + countDelta).clamp(0, 999999),
+    );
+    communityEvents[idx] = updated;
+    return updated;
+  }
+
+  List<EventAttendee> getEventAttendees(String eventId) {
+    return eventAttendeesByEventId[eventId] ?? const <EventAttendee>[];
+  }
+
+  /// Direktori Gereja Batak (SEK-10, SEK-11, SEK-R13)
+  List<Church> getChurches({
+    String? city,
+    ChurchDenomination? denomination,
+    String? query,
+  }) {
+    var res = List<Church>.from(churches);
+    if (city != null && city.trim().isNotEmpty) {
+      res = res
+          .where((c) => c.city.toLowerCase() == city.toLowerCase())
+          .toList();
+    }
+    if (denomination != null) {
+      res = res.where((c) => c.denomination == denomination).toList();
+    }
+    if (query != null && query.trim().isNotEmpty) {
+      final q = query.toLowerCase();
+      res = res
+          .where(
+            (c) =>
+                c.name.toLowerCase().contains(q) ||
+                c.address.toLowerCase().contains(q) ||
+                c.city.toLowerCase().contains(q),
+          )
+          .toList();
+    }
+    return res;
+  }
+
+  Church? getChurchById(String churchId) {
+    final list = churches.where((c) => c.id == churchId).toList();
+    return list.isNotEmpty ? list.first : null;
+  }
+
+  Church proposeChurch({
+    required String name,
+    required ChurchDenomination denomination,
+    required String address,
+    required String city,
+    required List<ChurchServiceSchedule> serviceSchedules,
+    String contactPhone = '',
+    String contactEmail = '',
+  }) {
+    final church = Church(
+      id: 'church-${DateTime.now().microsecondsSinceEpoch}',
+      name: name,
+      denomination: denomination,
+      address: address,
+      city: city,
+      serviceSchedules: serviceSchedules,
+      contactPhone: contactPhone,
+      contactEmail: contactEmail,
+      isVerified: false,
+      memberCount: 1,
+    );
+    churches.add(church);
+    return church;
+  }
+
+  Church setMyHomeChurch(String churchId, {bool isVisible = false}) {
+    final idx = churches.indexWhere((c) => c.id == churchId);
+    if (idx != -1) {
+      // Nonaktifkan gereja sebelumnya
+      for (var i = 0; i < churches.length; i++) {
+        if (churches[i].isUserHomeChurch) {
+          churches[i] = churches[i].copyWith(
+            isUserHomeChurch: false,
+            memberCount: (churches[i].memberCount - 1).clamp(0, 99999),
+          );
+        }
+      }
+      final cur = churches[idx];
+      final updated = cur.copyWith(
+        isUserHomeChurch: true,
+        isHomeChurchVisible: isVisible,
+        memberCount: cur.memberCount + 1,
+      );
+      churches[idx] = updated;
+      return updated;
+    }
+    throw const ServerError(
+      message: 'Gereja tidak ditemukan.',
+      referenceCode: 'CHU-NOT-FOUND',
+    );
+  }
+
+  /// Kamus Partuturan (TAR-08)
+  List<PartuturanDictionaryEntry> searchPartuturanDictionary({
+    String query = '',
+    SubEthnic? subEthnic,
+  }) {
+    var res = List<PartuturanDictionaryEntry>.from(partuturanDictionary);
+    if (subEthnic != null) {
+      res = res.where((e) => e.subEthnic == subEthnic).toList();
+    }
+    if (query.trim().isNotEmpty) {
+      final q = query.toLowerCase();
+      res = res
+          .where(
+            (e) =>
+                e.term.toLowerCase().contains(q) ||
+                e.meaning.toLowerCase().contains(q) ||
+                e.example.toLowerCase().contains(q) ||
+                e.category.toLowerCase().contains(q),
+          )
+          .toList();
+    }
+    return res;
+  }
+
+  /// Grup Buatan Pengguna (PSN-R5)
+  Conversation createCustomGroupChat({
+    required String title,
+    required List<String> memberUserIds,
+    String? photoSeed,
+  }) {
+    final curProfile = activeProfile ?? usersById['u-01']!;
+    final participantsList = <PersonSummary>[
+      toPersonSummary(curProfile, viewer: curProfile),
+    ];
+    for (final uid in memberUserIds) {
+      if (usersById.containsKey(uid) && uid != curProfile.id) {
+        participantsList.add(
+          toPersonSummary(usersById[uid]!, viewer: curProfile),
+        );
+      }
+    }
+
+    final convId = 'conv-group-${DateTime.now().microsecondsSinceEpoch}';
+    final initialMsg = Message(
+      id: 'msg-${DateTime.now().microsecondsSinceEpoch}',
+      conversationId: convId,
+      sender: toPersonSummary(curProfile, viewer: curProfile),
+      text: 'Grup "$title" telah dibuat.',
+      isAnnouncement: true,
+      createdAt: now,
+    );
+
+    final conv = Conversation(
+      id: convId,
+      type: ConversationType.userGroup,
+      title: title,
+      participants: participantsList,
+      lastMessage: initialMsg,
+      updatedAt: initialMsg.createdAt,
+    );
+
+    conversations.insert(0, conv);
+    messagesByConversationId[convId] = <Message>[initialMsg];
+    conversationsStreamController.add(List<Conversation>.from(conversations));
+    return conv;
   }
 }

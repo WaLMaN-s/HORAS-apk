@@ -6,6 +6,7 @@ export 'supabase_gateway.dart';
 export 'supabase_media_uploader.dart';
 export 'supabase_offline_cache.dart';
 export 'supabase_partuturan_service.dart';
+export 'supabase_phase2_repos.dart';
 export 'supabase_secure_storage.dart';
 export 'supabase_social_feed_repos.dart';
 export 'supabase_tarombo_system_repos.dart';

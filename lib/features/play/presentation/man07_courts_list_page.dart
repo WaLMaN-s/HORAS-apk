@@ -1,3 +1,4 @@
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:horas/core/config/feature_flags.dart';
@@ -11,12 +12,12 @@ import 'package:horas/core/theme/app_tokens.dart';
 import 'package:horas/core/widgets/widgets.dart';
 import 'package:horas/domain/models/models.dart';
 import 'package:horas/features/play/presentation/play_controller.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// MAN-07 Daftar Lapangan (`MAN-R10`).
 ///
-/// Tampilan peta lapangan adalah Fase 2 (`FeatureFlags.courtMap == false`),
-/// sehingga Fase 1 hanya menampilkan daftar lapangan tanpa SDK peta.
+/// Tampilan peta lapangan menggunakan flutter_map (OpenStreetMap) saat `FeatureFlags.courtMap == true`.
 class Man07CourtsListPage extends ConsumerStatefulWidget {
   const Man07CourtsListPage({super.key});
 
@@ -29,6 +30,7 @@ class _Man07CourtsListPageState extends ConsumerState<Man07CourtsListPage> {
   SportType? _selectedSport;
   List<Court> _courts = const <Court>[];
   bool _isLoading = true;
+  bool _showMap = false;
   AppError? _error;
 
   @override
@@ -80,15 +82,83 @@ class _Man07CourtsListPageState extends ConsumerState<Man07CourtsListPage> {
           await _load();
         },
       );
+    } else if (flags.courtMap && _showMap) {
+      final validCourts = _courts
+          .where((c) => c.latitude != null && c.longitude != null)
+          .toList();
+      final centerLat = validCourts.isNotEmpty
+          ? validCourts.first.latitude!
+          : 3.5952;
+      final centerLng = validCourts.isNotEmpty
+          ? validCourts.first.longitude!
+          : 98.6722;
+
+      content = Column(
+        children: <Widget>[
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.xs,
+            ),
+            color: colors.confidenceAmberSurface,
+            child: Text(
+              AppStrings.man07MapDisclaimer,
+              style: typo.micro.copyWith(color: colors.confidenceAmber),
+            ),
+          ),
+          Expanded(
+            child: FlutterMap(
+              options: MapOptions(
+                initialCenter: LatLng(centerLat, centerLng),
+                initialZoom: 13.0,
+              ),
+              children: <Widget>[
+                TileLayer(
+                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'id.horas.app',
+                ),
+                MarkerLayer(
+                  markers: validCourts.map((c) {
+                    return Marker(
+                      point: LatLng(c.latitude!, c.longitude!),
+                      width: 44,
+                      height: 44,
+                      child: GestureDetector(
+                        onTap: () async {
+                          await context.push(
+                            '${AppPages.man08.routePath}?courtId=${c.id}',
+                          );
+                          await _load();
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: colors.primary,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                            boxShadow: AppShadows.softCard(colors.shadow),
+                          ),
+                          child: const Icon(
+                            Icons.sports_tennis,
+                            color: Colors.white,
+                            size: 22,
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
     } else {
       content = RefreshIndicator(
         onRefresh: _load,
         child: ListView(
           padding: const EdgeInsets.all(AppSpacing.lg),
           children: <Widget>[
-            // Fase 2 guard: peta lapangan disembunyikan saat flag off.
-            if (flags.courtMap) const SizedBox.shrink(),
-
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
@@ -195,6 +265,16 @@ class _Man07CourtsListPageState extends ConsumerState<Man07CourtsListPage> {
       appBar: AppBar(
         title: const Text(AppStrings.man07Title),
         actions: <Widget>[
+          if (flags.courtMap)
+            IconButton(
+              tooltip: _showMap
+                  ? AppStrings.man07ViewList
+                  : AppStrings.man07ViewMap,
+              icon: Icon(
+                _showMap ? Icons.view_list_rounded : Icons.map_outlined,
+              ),
+              onPressed: () => setState(() => _showMap = !_showMap),
+            ),
           TextButton(
             onPressed: () async {
               await context.push('${AppPages.man08.routePath}?propose=true');

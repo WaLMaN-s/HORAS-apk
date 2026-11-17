@@ -11,10 +11,9 @@ import 'package:horas/core/widgets/widgets.dart';
 import 'package:horas/domain/models/models.dart';
 import 'package:material_ui/material_ui.dart';
 
-/// SIS-06 Ajukan Verifikasi Komunitas (`SIS-R6`).
+/// SIS-06 Ajukan Verifikasi Komunitas & Gereja (`SIS-R6`).
 ///
-/// Verifikasi gereja adalah Fase 2 (`FeatureFlags.church == false`) sehingga
-/// MVP hanya melayani verifikasi komunitas / punguan.
+/// Verifikasi gereja aktif saat `FeatureFlags.church == true`.
 class Sis06VerificationSubmitPage extends ConsumerStatefulWidget {
   const Sis06VerificationSubmitPage({this.initialCommunityId, super.key});
 
@@ -30,14 +29,17 @@ class _Sis06VerificationSubmitPageState
   final _evidenceController = TextEditingController();
   final _contactController = TextEditingController();
   List<Community> _communities = const <Community>[];
+  List<Church> _churches = const <Church>[];
   String? _selectedCommunityId;
+  String? _selectedChurchId;
+  bool _isChurch = false;
   bool _isLoading = true;
   bool _isSubmitting = false;
 
   @override
   void initState() {
     super.initState();
-    Future<void>.microtask(_loadCommunities);
+    Future<void>.microtask(_loadData);
   }
 
   @override
@@ -47,28 +49,44 @@ class _Sis06VerificationSubmitPageState
     super.dispose();
   }
 
-  Future<void> _loadCommunities() async {
-    final res = await ref.read(communityRepositoryProvider).getCommunities();
+  Future<void> _loadData() async {
+    final commFuture = ref.read(communityRepositoryProvider).getCommunities();
+    final churchFuture = ref.read(churchRepositoryProvider).getChurches();
+
+    final commRes = await commFuture;
+    final churchRes = await churchFuture;
     if (!mounted) return;
-    final list = res is Ok<List<Community>> ? res.value : const <Community>[];
+
+    final commList = commRes is Ok<List<Community>>
+        ? commRes.value
+        : const <Community>[];
+    final churchList = churchRes is Ok<List<Church>>
+        ? churchRes.value
+        : const <Church>[];
+
     setState(() {
-      _communities = list;
-      _selectedCommunityId = list.any((c) => c.id == widget.initialCommunityId)
+      _communities = commList;
+      _churches = churchList;
+      _selectedCommunityId =
+          commList.any((c) => c.id == widget.initialCommunityId)
           ? widget.initialCommunityId
-          : (list.isNotEmpty ? list.first.id : null);
+          : (commList.isNotEmpty ? commList.first.id : null);
+      if (churchList.isNotEmpty) {
+        _selectedChurchId = churchList.first.id;
+      }
       _isLoading = false;
     });
   }
 
   Future<void> _submit() async {
-    final communityId = _selectedCommunityId;
-    if (communityId == null) return;
+    final entityId = _isChurch ? _selectedChurchId : _selectedCommunityId;
+    if (entityId == null) return;
     FocusScope.of(context).unfocus();
     setState(() => _isSubmitting = true);
     final res = await ref
         .read(verificationRepositoryProvider)
         .submitCommunityVerification(
-          communityId: communityId,
+          communityId: entityId,
           evidenceDescription: _evidenceController.text.trim(),
           contactInfo: _contactController.text.trim(),
         );
@@ -108,30 +126,72 @@ class _Sis06VerificationSubmitPageState
                     AppStrings.sis06TypeLabel,
                     style: context.typo.bodyStrong,
                   ),
-                  // Fase 2 guard: verifikasi gereja disembunyikan saat flag off.
-                  if (flags.church) const SizedBox.shrink(),
-                  const SizedBox(height: AppSpacing.md),
-                  if (_communities.isNotEmpty)
-                    DropdownButtonFormField<String>(
-                      initialValue: _selectedCommunityId,
-                      decoration: const InputDecoration(
-                        labelText: AppStrings.sis06CommunityLabel,
-                        border: OutlineInputBorder(),
-                      ),
-                      items: _communities
-                          .map(
-                            (c) => DropdownMenuItem<String>(
-                              value: c.id,
-                              child: Text(
-                                c.name,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          )
-                          .toList(growable: false),
-                      onChanged: (v) =>
-                          setState(() => _selectedCommunityId = v),
+                  const SizedBox(height: AppSpacing.sm),
+                  if (flags.church) ...<Widget>[
+                    SegmentedButton<bool>(
+                      segments: const <ButtonSegment<bool>>[
+                        ButtonSegment<bool>(
+                          value: false,
+                          label: Text('Komunitas / Punguan'),
+                          icon: Icon(Icons.groups_outlined),
+                        ),
+                        ButtonSegment<bool>(
+                          value: true,
+                          label: Text('Gereja'),
+                          icon: Icon(Icons.church_outlined),
+                        ),
+                      ],
+                      selected: <bool>{_isChurch},
+                      onSelectionChanged: (set) {
+                        setState(() => _isChurch = set.first);
+                      },
                     ),
+                    const SizedBox(height: AppSpacing.md),
+                  ],
+                  if (_isChurch) ...<Widget>[
+                    if (_churches.isNotEmpty)
+                      DropdownButtonFormField<String>(
+                        initialValue: _selectedChurchId,
+                        decoration: const InputDecoration(
+                          labelText: 'Pilih Gereja',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: _churches
+                            .map(
+                              (ch) => DropdownMenuItem<String>(
+                                value: ch.id,
+                                child: Text(
+                                  '${ch.name} (${ch.city})',
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            )
+                            .toList(growable: false),
+                        onChanged: (v) => setState(() => _selectedChurchId = v),
+                      ),
+                  ] else ...<Widget>[
+                    if (_communities.isNotEmpty)
+                      DropdownButtonFormField<String>(
+                        initialValue: _selectedCommunityId,
+                        decoration: const InputDecoration(
+                          labelText: AppStrings.sis06CommunityLabel,
+                          border: OutlineInputBorder(),
+                        ),
+                        items: _communities
+                            .map(
+                              (c) => DropdownMenuItem<String>(
+                                value: c.id,
+                                child: Text(
+                                  c.name,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            )
+                            .toList(growable: false),
+                        onChanged: (v) =>
+                            setState(() => _selectedCommunityId = v),
+                      ),
+                  ],
                   const SizedBox(height: AppSpacing.md),
                   AppTextField(
                     controller: _evidenceController,
@@ -142,21 +202,13 @@ class _Sis06VerificationSubmitPageState
                   AppTextField(
                     controller: _contactController,
                     label: AppStrings.sis06ContactLabel,
+                    helperText: AppStrings.sis06ContactHelper,
                   ),
                   const SizedBox(height: AppSpacing.xl),
                   AppButton(
                     label: AppStrings.sis06SubmitBtn,
-                    isExpanded: true,
                     isLoading: _isSubmitting,
-                    onPressed: _isSubmitting ? null : _submit,
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  AppButton(
-                    label: AppStrings.sis06StatusShortcutBtn,
-                    variant: AppButtonVariant.text,
-                    isExpanded: true,
-                    onPressed: () =>
-                        context.push(AppPages.sis07.routePath).ignore(),
+                    onPressed: _submit,
                   ),
                 ],
               ),

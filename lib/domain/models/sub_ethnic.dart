@@ -14,4 +14,6 @@ enum SubEthnic {
 
   final String displayName;
   final bool isPhase1RuleValidated;
+
+  String get label => displayName;
 }

@@ -125,15 +125,23 @@ class _Psn04GroupChatPageState extends ConsumerState<Psn04GroupChatPage> {
     String? overridePhoto,
     String? overrideReplyId,
     String? retryTempId,
+    String? voiceNoteSeed,
+    int? voiceNoteDurationSeconds,
+    String? stickerSeed,
   }) async {
     final conv = _conv;
     if (conv == null) return;
     final text = (overrideText ?? _textController.text).trim();
     final photo = overridePhoto ?? _pendingPhotoSeed;
     final replyId = overrideReplyId ?? _replyTo?.id;
-    if (text.isEmpty && photo == null) return;
+    if (text.isEmpty &&
+        photo == null &&
+        voiceNoteSeed == null &&
+        stickerSeed == null) {
+      return;
+    }
 
-    if (overrideText == null) {
+    if (overrideText == null && voiceNoteSeed == null && stickerSeed == null) {
       _textController.clear();
       setState(() {
         _pendingPhotoSeed = null;
@@ -153,9 +161,14 @@ class _Psn04GroupChatPageState extends ConsumerState<Psn04GroupChatPage> {
         .read(chatRepositoryProvider)
         .sendMessage(
           conversationId: conv.id,
-          text: text,
+          text: text.isEmpty
+              ? (voiceNoteSeed != null ? 'Pesan Suara' : (stickerSeed ?? ''))
+              : text,
           photoSeed: photo,
           replyToMessageId: replyId,
+          voiceNoteSeed: voiceNoteSeed,
+          voiceNoteDurationSeconds: voiceNoteDurationSeconds,
+          stickerSeed: stickerSeed,
         );
     if (!mounted) return;
     setState(() => _isSending = false);
@@ -486,6 +499,12 @@ class _Psn04GroupChatPageState extends ConsumerState<Psn04GroupChatPage> {
               onClearPhoto: () => setState(() => _pendingPhotoSeed = null),
               onPickPhoto: _pickPhoto,
               onSend: _sendMessage,
+              onSendVoiceNote: () => _sendMessage(
+                voiceNoteSeed: 'vn-${DateTime.now().millisecondsSinceEpoch}',
+                voiceNoteDurationSeconds: 5,
+              ),
+              onSendSticker: (stk) =>
+                  _sendMessage(overrideText: stk, stickerSeed: stk),
             ),
         ],
       );

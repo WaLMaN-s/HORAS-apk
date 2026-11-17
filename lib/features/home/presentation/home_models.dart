@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 export 'package:horas/core/utils/relative_time_formatter.dart';
 
-/// Item media foto terpilih di `BER-04` / `BER-05` sebelum diunggah ke repository.
+/// Item media foto atau video terpilih di `BER-04` / `BER-05` sebelum diunggah ke repository.
 final class SelectedMediaItem {
   const SelectedMediaItem({
     required this.id,
@@ -11,6 +11,8 @@ final class SelectedMediaItem {
     this.compressedBytes,
     this.aspectRatio = 1.0,
     this.rawExifMetadata = const <String, String>{},
+    this.isVideo = false,
+    this.durationSeconds,
   });
 
   final String id;
@@ -19,10 +21,14 @@ final class SelectedMediaItem {
   final Uint8List? compressedBytes;
   final double aspectRatio;
   final Map<String, String> rawExifMetadata;
+  final bool isVideo;
+  final int? durationSeconds;
 
   SelectedMediaItem copyWith({
     double? aspectRatio,
     Uint8List? compressedBytes,
+    bool? isVideo,
+    int? durationSeconds,
   }) {
     return SelectedMediaItem(
       id: id,
@@ -31,6 +37,8 @@ final class SelectedMediaItem {
       compressedBytes: compressedBytes ?? this.compressedBytes,
       aspectRatio: aspectRatio ?? this.aspectRatio,
       rawExifMetadata: rawExifMetadata,
+      isVideo: isVideo ?? this.isVideo,
+      durationSeconds: durationSeconds ?? this.durationSeconds,
     );
   }
 }

@@ -274,6 +274,79 @@ class ChatMessageBubble extends StatelessWidget {
                             ),
                           ),
                         ],
+                        if (message.voiceNoteSeed != null &&
+                            !message.isDeletedForEveryone) ...<Widget>[
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.sm,
+                              vertical: AppSpacing.xs,
+                            ),
+                            decoration: BoxDecoration(
+                              color: colors.background.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: <Widget>[
+                                Icon(
+                                  Icons.play_circle_fill_rounded,
+                                  color: textColor,
+                                  size: AppSizes.iconMd,
+                                ),
+                                const SizedBox(width: AppSpacing.xs),
+                                Icon(
+                                  Icons.graphic_eq_rounded,
+                                  color: textColor,
+                                  size: AppSizes.iconSm,
+                                ),
+                                const SizedBox(width: AppSpacing.xs),
+                                Text(
+                                  '${message.voiceNoteDurationSeconds ?? 5}d',
+                                  style: typo.captionStrong.copyWith(
+                                    color: textColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (message.text.isNotEmpty)
+                            const SizedBox(height: AppSpacing.xs),
+                        ],
+                        if (message.stickerSeed != null &&
+                            !message.isDeletedForEveryone) ...<Widget>[
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.md,
+                              vertical: AppSpacing.sm,
+                            ),
+                            decoration: BoxDecoration(
+                              color: colors.primary.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: colors.primary.withValues(alpha: 0.4),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: <Widget>[
+                                const Icon(
+                                  Icons.sticky_note_2,
+                                  color: Colors.amber,
+                                  size: AppSizes.iconSm,
+                                ),
+                                const SizedBox(width: AppSpacing.xs),
+                                Text(
+                                  message.stickerSeed!,
+                                  style: typo.bodyStrong.copyWith(
+                                    color: isMine ? textColor : colors.primary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (message.text.isNotEmpty)
+                            const SizedBox(height: AppSpacing.xs),
+                        ],
                         if (message.photoSeed != null &&
                             !message.isDeletedForEveryone) ...<Widget>[
                           GestureDetector(
@@ -392,6 +465,8 @@ class ChatComposerBar extends ConsumerWidget {
     this.onClearPhoto,
     this.quickGreetings = const <String>[],
     this.onQuickGreetingTap,
+    this.onSendSticker,
+    this.onSendVoiceNote,
     super.key,
   });
 
@@ -406,6 +481,8 @@ class ChatComposerBar extends ConsumerWidget {
   final VoidCallback? onClearPhoto;
   final List<String> quickGreetings;
   final ValueChanged<String>? onQuickGreetingTap;
+  final ValueChanged<String>? onSendSticker;
+  final VoidCallback? onSendVoiceNote;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -521,9 +598,81 @@ class ChatComposerBar extends ConsumerWidget {
                     ),
                   ),
                 ),
-                // Fase 2 guard (PSN-R3): voice note dan stiker disembunyikan saat flag off.
-                if (flags.voiceNote) const SizedBox.shrink(),
-                if (flags.stickers) const SizedBox.shrink(),
+                // Fase 2 (PSN-R3): voice note dan stiker
+                if (flags.voiceNote)
+                  IconButton(
+                    tooltip: AppStrings.psn03VoiceNoteBtn,
+                    onPressed: enabled ? onSendVoiceNote : null,
+                    icon: Semantics(
+                      label: AppStrings.psn03VoiceNoteBtn,
+                      child: Icon(
+                        Icons.mic_outlined,
+                        color: enabled ? colors.text : colors.textMuted,
+                      ),
+                    ),
+                  ),
+                if (flags.stickers)
+                  IconButton(
+                    tooltip: AppStrings.psn03StickerBtn,
+                    onPressed: enabled
+                        ? () {
+                            showModalBottomSheet<void>(
+                              context: context,
+                              builder: (ctx) => SafeArea(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(AppSpacing.md),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: <Widget>[
+                                      Text(
+                                        AppStrings.psn03StickerBtn,
+                                        style: typo.bodyStrong,
+                                      ),
+                                      const SizedBox(height: AppSpacing.md),
+                                      Wrap(
+                                        spacing: AppSpacing.sm,
+                                        runSpacing: AppSpacing.sm,
+                                        children:
+                                            <String>[
+                                                  'Horas!',
+                                                  'Mauliate!',
+                                                  'Tabo!',
+                                                  'Mejuah-juah!',
+                                                  'Njuah-njuah!',
+                                                  'Horas Ma Di Hita!',
+                                                ]
+                                                .map(
+                                                  (stk) => ActionChip(
+                                                    avatar: const Icon(
+                                                      Icons.sticky_note_2,
+                                                      size: 16,
+                                                    ),
+                                                    label: Text(stk),
+                                                    onPressed: () {
+                                                      Navigator.of(ctx).pop();
+                                                      onSendSticker?.call(stk);
+                                                    },
+                                                  ),
+                                                )
+                                                .toList(growable: false),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          }
+                        : null,
+                    icon: Semantics(
+                      label: AppStrings.psn03StickerBtn,
+                      child: Icon(
+                        Icons.sticky_note_2_outlined,
+                        color: enabled ? colors.text : colors.textMuted,
+                      ),
+                    ),
+                  ),
                 Expanded(
                   child: AppTextField(
                     controller: controller,

@@ -16,14 +16,14 @@ Keterangan status:
 | Modul | Kode | Jumlah Halaman | Fase 1 | Fase 2 | Selesai |
 | --- | --- | --- | --- | --- | --- |
 | Autentikasi | AUT | 7 | 7 | 0 | 7 |
-| Beranda | BER | 10 | 8 | 2 | 8 |
-| Sekitar | SEK | 12 | 9 | 3 | 9 |
-| Tarombo | TAR | 8 | 7 | 1 | 7 |
+| Beranda | BER | 10 | 8 | 2 | 10 |
+| Sekitar | SEK | 12 | 9 | 3 | 12 |
+| Tarombo | TAR | 8 | 7 | 1 | 8 |
 | Main | MAN | 9 | 9 | 0 | 9 |
 | Pesan | PSN | 6 | 6 | 0 | 6 |
 | Akun | AKN | 15 | 15 | 0 | 15 |
 | Sistem | SIS | 8 | 8 | 0 | 8 |
-| **Total** |  | **75** | **69** | **6** | **69** |
+| **Total** |  | **75** | **69** | **6** | **75** |
 
 ---
 
@@ -43,9 +43,9 @@ Keterangan status:
 ### 2. Beranda (BER)
 | ID | Nama Halaman | Tujuan | Fase | Rute | Status |
 | --- | --- | --- | --- | --- | --- |
-| BER-01 | Feed | Daftar postingan (tanpa baris story, Fase 2 off) | 1 | `/beranda` | Selesai |
-| BER-02 | Penampil story | Menonton story (Fase 2) | 2 | `/beranda/story-lihat` | Belum |
-| BER-03 | Buat story | Membuat story foto/video (Fase 2) | 2 | `/beranda/story-buat` | Belum |
+| BER-01 | Feed | Daftar postingan & baris story Fase 2 | 1 | `/beranda` | Selesai |
+| BER-02 | Penampil story | Menonton story 15 dtk, tanpa share (BER-R12) | 2 | `/beranda/story-lihat` | Selesai |
+| BER-03 | Buat story | Membuat story foto/video maks 15 dtk | 2 | `/beranda/story-buat` | Selesai |
 | BER-04 | Buat postingan | Teks, foto, visibilitas | 1 | `/beranda/postingan-buat` | Selesai |
 | BER-05 | Pilih dan edit media | Pangkas dan urutkan foto (video di fase 2) | 1 | `/beranda/media-edit` | Selesai |
 | BER-06 | Detail postingan | Satu postingan lengkap | 1 | `/beranda/postingan-detail` | Selesai |
@@ -65,9 +65,9 @@ Keterangan status:
 | SEK-06 | Detail komunitas | Info, anggota, pengumuman (kegiatan Fase 2 off) | 1 | `/sekitar/komunitas-detail` | Selesai |
 | SEK-07 | Buat komunitas | Formulir pembuatan | 1 | `/sekitar/komunitas-buat` | Selesai |
 | SEK-08 | Kelola komunitas | Anggota, permintaan gabung, peran, pengumuman | 1 | `/sekitar/komunitas-kelola` | Selesai |
-| SEK-09 | Detail kegiatan | Info kegiatan dan RSVP (Fase 2) | 2 | `/sekitar/kegiatan-detail` | Belum |
-| SEK-10 | Daftar gereja | Direktori dan filter (Fase 2) | 2 | `/sekitar/gereja` | Belum |
-| SEK-11 | Detail gereja | Jadwal, kontak, kegiatan, jemaat di HORAS (Fase 2) | 2 | `/sekitar/gereja-detail` | Belum |
+| SEK-09 | Detail kegiatan | Info kegiatan dan RSVP (SEK-R12) | 2 | `/sekitar/kegiatan-detail` | Selesai |
+| SEK-10 | Daftar gereja | Direktori dan filter denominasi (SEK-R13) | 2 | `/sekitar/gereja` | Selesai |
+| SEK-11 | Detail gereja | Jadwal, kontak, kegiatan, jemaat di HORAS (SEK-R13) | 2 | `/sekitar/gereja-detail` | Selesai |
 | SEK-12 | Pencarian Sekitar | Cari orang dan komunitas (gereja di fase 2) | 1 | `/sekitar/cari` | Selesai |
 
 ### 4. Tarombo (TAR)
@@ -80,7 +80,7 @@ Keterangan status:
 | TAR-05 | Detail hubungan | Panggilan, penjelasan jalur, tingkat keyakinan | 1 | `/tarombo/hubungan-detail` | Selesai |
 | TAR-06 | Cek partuturan | Pilih dua orang, lihat hubungannya | 1 | `/tarombo/cek-partuturan` | Selesai |
 | TAR-07 | Konfirmasi hubungan | Kirim/terima/tolak pengakuan kerabat | 1 | `/tarombo/konfirmasi` | Selesai |
-| TAR-08 | Kamus partuturan | Cari istilah dan maknanya (Fase 2) | 2 | `/tarombo/kamus` | Belum |
+| TAR-08 | Kamus partuturan | Cari istilah, makna, contoh, mode aktif/netral (TAR-R6) | 2 | `/tarombo/kamus` | Selesai |
 
 ### 5. Main (MAN)
 | ID | Nama Halaman | Tujuan | Fase | Rute | Status |
@@ -139,23 +139,26 @@ Keterangan status:
 ---
 
 ## Bagian Placeholder (`SegeraPage`)
-Daftar halaman Fase 1 yang masih memakai placeholder `SegeraPage`: **Kosong (0 halaman Fase 1 tersisa — seluruh 69 halaman Fase 1 selesai di Prompt 9)**.
-*(6 halaman Fase 2 — `BER-02`, `BER-03`, `SEK-09`, `SEK-10`, `SEK-11`, `TAR-08` — tetap dinonaktifkan oleh `FeatureFlags` sampai Prompt 12.)*
+Daftar halaman yang masih memakai placeholder `SegeraPage`: **Kosong (0 halaman tersisa — seluruh 75 halaman HORAS Fase 1 dan Fase 2 telah selesai diimplementasikan dan teruji)**.
 
 ---
 
 ## Bagian Fase 2 (Dijaga oleh `FeatureFlags`)
-Seluruh flag di `lib/core/config/feature_flags.dart` bernilai `false` secara bawaan dan baru dibuka di Prompt 12. Selama flag bernilai `false`, tautan UI Fase 2 disembunyikan dan akses rute langsung menampilkan `StateView.contentUnavailable`:
+Seluruh fitur Fase 2 telah selesai diimplementasikan pada lapisan domain, data mock, Supabase backend (`0008_phase_2.sql`), dan antarmuka Flutter. Fitur-fitur ini dikendalikan oleh sakelar `FeatureFlags` di `lib/core/config/feature_flags.dart` (dapat dikonfigurasi melalui runtime atau `--dart-define=ENABLE_PHASE_2=true`):
 
-| Flag di `FeatureFlags` | Halaman / Fitur Terkait | Status Flag Saat Ini |
+| Flag di `FeatureFlags` | Halaman / Fitur Terkait | Status Implementasi |
 | --- | --- | --- |
-| `stories` | `BER-02` Penampil story, `BER-03` Buat story, baris story di `BER-01` | `false` |
-| `video` | Dukungan video di `BER-03`, `BER-04`, `BER-05` | `false` |
-| `hashtags` | Tagar (`#hashtag`) di `BER-04` dan pencarian `BER-10` | `false` |
-| `events` | `SEK-09` Detail kegiatan & RSVP di komunitas/gereja | `false` |
-| `church` | `SEK-10` Daftar gereja, `SEK-11` Detail gereja, tab Gereja di `SEK-01`/`BER-10`, verifikasi gereja di `SIS-06` | `false` |
-| `partuturanDictionary` | `TAR-08` Kamus partuturan | `false` |
-| `voiceNote` | Pesan suara di `PSN-03` dan `PSN-04` | `false` |
+| `stories` | `BER-02` Penampil story, `BER-03` Buat story, baris story di `BER-01` | Selesai |
+| `video` | Dukungan video 60 dtk di `BER-02`, `BER-05`, `BER-06` | Selesai |
+| `hashtags` | Tagar (`#hashtag`) dan pencarian publik di `BER-10` | Selesai |
+| `events` | `SEK-09` Detail kegiatan & RSVP di komunitas/gereja | Selesai |
+| `church` | `SEK-10` Daftar gereja, `SEK-11` Detail gereja, tab Gereja di `SEK-01`/`BER-10`, verifikasi gereja di `SIS-06` | Selesai |
+| `partuturanDictionary` | `TAR-08` Kamus partuturan (Toba aktif, lainnya netral) | Selesai |
+| `voiceNote` | Pesan suara (rekam, durasi, putar) di `PSN-03` dan `PSN-04` | Selesai |
+| `stickers` | Stiker Batak di `PSN-03` dan `PSN-04` | Selesai |
+| `userGroups` | Grup percakapan kustom buatan pengguna di `PSN-01` | Selesai |
+| `recurringSessions` | Sesi berulang (mingguan, 2 mingguan, bulanan) di `MAN-03` | Selesai |
+| `courtMap` | Peta lapangan OpenStreetMap via `flutter_map` di `MAN-07` | Selesai |
 | `stickers` | Stiker di `PSN-03` dan `PSN-04` | `false` |
 | `userGroups` | Grup chat buatan pengguna di luar komunitas/sesi otomatis (`PSN-R5`) | `false` |
 | `recurringSessions` | Opsi sesi berulang di `MAN-03` | `false` |

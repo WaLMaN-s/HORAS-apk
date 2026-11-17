@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:horas/core/config/feature_flags.dart';
 import 'package:horas/core/config/repository_providers.dart';
+import 'package:horas/core/errors/result.dart';
 import 'package:horas/core/l10n/app_strings.dart';
 import 'package:horas/core/router/app_pages.dart';
 import 'package:horas/core/router/shell_navigation_controller.dart';
@@ -278,6 +279,12 @@ class Psn01ConversationsPage extends ConsumerWidget {
       appBar: AppBar(
         title: const Text(AppStrings.psn01Title),
         actions: <Widget>[
+          if (flags.userGroups)
+            IconButton(
+              tooltip: AppStrings.psn01CreateGroupBtn,
+              onPressed: () => _showCreateGroupDialog(context, ref),
+              icon: const Icon(Icons.group_add_outlined),
+            ),
           IconButton(
             tooltip: AppStrings.semanticsNotifications,
             onPressed: () => context.push(AppPages.sis01.routePath),
@@ -294,5 +301,82 @@ class Psn01ConversationsPage extends ConsumerWidget {
       ),
       body: SafeArea(child: body),
     );
+  }
+
+  Future<void> _showCreateGroupDialog(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    final titleController = TextEditingController();
+    final colors = context.colors;
+    final typo = context.typo;
+
+    final created = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(AppStrings.psn01CreateGroupTitle, style: typo.h3),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(AppStrings.psn01GroupNameLabel, style: typo.captionStrong),
+            const SizedBox(height: AppSpacing.xs),
+            TextField(
+              controller: titleController,
+              decoration: InputDecoration(
+                hintText: 'Contoh: Arisan Marga Simanjuntak',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.button),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md,
+                  vertical: AppSpacing.sm,
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(AppStrings.actionCancel, style: typo.body),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: colors.primary,
+              foregroundColor: colors.onPrimary,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(
+              AppStrings.psn01CreateGroupSubmit,
+              style: typo.bodyStrong,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (created != true || !context.mounted) return;
+    final title = titleController.text.trim();
+    if (title.isEmpty) return;
+
+    final chatRepo = ref.read(chatRepositoryProvider);
+    final res = await chatRepo.createCustomGroupChat(
+      title: title,
+      memberUserIds: const <String>['u-02', 'u-03'],
+    );
+
+    if (!context.mounted) return;
+    if (res is Ok<Conversation>) {
+      await ref.read(conversationsListProvider.notifier).loadInitial();
+      if (!context.mounted) return;
+      await context.push('${AppPages.psn04.routePath}?id=${res.value.id}');
+    } else if (res is Err<Conversation>) {
+      AppToast.show(
+        context,
+        message: res.failure.message,
+        variant: AppToastVariant.error,
+      );
+    }
   }
 }

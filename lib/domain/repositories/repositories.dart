@@ -204,6 +204,11 @@ abstract interface class SearchRepository {
     String? city,
     CommunityType? type,
   });
+  Future<Result<List<Church>>> searchChurches({
+    required String query,
+    String? city,
+  });
+  Future<Result<List<Post>>> searchPublicPosts({required String query});
 }
 
 /// 10. Repository Sekitar: Orang & Wilayah (SEK-01 .. SEK-03, SEK-R1 .. SEK-R3).
@@ -370,6 +375,9 @@ abstract interface class ChatRepository {
     required String text,
     String? photoSeed,
     String? replyToMessageId,
+    String? voiceNoteSeed,
+    int? voiceNoteDurationSeconds,
+    String? stickerSeed,
   });
   Future<Result<Message>> sendFirstMessageToUser({
     required String targetUserId,
@@ -421,6 +429,11 @@ abstract interface class ChatRepository {
     required String userId,
   });
   Future<Result<void>> markConversationReadOnly(String conversationId);
+  Future<Result<Conversation>> createCustomGroupChat({
+    required String title,
+    required List<String> memberUserIds,
+    String? photoSeed,
+  });
 }
 
 /// 15. Repository Notifikasi (SIS-01, PRD bagian 9).
@@ -551,4 +564,73 @@ abstract interface class AccountLifecycleRepository {
   Future<Result<AccountDeletion>> requestAccountDeletion({String? otpCode});
   Future<Result<AccountDeletion?>> cancelAccountDeletion();
   Future<Result<AccountDeletion?>> getAccountDeletionStatus();
+}
+
+/// 22. Repository Cerita 24 Jam (BER-02, BER-03, BER-R12).
+abstract interface class StoryRepository {
+  Future<Result<List<Story>>> getStories();
+  Future<Result<Story>> createStory({
+    required String mediaSeed,
+    required bool isVideo,
+    required int durationSeconds,
+    String caption = '',
+  });
+  Future<Result<List<StoryViewer>>> getStoryViewers(String storyId);
+  Future<Result<void>> markStoryViewed(String storyId);
+  Future<Result<void>> deleteStory(String storyId);
+}
+
+/// 23. Repository Kegiatan Komunitas & Gereja (SEK-09, SEK-R12).
+abstract interface class EventRepository {
+  Future<Result<List<CommunityEvent>>> getEvents(String communityId);
+  Future<Result<CommunityEvent>> getEventById(String eventId);
+  Future<Result<CommunityEvent>> createEvent({
+    required String communityId,
+    required String title,
+    required String description,
+    required DateTime startTime,
+    required DateTime endTime,
+    required String locationName,
+    String? mapLink,
+    int? capacity,
+  });
+  Future<Result<CommunityEvent>> cancelEvent(String eventId);
+  Future<Result<CommunityEvent>> rsvpEvent({
+    required String eventId,
+    required EventRsvpStatus status,
+  });
+  Future<Result<List<EventAttendee>>> getEventAttendees(String eventId);
+}
+
+/// 24. Repository Direktori Gereja Batak (SEK-10, SEK-11, SEK-R13).
+abstract interface class ChurchRepository {
+  Future<Result<List<Church>>> getChurches({
+    String? city,
+    ChurchDenomination? denomination,
+    String? query,
+  });
+  Future<Result<Church>> getChurchById(String churchId);
+  Future<Result<Church>> proposeChurch({
+    required String name,
+    required ChurchDenomination denomination,
+    required String address,
+    required String city,
+    required List<ChurchServiceSchedule> serviceSchedules,
+    String contactPhone = '',
+    String contactEmail = '',
+  });
+  Future<Result<Church>> setMyHomeChurch(
+    String churchId, {
+    bool isVisible = false,
+  });
+  Future<Result<List<CommunityEvent>>> getChurchEvents(String churchId);
+}
+
+/// 25. Repository Kamus Partuturan (TAR-08, TAR-R6).
+abstract interface class PartuturanDictionaryRepository {
+  Future<Result<List<PartuturanDictionaryEntry>>> searchEntries({
+    String query = '',
+    SubEthnic? subEthnic,
+  });
+  PartuturanRuleStatus getSubEthnicStatus(SubEthnic subEthnic);
 }

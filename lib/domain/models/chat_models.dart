@@ -35,6 +35,9 @@ final class Message {
     this.isReported = false,
     this.isAnnouncement = false,
     this.moderatedRetainedUntil,
+    this.voiceNoteSeed,
+    this.voiceNoteDurationSeconds,
+    this.stickerSeed,
   });
 
   final String id;
@@ -54,6 +57,13 @@ final class Message {
   /// PSN-R5: pesan pengumuman admin grup yang disematkan.
   final bool isAnnouncement;
 
+  /// PSN-R3 Fase 2: pesan suara (voice note).
+  final String? voiceNoteSeed;
+  final int? voiceNoteDurationSeconds;
+
+  /// PSN-R3 Fase 2: stiker Batak.
+  final String? stickerSeed;
+
   /// PSN-R4: pesan yang dilaporkan tetap tersimpan 30 hari untuk moderasi walau dihapus.
   final DateTime? moderatedRetainedUntil;
   final DateTime createdAt;
@@ -66,6 +76,9 @@ final class Message {
     bool? isReported,
     bool? isAnnouncement,
     DateTime? moderatedRetainedUntil,
+    String? voiceNoteSeed,
+    int? voiceNoteDurationSeconds,
+    String? stickerSeed,
   }) {
     return Message(
       id: id,
@@ -82,6 +95,10 @@ final class Message {
       isAnnouncement: isAnnouncement ?? this.isAnnouncement,
       moderatedRetainedUntil:
           moderatedRetainedUntil ?? this.moderatedRetainedUntil,
+      voiceNoteSeed: voiceNoteSeed ?? this.voiceNoteSeed,
+      voiceNoteDurationSeconds:
+          voiceNoteDurationSeconds ?? this.voiceNoteDurationSeconds,
+      stickerSeed: stickerSeed ?? this.stickerSeed,
       createdAt: createdAt,
     );
   }
@@ -100,6 +117,9 @@ final class Message {
     'isReported': isReported,
     'isAnnouncement': isAnnouncement,
     'moderatedRetainedUntil': moderatedRetainedUntil?.toIso8601String(),
+    'voiceNoteSeed': voiceNoteSeed,
+    'voiceNoteDurationSeconds': voiceNoteDurationSeconds,
+    'stickerSeed': stickerSeed,
     'createdAt': createdAt.toIso8601String(),
   };
 }

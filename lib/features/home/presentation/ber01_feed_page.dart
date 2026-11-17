@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:horas/core/config/feature_flags.dart';
 import 'package:horas/core/config/repository_providers.dart';
+import 'package:horas/core/errors/result.dart';
 import 'package:horas/core/l10n/app_strings.dart';
 import 'package:horas/core/router/app_pages.dart';
 import 'package:horas/core/router/shell_navigation_controller.dart';
@@ -19,6 +21,50 @@ class Ber01FeedPage extends ConsumerWidget {
   const Ber01FeedPage({super.key, this.tabIndex = 0});
 
   final int tabIndex;
+
+  void _showCreateChoiceModal(BuildContext context) {
+    final colors = context.colors;
+    final typo = context.typo;
+
+    showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppRadius.sheet),
+        ),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              ListTile(
+                leading: Icon(Icons.post_add, color: colors.primary),
+                title: Text('Postingan', style: typo.bodyStrong),
+                subtitle: const Text('Bagikan kabar atau pemikiran Anda'),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  context.push(AppPages.ber04.routePath);
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.history_toggle_off, color: colors.primary),
+                title: Text('Story (Cerita)', style: typo.bodyStrong),
+                subtitle: const Text(
+                  'Foto/video 15 detik yang tayang selama 24 jam',
+                ),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  context.push(AppPages.ber03.routePath);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -59,7 +105,14 @@ class Ber01FeedPage extends ConsumerWidget {
           _FeedTopBarIcon(
             icon: Icons.add_box_outlined,
             semanticsLabel: AppStrings.semanticsCreatePost,
-            onTap: () => context.push(AppPages.ber04.routePath),
+            onTap: () {
+              final flags = ref.read(featureFlagsProvider);
+              if (flags.stories) {
+                _showCreateChoiceModal(context);
+              } else {
+                context.push(AppPages.ber04.routePath);
+              }
+            },
           ),
           _FeedTopBarIcon(
             icon: Icons.search_rounded,
@@ -196,10 +249,17 @@ class Ber01FeedPage extends ConsumerWidget {
         ),
         itemBuilder: (context, index) {
           if (index == 0) {
-            return _ThreadsQuickComposer(
-              profile: feedState.myProfile,
-              onAvatarTap: () => context.go(AppPages.akunPath),
-              onComposeTap: () => context.push(AppPages.ber04.routePath),
+            final flags = ref.watch(featureFlagsProvider);
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                if (flags.stories) const _StoriesTray(),
+                _ThreadsQuickComposer(
+                  profile: feedState.myProfile,
+                  onAvatarTap: () => context.go(AppPages.akunPath),
+                  onComposeTap: () => context.push(AppPages.ber04.routePath),
+                ),
+              ],
             );
           }
 
@@ -527,6 +587,177 @@ class _ThreadsQuickComposer extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _StoriesTray extends ConsumerStatefulWidget {
+  const _StoriesTray();
+
+  @override
+  ConsumerState<_StoriesTray> createState() => _StoriesTrayState();
+}
+
+class _StoriesTrayState extends ConsumerState<_StoriesTray> {
+  List<Story> _stories = const <Story>[];
+
+  @override
+  void initState() {
+    super.initState();
+    Future<void>.microtask(_loadStories);
+  }
+
+  Future<void> _loadStories() async {
+    final res = await ref.read(storyRepositoryProvider).getStories();
+    if (!mounted) return;
+    if (res is Ok<List<Story>>) {
+      setState(() => _stories = res.value);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final typo = context.typo;
+
+    return Container(
+      height: 104,
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color: colors.border.withValues(alpha: 0.35),
+            width: AppSizes.strokeThin,
+          ),
+        ),
+      ),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.screenMargin,
+        ),
+        itemCount: 1 + _stories.length,
+        itemBuilder: (context, idx) {
+          if (idx == 0) {
+            return Padding(
+              padding: const EdgeInsets.only(right: AppSpacing.md),
+              child: InkWell(
+                onTap: () => context.push(AppPages.ber03.routePath),
+                borderRadius: BorderRadius.circular(AppRadius.pill),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Stack(
+                      children: <Widget>[
+                        Container(
+                          width: 56,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: colors.border,
+                              width: 1.5,
+                            ),
+                            color: colors.chipInactive,
+                          ),
+                          alignment: Alignment.center,
+                          child: Icon(
+                            Icons.person_outline,
+                            color: colors.textMuted,
+                            size: AppSizes.iconMd,
+                          ),
+                        ),
+                        Positioned(
+                          right: 0,
+                          bottom: 0,
+                          child: Container(
+                            width: 20,
+                            height: 20,
+                            decoration: BoxDecoration(
+                              color: colors.primary,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: colors.surface,
+                                width: 2,
+                              ),
+                            ),
+                            alignment: Alignment.center,
+                            child: Icon(
+                              Icons.add,
+                              color: colors.onPrimary,
+                              size: 14,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Cerita Anda',
+                      style: typo.micro,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          final story = _stories[idx - 1];
+          return Padding(
+            padding: const EdgeInsets.only(right: AppSpacing.md),
+            child: InkWell(
+              onTap: () =>
+                  context.push('${AppPages.ber02.routePath}?id=${story.id}'),
+              borderRadius: BorderRadius.circular(AppRadius.pill),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Container(
+                    width: 56,
+                    height: 56,
+                    padding: const EdgeInsets.all(2.5),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: <Color>[colors.primary, colors.accent],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: colors.surface,
+                      ),
+                      padding: const EdgeInsets.all(2),
+                      child: ClipOval(
+                        child: PlaceholderImage(
+                          seed: story.author.avatarSeed,
+                          width: 48,
+                          height: 48,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  SizedBox(
+                    width: 60,
+                    child: Text(
+                      story.author.displayName.split(' ').first,
+                      style: typo.micro,
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }

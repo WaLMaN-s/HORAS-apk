@@ -40,6 +40,8 @@ class _Man03CreateSessionPageState
   SessionVisibility _visibility = SessionVisibility.publicInArea;
   SessionJoinMode _joinMode = SessionJoinMode.instant;
   _VenueMode _venueMode = _VenueMode.court;
+  bool _isRecurring = false;
+  String _recurringInterval = AppStrings.man03RecurringIntervalWeekly;
 
   late String _selectedCity;
   late DateTime _selectedStart;
@@ -590,8 +592,42 @@ class _Man03CreateSessionPageState
             ),
             const SizedBox(height: AppSpacing.lg),
 
-            // Fase 2 guard: sesi berulang disembunyikan saat flag off.
-            if (flags.recurringSessions) const SizedBox.shrink(),
+            if (flags.recurringSessions) ...<Widget>[
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(
+                  AppStrings.man03RecurringSwitch,
+                  style: typo.bodyStrong,
+                ),
+                value: _isRecurring,
+                onChanged: (val) => setState(() => _isRecurring = val),
+              ),
+              if (_isRecurring) ...<Widget>[
+                const SizedBox(height: AppSpacing.xs),
+                Wrap(
+                  spacing: AppSpacing.sm,
+                  children:
+                      <String>[
+                            AppStrings.man03RecurringIntervalWeekly,
+                            AppStrings.man03RecurringIntervalBiweekly,
+                            AppStrings.man03RecurringIntervalMonthly,
+                          ]
+                          .map((interval) {
+                            return ChoiceChip(
+                              label: Text(interval),
+                              selected: _recurringInterval == interval,
+                              onSelected: (selected) {
+                                if (selected) {
+                                  setState(() => _recurringInterval = interval);
+                                }
+                              },
+                            );
+                          })
+                          .toList(growable: false),
+                ),
+                const SizedBox(height: AppSpacing.md),
+              ],
+            ],
 
             AppTextField(
               controller: _notesController,

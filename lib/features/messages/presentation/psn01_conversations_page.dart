@@ -57,6 +57,7 @@ class Psn01ConversationsPage extends ConsumerWidget {
         onRefresh: controller.loadInitial,
         child: ListView(
           controller: scrollController,
+          scrollCacheExtent: const ScrollCacheExtent.viewport(1.0),
           padding: const EdgeInsets.only(bottom: AppSpacing.lg),
           children: <Widget>[
             // Baris header Pesan | Permintaan (gaya DM Instagram)

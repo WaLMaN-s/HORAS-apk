@@ -100,10 +100,7 @@ void main() {
         createdAt: DateTime.now(),
       );
 
-      expect(
-        post.hashtags,
-        containsAll(<String>['HKBP', 'Naposo', 'Batak']),
-      );
+      expect(post.hashtags, containsAll(<String>['HKBP', 'Naposo', 'Batak']));
     });
   });
 

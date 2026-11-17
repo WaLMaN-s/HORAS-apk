@@ -49,35 +49,36 @@ class AppAvatar extends StatelessWidget {
     final effectiveSeed = seed ?? name;
     final initials = initialsOf(name);
 
-    final avatarBody = Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: showBorder
-            ? Border.all(color: colors.surface, width: AppSizes.strokeThick)
-            : Border.all(color: colors.border, width: AppSizes.strokeThin),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: ClipOval(
-        child: Stack(
-          alignment: Alignment.center,
-          children: <Widget>[
-            PlaceholderImage(
-              seed: effectiveSeed,
-              width: size,
-              height: size,
-              borderRadius: BorderRadius.zero,
-              showMountainSilhouette: false,
-            ),
-            Text(
-              initials,
-              style: typo.bodyStrong.copyWith(
-                color: colors.onPrimary,
-                fontSize: math.max(11, size * 0.36),
+    final avatarBody = RepaintBoundary(
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: showBorder
+              ? Border.all(color: colors.surface, width: AppSizes.strokeThick)
+              : Border.all(color: colors.border, width: AppSizes.strokeThin),
+        ),
+        child: ClipOval(
+          child: Stack(
+            alignment: Alignment.center,
+            children: <Widget>[
+              PlaceholderImage(
+                seed: effectiveSeed,
+                width: size,
+                height: size,
+                borderRadius: BorderRadius.zero,
+                showMountainSilhouette: false,
               ),
-            ),
-          ],
+              Text(
+                initials,
+                style: typo.bodyStrong.copyWith(
+                  color: colors.onPrimary,
+                  fontSize: math.max(11, size * 0.36),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -292,6 +292,7 @@ class Sek01NearbyPage extends ConsumerWidget {
         onRefresh: controller.loadInitial,
         child: ListView(
           controller: scrollController,
+          scrollCacheExtent: const ScrollCacheExtent.viewport(1.0),
           padding: const EdgeInsets.fromLTRB(
             AppSpacing.screenMargin,
             AppSpacing.sm,
@@ -329,6 +330,7 @@ class Sek01NearbyPage extends ConsumerWidget {
       onRefresh: controller.loadInitial,
       child: ListView(
         controller: scrollController,
+        scrollCacheExtent: const ScrollCacheExtent.viewport(1.0),
         padding: const EdgeInsets.fromLTRB(
           AppSpacing.screenMargin,
           AppSpacing.sm,

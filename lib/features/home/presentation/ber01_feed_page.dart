@@ -241,6 +241,7 @@ class Ber01FeedPage extends ConsumerWidget {
         controller: scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
         padding: EdgeInsets.zero,
+        scrollCacheExtent: const ScrollCacheExtent.viewport(1.0),
         itemCount: totalItems,
         separatorBuilder: (context, index) => Divider(
           height: AppSizes.strokeThin,
@@ -283,32 +284,35 @@ class Ber01FeedPage extends ConsumerWidget {
           final post = feedState.posts[postIndex];
           final isOwn = post.author.id == feedState.currentUserId;
 
-          return PostCard(
-            post: post,
-            now: now,
-            isOwnPost: isOwn,
-            onAuthorTap: () {
-              if (isOwn) {
-                context.go(AppPages.akunPath);
-              } else {
-                context.push(
-                  '${AppPages.sek04.routePath}?id=${post.author.id}',
-                );
-              }
-            },
-            onTapCard: () =>
-                context.push('${AppPages.ber06.routePath}?id=${post.id}'),
-            onLikeTap: () => controller.toggleLike(post.id),
-            onLikesCountTap: () =>
-                context.push('${AppPages.ber08.routePath}?id=${post.id}'),
-            onCommentTap: () =>
-                context.push('${AppPages.ber07.routePath}?id=${post.id}'),
-            onSaveTap: () => controller.toggleSave(post.id),
-            onReportTap: () => context.push('/report'),
-            onMuteTap: () => _confirmMute(context, controller, post),
-            onBlockTap: () => _confirmBlock(context, controller, post),
-            onEditTextTap: () => _openEditSheet(context, controller, post),
-            onDeleteTap: () => _confirmDelete(context, controller, post),
+          return RepaintBoundary(
+            key: ValueKey<String>('post-${post.id}'),
+            child: PostCard(
+              post: post,
+              now: now,
+              isOwnPost: isOwn,
+              onAuthorTap: () {
+                if (isOwn) {
+                  context.go(AppPages.akunPath);
+                } else {
+                  context.push(
+                    '${AppPages.sek04.routePath}?id=${post.author.id}',
+                  );
+                }
+              },
+              onTapCard: () =>
+                  context.push('${AppPages.ber06.routePath}?id=${post.id}'),
+              onLikeTap: () => controller.toggleLike(post.id),
+              onLikesCountTap: () =>
+                  context.push('${AppPages.ber08.routePath}?id=${post.id}'),
+              onCommentTap: () =>
+                  context.push('${AppPages.ber07.routePath}?id=${post.id}'),
+              onSaveTap: () => controller.toggleSave(post.id),
+              onReportTap: () => context.push('/report'),
+              onMuteTap: () => _confirmMute(context, controller, post),
+              onBlockTap: () => _confirmBlock(context, controller, post),
+              onEditTextTap: () => _openEditSheet(context, controller, post),
+              onDeleteTap: () => _confirmDelete(context, controller, post),
+            ),
           );
         },
       ),
@@ -599,8 +603,12 @@ class _StoriesTray extends ConsumerStatefulWidget {
   ConsumerState<_StoriesTray> createState() => _StoriesTrayState();
 }
 
-class _StoriesTrayState extends ConsumerState<_StoriesTray> {
+class _StoriesTrayState extends ConsumerState<_StoriesTray>
+    with AutomaticKeepAliveClientMixin {
   List<Story> _stories = const <Story>[];
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -618,6 +626,7 @@ class _StoriesTrayState extends ConsumerState<_StoriesTray> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final colors = context.colors;
     final typo = context.typo;
 
@@ -634,6 +643,7 @@ class _StoriesTrayState extends ConsumerState<_StoriesTray> {
       ),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
+        physics: const ClampingScrollPhysics(),
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.screenMargin,
         ),

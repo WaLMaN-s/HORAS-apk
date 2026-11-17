@@ -1,4 +1,3 @@
-import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:go_router/go_router.dart';
 import 'package:horas/core/l10n/app_strings.dart';
@@ -78,271 +77,279 @@ class PostCard extends StatelessWidget {
         locationLabel.isNotEmpty ||
         post.isEdited;
 
-    return Material(
-      color: colors.surface,
-      child: InkWell(
-        onTap: onTapCard,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.screenMargin,
-            AppSpacing.md,
-            AppSpacing.screenMargin,
-            AppSpacing.xs,
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Semantics(
-                button: true,
-                label: AppStrings.ber01AuthorProfileSemantics(
-                  author.displayName,
-                ),
-                child: InkWell(
-                  onTap: () => _openAuthorProfile(context),
-                  borderRadius: AppRadius.pillRadius,
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(
-                      minWidth: AppSizes.minTouchTarget,
-                      minHeight: AppSizes.minTouchTarget,
-                    ),
-                    child: Center(
-                      child: AppAvatar(
-                        name: author.displayName,
-                        seed: author.avatarSeed,
-                        size: AppSizes.avatarMd,
+    return RepaintBoundary(
+      child: Material(
+        color: colors.surface,
+        child: InkWell(
+          onTap: onTapCard,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.screenMargin,
+              AppSpacing.md,
+              AppSpacing.screenMargin,
+              AppSpacing.xs,
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Semantics(
+                  button: true,
+                  label: AppStrings.ber01AuthorProfileSemantics(
+                    author.displayName,
+                  ),
+                  child: InkWell(
+                    onTap: () => _openAuthorProfile(context),
+                    borderRadius: AppRadius.pillRadius,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(
+                        minWidth: AppSizes.minTouchTarget,
+                        minHeight: AppSizes.minTouchTarget,
+                      ),
+                      child: Center(
+                        child: AppAvatar(
+                          name: author.displayName,
+                          seed: author.avatarSeed,
+                          size: AppSizes.avatarMd,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Expanded(
-                          child: Semantics(
-                            button: true,
-                            label: AppStrings.ber01AuthorProfileSemantics(
-                              author.displayName,
-                            ),
-                            child: InkWell(
-                              onTap: () => _openAuthorProfile(context),
-                              borderRadius: AppRadius.buttonRadius,
-                              child: ConstrainedBox(
-                                constraints: const BoxConstraints(
-                                  minHeight: AppSizes.minTouchTarget,
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: <Widget>[
-                                    Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.baseline,
-                                      textBaseline: TextBaseline.alphabetic,
-                                      children: <Widget>[
-                                        Expanded(
-                                          child: Text(
-                                            author.displayName,
-                                            style: typo.bodyStrong,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                        const SizedBox(width: AppSpacing.xs),
-                                        Text(relativeTime, style: typo.caption),
-                                      ],
-                                    ),
-                                    if (hasSubInfo) ...<Widget>[
-                                      const SizedBox(
-                                        height: AppSpacing.xxs + 1,
-                                      ),
-                                      Wrap(
-                                        spacing: AppSpacing.xs,
-                                        runSpacing: AppSpacing.xxs,
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Expanded(
+                            child: Semantics(
+                              button: true,
+                              label: AppStrings.ber01AuthorProfileSemantics(
+                                author.displayName,
+                              ),
+                              child: InkWell(
+                                onTap: () => _openAuthorProfile(context),
+                                borderRadius: AppRadius.buttonRadius,
+                                child: ConstrainedBox(
+                                  constraints: const BoxConstraints(
+                                    minHeight: AppSizes.minTouchTarget,
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: <Widget>[
+                                      Row(
                                         crossAxisAlignment:
-                                            WrapCrossAlignment.center,
+                                            CrossAxisAlignment.baseline,
+                                        textBaseline: TextBaseline.alphabetic,
                                         children: <Widget>[
-                                          if (showPartuturan)
-                                            PartuturanBadge(
-                                              result: partuturan,
-                                              onTap: () => context.push(
-                                                '${AppPages.tar05.routePath}?userId=${author.id}',
-                                              ),
-                                            )
-                                          else if (author.isSameMarga)
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: AppSpacing.sm,
-                                                    vertical: AppSpacing.xxs,
-                                                  ),
-                                              decoration: BoxDecoration(
-                                                color: colors.chipInactive,
-                                                borderRadius:
-                                                    AppRadius.pillRadius,
-                                              ),
-                                              child: Text(
-                                                AppStrings.termSemarga,
-                                                style: typo.micro,
-                                              ),
+                                          Expanded(
+                                            child: Text(
+                                              author.displayName,
+                                              style: typo.bodyStrong,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
                                             ),
-                                          if (locationLabel.isNotEmpty)
-                                            Text(
-                                              (showPartuturan ||
-                                                      author.isSameMarga)
-                                                  ? '· $locationLabel'
-                                                  : locationLabel,
-                                              style: typo.micro,
-                                            ),
-                                          if (post.isEdited)
-                                            Text(
-                                              '· ${AppStrings.ber01EditedBadge}',
-                                              style: typo.micro,
-                                            ),
+                                          ),
+                                          const SizedBox(width: AppSpacing.xs),
+                                          Text(
+                                            relativeTime,
+                                            style: typo.caption,
+                                          ),
                                         ],
                                       ),
+                                      if (hasSubInfo) ...<Widget>[
+                                        const SizedBox(
+                                          height: AppSpacing.xxs + 1,
+                                        ),
+                                        Wrap(
+                                          spacing: AppSpacing.xs,
+                                          runSpacing: AppSpacing.xxs,
+                                          crossAxisAlignment:
+                                              WrapCrossAlignment.center,
+                                          children: <Widget>[
+                                            if (showPartuturan)
+                                              PartuturanBadge(
+                                                result: partuturan,
+                                                onTap: () => context.push(
+                                                  '${AppPages.tar05.routePath}?userId=${author.id}',
+                                                ),
+                                              )
+                                            else if (author.isSameMarga)
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: AppSpacing.sm,
+                                                      vertical: AppSpacing.xxs,
+                                                    ),
+                                                decoration: BoxDecoration(
+                                                  color: colors.chipInactive,
+                                                  borderRadius:
+                                                      AppRadius.pillRadius,
+                                                ),
+                                                child: Text(
+                                                  AppStrings.termSemarga,
+                                                  style: typo.micro,
+                                                ),
+                                              ),
+                                            if (locationLabel.isNotEmpty)
+                                              Text(
+                                                (showPartuturan ||
+                                                        author.isSameMarga)
+                                                    ? '· $locationLabel'
+                                                    : locationLabel,
+                                                style: typo.micro,
+                                              ),
+                                            if (post.isEdited)
+                                              Text(
+                                                '· ${AppStrings.ber01EditedBadge}',
+                                                style: typo.micro,
+                                              ),
+                                          ],
+                                        ),
+                                      ],
                                     ],
-                                  ],
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: AppSpacing.xs),
-                        _PostOverflowMenu(
-                          isOwnPost: isOwnPost,
-                          onReportTap: onReportTap,
-                          onMuteTap: onMuteTap,
-                          onBlockTap: onBlockTap,
-                          onEditTextTap: onEditTextTap,
-                          onDeleteTap: onDeleteTap,
-                        ),
-                      ],
-                    ),
-                    if (post.moderationStatus ==
-                        PostModerationStatus.underReview) ...<Widget>[
-                      const SizedBox(height: AppSpacing.xs),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.sm,
-                          vertical: AppSpacing.xxs,
-                        ),
-                        decoration: BoxDecoration(
-                          color: colors.confidenceAmberSurface,
-                          borderRadius: AppRadius.buttonRadius,
-                          border: Border.all(color: colors.confidenceAmber),
-                        ),
-                        child: Text(
-                          AppStrings.ber01UnderReviewBadge,
-                          style: typo.captionStrong.copyWith(
-                            color: colors.confidenceAmber,
+                          const SizedBox(width: AppSpacing.xs),
+                          _PostOverflowMenu(
+                            isOwnPost: isOwnPost,
+                            onReportTap: onReportTap,
+                            onMuteTap: onMuteTap,
+                            onBlockTap: onBlockTap,
+                            onEditTextTap: onEditTextTap,
+                            onDeleteTap: onDeleteTap,
+                          ),
+                        ],
+                      ),
+                      if (post.moderationStatus ==
+                          PostModerationStatus.underReview) ...<Widget>[
+                        const SizedBox(height: AppSpacing.xs),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.sm,
+                            vertical: AppSpacing.xxs,
+                          ),
+                          decoration: BoxDecoration(
+                            color: colors.confidenceAmberSurface,
+                            borderRadius: AppRadius.buttonRadius,
+                            border: Border.all(color: colors.confidenceAmber),
+                          ),
+                          child: Text(
+                            AppStrings.ber01UnderReviewBadge,
+                            style: typo.captionStrong.copyWith(
+                              color: colors.confidenceAmber,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                    if (post.text.isNotEmpty) ...<Widget>[
+                      ],
+                      if (post.text.isNotEmpty) ...<Widget>[
+                        const SizedBox(height: AppSpacing.xs),
+                        _PostContentText(text: post.text),
+                      ],
+                      if (post.media.isNotEmpty) ...<Widget>[
+                        const SizedBox(height: AppSpacing.sm + AppSpacing.xxs),
+                        _PostMediaGallery(
+                          media: post.media,
+                          onMediaTap: onTapCard,
+                        ),
+                      ],
                       const SizedBox(height: AppSpacing.xs),
-                      _PostContentText(text: post.text),
-                    ],
-                    if (post.media.isNotEmpty) ...<Widget>[
-                      const SizedBox(height: AppSpacing.sm + AppSpacing.xxs),
-                      _PostMediaGallery(
-                        media: post.media,
-                        onMediaTap: onTapCard,
-                      ),
-                    ],
-                    const SizedBox(height: AppSpacing.xs),
-                    Row(
-                      children: <Widget>[
-                        _ActionIconTextButton(
-                          icon: post.isLikedByMe
-                              ? Icons.favorite_rounded
-                              : Icons.favorite_border_rounded,
-                          iconColor: post.isLikedByMe
-                              ? colors.buttonPrimary
-                              : colors.textMuted,
-                          label: post.likeCount > 0 ? '${post.likeCount}' : '',
-                          semanticsLabel:
-                              '${AppStrings.ber01LikeAction} (${post.likeCount})',
-                          onTap: onLikeTap,
-                          onLongPress: onLikesCountTap,
-                        ),
-                        _ActionIconTextButton(
-                          icon: Icons.chat_bubble_outline_rounded,
-                          iconColor: colors.textMuted,
-                          label: post.commentCount > 0
-                              ? '${post.commentCount}'
-                              : '',
-                          semanticsLabel:
-                              '${AppStrings.ber01CommentAction} (${post.commentCount})',
-                          onTap: onCommentTap,
-                        ),
-                        Semantics(
-                          button: true,
-                          label: post.isSavedByMe
-                              ? AppStrings.ber01SavedAction
-                              : AppStrings.ber01SaveAction,
-                          child: IconButton(
-                            constraints: const BoxConstraints(
-                              minWidth: AppSizes.minTouchTarget,
-                              minHeight: AppSizes.minTouchTarget,
-                            ),
-                            tooltip: post.isSavedByMe
+                      Row(
+                        children: <Widget>[
+                          _ActionIconTextButton(
+                            icon: post.isLikedByMe
+                                ? Icons.favorite_rounded
+                                : Icons.favorite_border_rounded,
+                            iconColor: post.isLikedByMe
+                                ? colors.buttonPrimary
+                                : colors.textMuted,
+                            label: post.likeCount > 0
+                                ? '${post.likeCount}'
+                                : '',
+                            semanticsLabel:
+                                '${AppStrings.ber01LikeAction} (${post.likeCount})',
+                            onTap: onLikeTap,
+                            onLongPress: onLikesCountTap,
+                          ),
+                          _ActionIconTextButton(
+                            icon: Icons.chat_bubble_outline_rounded,
+                            iconColor: colors.textMuted,
+                            label: post.commentCount > 0
+                                ? '${post.commentCount}'
+                                : '',
+                            semanticsLabel:
+                                '${AppStrings.ber01CommentAction} (${post.commentCount})',
+                            onTap: onCommentTap,
+                          ),
+                          Semantics(
+                            button: true,
+                            label: post.isSavedByMe
                                 ? AppStrings.ber01SavedAction
                                 : AppStrings.ber01SaveAction,
-                            onPressed: onSaveTap,
-                            icon: Icon(
-                              post.isSavedByMe
-                                  ? Icons.bookmark_rounded
-                                  : Icons.bookmark_border_rounded,
-                              size: AppSizes.iconMd,
-                              color: post.isSavedByMe
-                                  ? colors.buttonPrimary
-                                  : colors.textMuted,
+                            child: IconButton(
+                              constraints: const BoxConstraints(
+                                minWidth: AppSizes.minTouchTarget,
+                                minHeight: AppSizes.minTouchTarget,
+                              ),
+                              tooltip: post.isSavedByMe
+                                  ? AppStrings.ber01SavedAction
+                                  : AppStrings.ber01SaveAction,
+                              onPressed: onSaveTap,
+                              icon: Icon(
+                                post.isSavedByMe
+                                    ? Icons.bookmark_rounded
+                                    : Icons.bookmark_border_rounded,
+                                size: AppSizes.iconMd,
+                                color: post.isSavedByMe
+                                    ? colors.buttonPrimary
+                                    : colors.textMuted,
+                              ),
                             ),
                           ),
-                        ),
-                        Semantics(
-                          button: true,
-                          label: AppStrings.ber01ShareAction,
-                          child: IconButton(
-                            constraints: const BoxConstraints(
-                              minWidth: AppSizes.minTouchTarget,
-                              minHeight: AppSizes.minTouchTarget,
-                            ),
-                            tooltip: AppStrings.ber01ShareAction,
-                            onPressed: () async {
-                              final link =
-                                  'horas://app/beranda/postingan-detail?id=${post.id}';
-                              await Clipboard.setData(
-                                ClipboardData(text: link),
-                              );
-                              if (context.mounted) {
-                                AppToast.show(
-                                  context,
-                                  message: AppStrings.ber01ShareCopiedToast,
-                                  variant: AppToastVariant.info,
+                          Semantics(
+                            button: true,
+                            label: AppStrings.ber01ShareAction,
+                            child: IconButton(
+                              constraints: const BoxConstraints(
+                                minWidth: AppSizes.minTouchTarget,
+                                minHeight: AppSizes.minTouchTarget,
+                              ),
+                              tooltip: AppStrings.ber01ShareAction,
+                              onPressed: () async {
+                                final link =
+                                    'horas://app/beranda/postingan-detail?id=${post.id}';
+                                await Clipboard.setData(
+                                  ClipboardData(text: link),
                                 );
-                              }
-                            },
-                            icon: Icon(
-                              Icons.send_outlined,
-                              size: AppSizes.iconSm + 2,
-                              color: colors.textMuted,
+                                if (context.mounted) {
+                                  AppToast.show(
+                                    context,
+                                    message: AppStrings.ber01ShareCopiedToast,
+                                    variant: AppToastVariant.info,
+                                  );
+                                }
+                              },
+                              icon: Icon(
+                                Icons.send_outlined,
+                                size: AppSizes.iconSm + 2,
+                                color: colors.textMuted,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -357,9 +364,13 @@ class _PostContentText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.colors;
     final typo = context.typo;
 
+    if (!text.contains('#')) {
+      return Text(text, style: typo.body);
+    }
+
+    final colors = context.colors;
     final words = text.split(' ');
     final spans = <InlineSpan>[];
 
@@ -370,17 +381,23 @@ class _PostContentText extends StatelessWidget {
 
       if (word.startsWith('#') && word.length > 1) {
         spans.add(
-          TextSpan(
-            text: '$word$space',
-            style: typo.body.copyWith(
-              color: colors.primary,
-              fontWeight: FontWeight.w600,
-            ),
-            recognizer: TapGestureRecognizer()
-              ..onTap = () {
+          WidgetSpan(
+            alignment: PlaceholderAlignment.baseline,
+            baseline: TextBaseline.alphabetic,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
                 final query = Uri.encodeComponent(word);
                 context.push('${AppPages.ber10.routePath}?q=$query');
               },
+              child: Text(
+                '$word$space',
+                style: typo.body.copyWith(
+                  color: colors.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
           ),
         );
       } else {
@@ -481,7 +498,7 @@ class _PostMediaGallery extends StatelessWidget {
       height: 224,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
+        physics: const ClampingScrollPhysics(),
         itemCount: media.length,
         separatorBuilder: (context, index) =>
             const SizedBox(width: AppSpacing.sm),

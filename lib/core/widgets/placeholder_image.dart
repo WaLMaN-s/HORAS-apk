@@ -61,50 +61,57 @@ class PlaceholderImage extends StatelessWidget {
 
     final isNetworkUrl =
         seed.startsWith('http://') || seed.startsWith('https://');
-    final gradientFallback = CustomPaint(
-      painter: _TobaUlosPainter(
-        topColor: palette.$1,
-        midColor: palette.$2,
-        accentColor: palette.$3,
-        seedHash: seedHash,
-        showMountains: showMountainSilhouette,
-      ),
-      child: caption != null
-          ? Align(
-              alignment: Alignment.bottomLeft,
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                child: Text(
-                  caption!,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: typo.captionStrong.copyWith(color: colors.onPrimary),
+    final gradientFallback = RepaintBoundary(
+      child: CustomPaint(
+        isComplex: true,
+        willChange: false,
+        painter: _TobaUlosPainter(
+          topColor: palette.$1,
+          midColor: palette.$2,
+          accentColor: palette.$3,
+          seedHash: seedHash,
+          showMountains: showMountainSilhouette,
+        ),
+        child: caption != null
+            ? Align(
+                alignment: Alignment.bottomLeft,
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  child: Text(
+                    caption!,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: typo.captionStrong.copyWith(color: colors.onPrimary),
+                  ),
                 ),
-              ),
-            )
-          : null,
+              )
+            : null,
+      ),
     );
+
+    Widget imageContent = SizedBox(
+      width: width,
+      height: height,
+      child: isNetworkUrl
+          ? CachedNetworkImage(
+              imageUrl: seed,
+              width: width,
+              height: height,
+              fit: BoxFit.cover,
+              placeholder: (context, url) => gradientFallback,
+              errorWidget: (context, url, error) => gradientFallback,
+            )
+          : gradientFallback,
+    );
+
+    if (borderRadius != BorderRadius.zero) {
+      imageContent = ClipRRect(borderRadius: borderRadius, child: imageContent);
+    }
 
     return Semantics(
       image: true,
       label: semanticsLabel ?? caption ?? seed,
-      child: ClipRRect(
-        borderRadius: borderRadius,
-        child: SizedBox(
-          width: width,
-          height: height,
-          child: isNetworkUrl
-              ? CachedNetworkImage(
-                  imageUrl: seed,
-                  width: width,
-                  height: height,
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) => gradientFallback,
-                  errorWidget: (context, url, error) => gradientFallback,
-                )
-              : gradientFallback,
-        ),
-      ),
+      child: imageContent,
     );
   }
 }

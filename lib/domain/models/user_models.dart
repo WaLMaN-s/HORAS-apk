@@ -332,7 +332,10 @@ final class Profil {
       motherMarga: json['motherMarga'] as String?,
       city: (json['city'] as String?) ?? 'Medan',
       subdistrict: (json['subdistrict'] as String?) ?? 'Medan Baru',
-      avatarSeed: (json['avatarSeed'] as String?) ?? 'horas-user',
+      avatarSeed: PersonSummary.resolveAvatarSeed(
+        (json['avatarSeed'] as String?) ?? (json['avatar_seed'] as String?),
+        (json['avatarPath'] as String?) ?? (json['avatar_path'] as String?),
+      ),
       bio: (json['bio'] as String?) ?? '',
       hobbies: ((json['hobbies'] as List<Object?>?) ?? const <Object?>[])
           .whereType<String>()
@@ -501,6 +504,23 @@ final class PersonSummary {
     'canMessage': canMessage,
   };
 
+  static String resolveAvatarSeed(String? seed, String? path) {
+    bool isReal(String? v) =>
+        v != null &&
+        (v.startsWith('data:image/') ||
+            v.startsWith('http://') ||
+            v.startsWith('https://'));
+    if (isReal(seed)) return seed!;
+    if (isReal(path)) return path!;
+    if (seed != null && seed.trim().isNotEmpty && seed != 'avatar') {
+      return seed;
+    }
+    if (path != null && path.trim().isNotEmpty) {
+      return path;
+    }
+    return (seed != null && seed.trim().isNotEmpty) ? seed : 'avatar';
+  }
+
   factory PersonSummary.fromJson(Map<String, Object?> json) {
     SubEthnic parseSubEthnic(String? raw) {
       for (final s in SubEthnic.values) {
@@ -509,15 +529,25 @@ final class PersonSummary {
       return SubEthnic.toba;
     }
 
+    final rawSeed =
+        (json['avatarSeed'] as String?) ?? (json['avatar_seed'] as String?);
+    final rawPath =
+        (json['avatarPath'] as String?) ?? (json['avatar_path'] as String?);
+
     return PersonSummary(
       id: (json['id'] as String?) ?? '',
-      displayName: (json['displayName'] as String?) ?? '',
+      displayName:
+          (json['displayName'] as String?) ??
+          (json['display_name'] as String?) ??
+          '',
       gender: UserGender.fromJson(json['gender'] as String?),
       marga: (json['marga'] as String?) ?? '',
-      subEthnic: parseSubEthnic(json['subEthnic'] as String?),
+      subEthnic: parseSubEthnic(
+        (json['subEthnic'] as String?) ?? (json['sub_ethnic'] as String?),
+      ),
       city: (json['city'] as String?) ?? '',
       proximity: AreaProximity.fromJson(json['proximity'] as String?),
-      avatarSeed: (json['avatarSeed'] as String?) ?? '',
+      avatarSeed: resolveAvatarSeed(rawSeed, rawPath),
       sharedCommunitiesCount: (json['sharedCommunitiesCount'] as int?) ?? 0,
       isSameMarga: (json['isSameMarga'] as bool?) ?? false,
       partuturan: json['partuturan'] is Map<String, Object?>

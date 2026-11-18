@@ -122,7 +122,34 @@ class HomeFeedController extends Notifier<HomeFeedState> {
     );
   }
 
-  Future<void> refresh() => loadInitial();
+  Future<void> refresh() async {
+    ref.read(storiesRefreshTickProvider.notifier).bump();
+    await loadInitial();
+  }
+
+  /// Sinkronisasi langsung perubahan profil diri sendiri ke header komposer & daftar postingan.
+  void syncMyProfile(Profil updated) {
+    final nextPosts = state.posts
+        .map(
+          (p) => p.author.id == updated.id
+              ? p.copyWith(
+                  author: p.author.copyWith(
+                    displayName: updated.displayName,
+                    avatarSeed: updated.avatarSeed,
+                    city: updated.city,
+                    bio: updated.bio,
+                  ),
+                )
+              : p,
+        )
+        .toList(growable: false);
+    state = state.copyWith(
+      myProfile: updated,
+      currentUserId: updated.id,
+      posts: nextPosts,
+    );
+    ref.read(storiesRefreshTickProvider.notifier).bump();
+  }
 
   Future<void> loadMore() async {
     if (state.isLoadingMore || !state.hasMore || state.isInitialLoading) {
@@ -226,3 +253,16 @@ class HomeFeedController extends Notifier<HomeFeedState> {
 /// Provider global untuk [HomeFeedController].
 final homeFeedControllerProvider =
     NotifierProvider<HomeFeedController, HomeFeedState>(HomeFeedController.new);
+
+/// Pemicu muat-ulang daftar Story (`BER-01` & `BER-03`) saat cerita baru dibuat atau profil berubah.
+class StoriesRefreshTickNotifier extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  void bump() => state = state + 1;
+}
+
+final storiesRefreshTickProvider =
+    NotifierProvider<StoriesRefreshTickNotifier, int>(
+      StoriesRefreshTickNotifier.new,
+    );

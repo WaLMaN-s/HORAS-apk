@@ -627,6 +627,12 @@ class _StoriesTrayState extends ConsumerState<_StoriesTray>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    ref.listen<int>(storiesRefreshTickProvider, (_, _) {
+      _loadStories();
+    });
+    final myProfile = ref.watch(
+      homeFeedControllerProvider.select((s) => s.myProfile),
+    );
     final colors = context.colors;
     final typo = context.typo;
 
@@ -653,7 +659,10 @@ class _StoriesTrayState extends ConsumerState<_StoriesTray>
             return Padding(
               padding: const EdgeInsets.only(right: AppSpacing.md),
               child: InkWell(
-                onTap: () => context.push(AppPages.ber03.routePath),
+                onTap: () async {
+                  await context.push(AppPages.ber03.routePath);
+                  await _loadStories();
+                },
                 borderRadius: BorderRadius.circular(AppRadius.pill),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -672,11 +681,21 @@ class _StoriesTrayState extends ConsumerState<_StoriesTray>
                             color: colors.chipInactive,
                           ),
                           alignment: Alignment.center,
-                          child: Icon(
-                            Icons.person_outline,
-                            color: colors.textMuted,
-                            size: AppSizes.iconMd,
-                          ),
+                          child:
+                              myProfile != null &&
+                                  PlaceholderImage.isRealImageSeed(
+                                    myProfile.avatarSeed,
+                                  )
+                              ? AppAvatar(
+                                  name: myProfile.displayName,
+                                  seed: myProfile.avatarSeed,
+                                  size: 52,
+                                )
+                              : Icon(
+                                  Icons.person_outline,
+                                  color: colors.textMuted,
+                                  size: AppSizes.iconMd,
+                                ),
                         ),
                         Positioned(
                           right: 0,
@@ -745,7 +764,10 @@ class _StoriesTrayState extends ConsumerState<_StoriesTray>
                       padding: const EdgeInsets.all(2),
                       child: ClipOval(
                         child: PlaceholderImage(
-                          seed: story.author.avatarSeed,
+                          seed:
+                              PlaceholderImage.isRealImageSeed(story.mediaSeed)
+                              ? story.mediaSeed
+                              : story.author.avatarSeed,
                           width: 48,
                           height: 48,
                         ),

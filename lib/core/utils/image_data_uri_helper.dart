@@ -55,7 +55,7 @@ abstract final class ImageDataUriHelper {
   }) async {
     if (limit <= 0) return const <EncodedImageResult>[];
     final picker = ImagePicker();
-    final List<XFile> pickedFiles;
+    List<XFile> pickedFiles = const <XFile>[];
     if (limit == 1) {
       final single = await picker.pickImage(
         source: ImageSource.gallery,
@@ -65,12 +65,30 @@ abstract final class ImageDataUriHelper {
       );
       pickedFiles = single != null ? <XFile>[single] : const <XFile>[];
     } else {
-      pickedFiles = await picker.pickMultiImage(
-        limit: limit,
-        maxWidth: maxDimension.toDouble(),
-        maxHeight: maxDimension.toDouble(),
-        imageQuality: quality,
-      );
+      try {
+        pickedFiles = await picker.pickMultiImage(
+          limit: limit,
+          maxWidth: maxDimension.toDouble(),
+          maxHeight: maxDimension.toDouble(),
+          imageQuality: quality,
+        );
+      } on Object {
+        try {
+          pickedFiles = await picker.pickMultiImage(
+            maxWidth: maxDimension.toDouble(),
+            maxHeight: maxDimension.toDouble(),
+            imageQuality: quality,
+          );
+        } on Object {
+          final single = await picker.pickImage(
+            source: ImageSource.gallery,
+            maxWidth: maxDimension.toDouble(),
+            maxHeight: maxDimension.toDouble(),
+            imageQuality: quality,
+          );
+          pickedFiles = single != null ? <XFile>[single] : const <XFile>[];
+        }
+      }
     }
 
     final results = <EncodedImageResult>[];
@@ -95,9 +113,6 @@ abstract final class ImageDataUriHelper {
     int? maxRawBytes,
   }) async {
     final rawBytes = await file.readAsBytes();
-    if (maxRawBytes != null && rawBytes.length > maxRawBytes) {
-      throw FormatException('FILE_TOO_LARGE:${rawBytes.length}');
-    }
     Uint8List compressed = rawBytes;
     try {
       final result = await FlutterImageCompress.compressWithList(
@@ -112,6 +127,9 @@ abstract final class ImageDataUriHelper {
       }
     } on Object {
       // Gunakan rawBytes yang sudah di-resize oleh ImagePicker bila kompresor native tidak tersedia.
+    }
+    if (maxRawBytes != null && compressed.length > maxRawBytes) {
+      throw FormatException('FILE_TOO_LARGE:${compressed.length}');
     }
 
     final base64Str = base64Encode(compressed);

@@ -77,7 +77,11 @@ BEGIN
     'subEthnic', p_target.sub_ethnic,
     'city', p_target.city,
     'proximity', v_prox,
-    'avatarSeed', p_target.avatar_seed,
+    'avatarSeed', CASE
+      WHEN p_target.avatar_seed LIKE 'data:image/%' OR p_target.avatar_seed LIKE 'http%' THEN p_target.avatar_seed
+      WHEN p_target.avatar_path LIKE 'data:image/%' OR p_target.avatar_path LIKE 'http%' THEN p_target.avatar_path
+      ELSE COALESCE(NULLIF(p_target.avatar_seed, ''), NULLIF(p_target.avatar_path, ''), 'avatar')
+    END,
     'avatarPath', p_target.avatar_path,
     'sharedCommunitiesCount', v_shared_comm_cnt,
     'isSameMarga', (v_viewer.id IS NOT NULL AND lower(btrim(v_viewer.marga)) = lower(btrim(p_target.marga)) AND btrim(p_target.marga) <> ''),

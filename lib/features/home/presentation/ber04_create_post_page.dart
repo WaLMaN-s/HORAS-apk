@@ -7,12 +7,14 @@ import 'package:horas/core/l10n/app_strings.dart';
 import 'package:horas/core/router/app_pages.dart';
 import 'package:horas/core/theme/app_theme.dart';
 import 'package:horas/core/theme/app_tokens.dart';
+import 'package:horas/core/utils/image_data_uri_helper.dart';
 import 'package:horas/core/widgets/widgets.dart';
 import 'package:horas/domain/models/models.dart';
 import 'package:horas/domain/policies/app_limits.dart';
 import 'package:horas/domain/policies/privacy_defaults.dart';
 import 'package:horas/features/home/presentation/home_feed_controller.dart';
 import 'package:horas/features/home/presentation/home_models.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// BER-04 Buat Postingan (BER-R2, BER-R3, BER-R4, BER-R10, BER-R11, Alur A6).
@@ -120,6 +122,79 @@ class _Ber04CreatePostPageState extends ConsumerState<Ber04CreatePostPage> {
         _selectedMedia = picked;
         _errorText = null;
       });
+    }
+  }
+
+  Future<void> _pickDirectFromGallery() async {
+    if (_selectedMedia.length >= AppLimits.postMaxPhotos) return;
+    try {
+      final pickedList = await ImageDataUriHelper.pickMultipleAndEncodeImages(
+        limit: AppLimits.postMaxPhotos - _selectedMedia.length,
+        maxDimension: 720,
+        quality: 75,
+        maxRawBytes: AppLimits.postPhotoMaxBytes,
+      );
+      if (!mounted || pickedList.isEmpty) return;
+      setState(() {
+        for (final item in pickedList) {
+          if (_selectedMedia.length >= AppLimits.postMaxPhotos) break;
+          _selectedMedia.add(
+            SelectedMediaItem(
+              id: 'gal-${DateTime.now().microsecondsSinceEpoch}-${_selectedMedia.length}',
+              seed: item.dataUri,
+              originalBytesCount: item.originalBytesCount,
+              compressedBytes: item.compressedBytes,
+              aspectRatio: 1.0,
+            ),
+          );
+        }
+        _errorText = null;
+      });
+    } on FormatException {
+      if (mounted) {
+        AppToast.show(
+          context,
+          message: 'Ukuran per foto maksimal 10 MB.',
+          variant: AppToastVariant.error,
+        );
+      }
+    } on Object {
+      await _openMediaPicker();
+    }
+  }
+
+  Future<void> _pickDirectFromCamera() async {
+    if (_selectedMedia.length >= AppLimits.postMaxPhotos) return;
+    try {
+      final encoded = await ImageDataUriHelper.pickAndEncodeImage(
+        ImageSource.camera,
+        maxDimension: 720,
+        quality: 75,
+        maxRawBytes: AppLimits.postPhotoMaxBytes,
+      );
+      if (!mounted || encoded == null) return;
+      setState(() {
+        _selectedMedia.add(
+          SelectedMediaItem(
+            id: 'cam-${DateTime.now().microsecondsSinceEpoch}-${_selectedMedia.length}',
+            seed: encoded.dataUri,
+            originalBytesCount: encoded.originalBytesCount,
+            compressedBytes: encoded.compressedBytes,
+            aspectRatio: 1.0,
+          ),
+        );
+        _errorText = null;
+      });
+    } on FormatException {
+      if (mounted) {
+        AppToast.show(
+          context,
+          message: 'Ukuran per foto maksimal 10 MB.',
+          variant: AppToastVariant.error,
+        );
+      }
+    } on Object {
+      await _openMediaPicker();
     }
   }
 
@@ -275,12 +350,33 @@ class _Ber04CreatePostPageState extends ConsumerState<Ber04CreatePostPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: <Widget>[
-                  AppButton(
-                    label: AppStrings.ber04AddMediaBtn,
-                    variant: AppButtonVariant.secondary,
-                    leadingIcon: Icons.photo_library_outlined,
-                    onPressed: _openMediaPicker,
+                  Expanded(
+                    child: Wrap(
+                      spacing: AppSpacing.xs,
+                      runSpacing: AppSpacing.xs,
+                      children: <Widget>[
+                        AppButton(
+                          label: AppStrings.aut06PickPhotoGallery,
+                          variant: AppButtonVariant.secondary,
+                          leadingIcon: Icons.add_photo_alternate_outlined,
+                          onPressed: _pickDirectFromGallery,
+                        ),
+                        AppButton(
+                          label: AppStrings.aut06PickPhotoCamera,
+                          variant: AppButtonVariant.secondary,
+                          leadingIcon: Icons.camera_alt_outlined,
+                          onPressed: _pickDirectFromCamera,
+                        ),
+                        AppButton(
+                          label: AppStrings.ber04AddMediaBtn,
+                          variant: AppButtonVariant.text,
+                          leadingIcon: Icons.photo_library_outlined,
+                          onPressed: _openMediaPicker,
+                        ),
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: AppSpacing.xs),
                   Text(
                     AppStrings.ber05PhotoCounter(
                       _selectedMedia.length,

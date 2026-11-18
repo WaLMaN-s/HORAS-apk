@@ -294,54 +294,70 @@ class _Ber02StoryViewerPageState extends ConsumerState<Ber02StoryViewerPage> {
               Center(
                 child: AspectRatio(
                   aspectRatio: 9 / 16,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: colors.primaryDark,
-                      borderRadius: BorderRadius.circular(AppRadius.photo),
-                    ),
-                    alignment: Alignment.center,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: <Widget>[
-                        Icon(
-                          story.isVideo
-                              ? Icons.videocam_rounded
-                              : Icons.photo_library_outlined,
-                          size: 64,
-                          color: colors.onPrimary.withValues(alpha: 0.8),
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        Text(
-                          story.isVideo ? 'Video Cerita (15d)' : 'Foto Cerita',
-                          style: typo.h3.copyWith(color: colors.onPrimary),
-                        ),
-                        if (story.caption.isNotEmpty) ...<Widget>[
-                          const SizedBox(height: AppSpacing.lg),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.xl,
-                            ),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: AppSpacing.md,
-                                vertical: AppSpacing.sm,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.6),
-                                borderRadius: BorderRadius.circular(
-                                  AppRadius.button,
-                                ),
-                              ),
-                              child: Text(
-                                story.caption,
-                                textAlign: TextAlign.center,
-                                style: typo.body.copyWith(color: Colors.white),
-                              ),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: <Widget>[
+                      if (!story.isVideo &&
+                          PlaceholderImage.isRealImageSeed(story.mediaSeed))
+                        PlaceholderImage(
+                          seed: story.mediaSeed,
+                          borderRadius: BorderRadius.circular(AppRadius.photo),
+                        )
+                      else
+                        Container(
+                          decoration: BoxDecoration(
+                            color: colors.primaryDark,
+                            borderRadius: BorderRadius.circular(
+                              AppRadius.photo,
                             ),
                           ),
-                        ],
-                      ],
-                    ),
+                          alignment: Alignment.center,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: <Widget>[
+                              Icon(
+                                story.isVideo
+                                    ? Icons.videocam_rounded
+                                    : Icons.photo_library_outlined,
+                                size: 64,
+                                color: colors.onPrimary.withValues(alpha: 0.8),
+                              ),
+                              const SizedBox(height: AppSpacing.md),
+                              Text(
+                                story.isVideo
+                                    ? 'Video Cerita (15d)'
+                                    : 'Foto Cerita',
+                                style: typo.h3.copyWith(
+                                  color: colors.onPrimary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      if (story.caption.isNotEmpty)
+                        Positioned(
+                          bottom: isMine ? 72 : AppSpacing.xl,
+                          left: AppSpacing.xl,
+                          right: AppSpacing.xl,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.md,
+                              vertical: AppSpacing.sm,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.6),
+                              borderRadius: BorderRadius.circular(
+                                AppRadius.button,
+                              ),
+                            ),
+                            child: Text(
+                              story.caption,
+                              textAlign: TextAlign.center,
+                              style: typo.body.copyWith(color: Colors.white),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               ),

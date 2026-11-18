@@ -12,6 +12,46 @@ final class SupabaseStoryRepository implements StoryRepository {
 
   final SupabaseGateway _gw;
 
+  Future<List<Story>> _hydrateStories(List<Map<String, dynamic>> rows) async {
+    if (rows.isEmpty) return const <Story>[];
+    final authorIds = rows
+        .map((r) => (r['author_id'] as String?) ?? '')
+        .where((id) => id.isNotEmpty)
+        .toSet();
+    final authors = await _gw.getBatchPersonSummaries(authorIds);
+    final me = _gw.currentSessionProfile;
+
+    final result = <Story>[];
+    for (final r in rows) {
+      final raw = Story.fromJson(r);
+      final authorId = (r['author_id'] as String?) ?? raw.author.id;
+      var author =
+          authors[authorId] ?? SupabaseGateway.deletedPersonFallback(authorId);
+      if (me != null && authorId == me.id) {
+        author = author.copyWith(
+          displayName: me.displayName,
+          avatarSeed: me.avatarSeed,
+          city: me.city,
+        );
+      }
+      result.add(
+        Story(
+          id: raw.id,
+          author: author,
+          mediaSeed: raw.mediaSeed,
+          caption: raw.caption,
+          isVideo: raw.isVideo,
+          durationSeconds: raw.durationSeconds,
+          createdAt: raw.createdAt,
+          expiresAt: raw.expiresAt,
+          viewerCount: raw.viewerCount,
+          isViewedByMe: raw.isViewedByMe,
+        ),
+      );
+    }
+    return result;
+  }
+
   @override
   Future<Result<List<Story>>> getStories() => _gw.guard(() async {
     final rows = await _gw.client
@@ -20,11 +60,7 @@ final class SupabaseStoryRepository implements StoryRepository {
         .gt('expires_at', DateTime.now().toIso8601String())
         .order('created_at', ascending: false);
 
-    final result = <Story>[];
-    for (final r in rows) {
-      result.add(Story.fromJson(r));
-    }
-    return result;
+    return _hydrateStories(rows);
   });
 
   @override
@@ -48,13 +84,19 @@ final class SupabaseStoryRepository implements StoryRepository {
       );
     }
 
+    final uploaded = await _gw.mediaUploader.uploadWithRetryAndResume(
+      bucket: 'posts',
+      sourcePathOrSeed: mediaSeed,
+    );
+    final storedSeed = uploaded.publicUrl ?? uploaded.storagePath;
+
     final now = DateTime.now();
     final expiresAt = now.add(const Duration(hours: 24));
     final row = await _gw.client
         .from('stories')
         .insert(<String, Object?>{
           'author_id': me.id,
-          'media_seed': mediaSeed,
+          'media_seed': storedSeed,
           'caption': caption,
           'is_video': isVideo,
           'duration_seconds': durationSeconds,
@@ -63,7 +105,8 @@ final class SupabaseStoryRepository implements StoryRepository {
         .select()
         .single();
 
-    return Story.fromJson(row);
+    final hydrated = await _hydrateStories(<Map<String, dynamic>>[row]);
+    return hydrated.first;
   });
 
   @override
@@ -74,8 +117,26 @@ final class SupabaseStoryRepository implements StoryRepository {
             .select()
             .eq('story_id', storyId)
             .order('viewed_at', ascending: false);
+        if (rows.isEmpty) return const <StoryViewer>[];
+        final viewerIds = rows
+            .map((r) => (r['viewer_id'] as String?) ?? '')
+            .where((id) => id.isNotEmpty)
+            .toSet();
+        final viewers = await _gw.getBatchPersonSummaries(viewerIds);
 
-        return rows.map((r) => StoryViewer.fromJson(r)).toList(growable: false);
+        return rows
+            .map((r) {
+              final raw = StoryViewer.fromJson(r);
+              final vid = (r['viewer_id'] as String?) ?? raw.viewer.id;
+              return StoryViewer(
+                id: raw.id,
+                storyId: raw.storyId,
+                viewer:
+                    viewers[vid] ?? SupabaseGateway.deletedPersonFallback(vid),
+                viewedAt: raw.viewedAt,
+              );
+            })
+            .toList(growable: false);
       });
 
   @override

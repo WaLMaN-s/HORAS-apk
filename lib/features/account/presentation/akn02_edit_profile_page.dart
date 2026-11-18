@@ -9,6 +9,7 @@ import 'package:horas/core/theme/app_tokens.dart';
 import 'package:horas/core/widgets/widgets.dart';
 import 'package:horas/domain/models/models.dart';
 import 'package:horas/domain/policies/app_limits.dart';
+import 'package:horas/features/home/presentation/home_feed_controller.dart';
 import 'package:horas/features/messages/presentation/chat_thread_widgets.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:material_ui/material_ui.dart';
@@ -201,6 +202,9 @@ class _Akn02EditProfilePageState extends ConsumerState<Akn02EditProfilePage> {
         variant: AppToastVariant.error,
       );
       return;
+    }
+    if (res is Ok<Profil>) {
+      ref.read(homeFeedControllerProvider.notifier).syncMyProfile(res.value);
     }
     AppToast.show(
       context,

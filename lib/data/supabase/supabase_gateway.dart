@@ -184,10 +184,10 @@ final class SupabaseGateway {
           .toList(growable: false),
       campusOrOffice: row['campus_or_office'] as String?,
       websiteUrl: row['website_url'] as String?,
-      avatarSeed:
-          (row['avatar_path'] as String?) ??
-          (row['avatar_seed'] as String?) ??
-          'avatar',
+      avatarSeed: PersonSummary.resolveAvatarSeed(
+        row['avatar_seed'] as String?,
+        row['avatar_path'] as String?,
+      ),
       createdAt: parseDate(row['created_at']) ?? clock.now(),
       accountStatus: parseAccountStatus(row['account_status'] as String?),
       lastDisplayNameChangedAt: parseDate(row['display_name_changed_at']),

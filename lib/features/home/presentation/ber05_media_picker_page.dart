@@ -180,191 +180,205 @@ class _Ber05MediaPickerPageState extends ConsumerState<Ber05MediaPickerPage> {
       );
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(AppStrings.ber05Title, style: typo.h2),
-        actions: <Widget>[
-          Padding(
-            padding: const EdgeInsets.only(right: AppSpacing.sm),
-            child: AppButton(
-              label: AppStrings.ber05ApplyBtn,
-              onPressed: () => context.pop(_items),
-            ),
-          ),
-        ],
-      ),
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
+    return PopScope<List<SelectedMediaItem>>(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          context.pop(_items);
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          leading: BackButton(onPressed: () => context.pop(_items)),
+          title: Text(AppStrings.ber05Title, style: typo.h2),
+          actions: <Widget>[
             Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.screenMargin,
-                vertical: AppSpacing.sm,
+              padding: const EdgeInsets.only(right: AppSpacing.sm),
+              child: AppButton(
+                label: AppStrings.ber05ApplyBtn,
+                onPressed: () => context.pop(_items),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: <Widget>[
-                      Text(
-                        AppStrings.ber05PhotoCounter(
-                          _items.length,
-                          AppLimits.postMaxPhotos,
+            ),
+          ],
+        ),
+        body: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.screenMargin,
+                  vertical: AppSpacing.sm,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: <Widget>[
+                        Text(
+                          AppStrings.ber05PhotoCounter(
+                            _items.length,
+                            AppLimits.postMaxPhotos,
+                          ),
+                          style: typo.h3,
                         ),
-                        style: typo.h3,
-                      ),
-                      Flexible(
-                        child: Wrap(
-                          spacing: AppSpacing.xs,
-                          runSpacing: AppSpacing.xs,
-                          children: <Widget>[
-                            if (flags.video)
+                        Flexible(
+                          child: Wrap(
+                            spacing: AppSpacing.xs,
+                            runSpacing: AppSpacing.xs,
+                            children: <Widget>[
+                              if (flags.video)
+                                AppButton(
+                                  label: AppStrings.ber05AddVideoBtn,
+                                  variant: AppButtonVariant.secondary,
+                                  isDisabled:
+                                      _items.length >= AppLimits.postMaxPhotos,
+                                  onPressed: () => _addSampleVideo(30),
+                                ),
                               AppButton(
-                                label: AppStrings.ber05AddVideoBtn,
+                                label: AppStrings.ber05PickFromGalleryBtn,
                                 variant: AppButtonVariant.secondary,
                                 isDisabled:
                                     _items.length >= AppLimits.postMaxPhotos,
-                                onPressed: () => _addSampleVideo(30),
+                                onPressed: _pickFromGallery,
                               ),
-                            AppButton(
-                              label: AppStrings.ber05PickFromGalleryBtn,
-                              variant: AppButtonVariant.secondary,
-                              isDisabled:
-                                  _items.length >= AppLimits.postMaxPhotos,
-                              onPressed: _pickFromGallery,
-                            ),
-                            AppButton(
-                              label: AppStrings.aut06PickPhotoCamera,
-                              variant: AppButtonVariant.secondary,
-                              isDisabled:
-                                  _items.length >= AppLimits.postMaxPhotos,
-                              onPressed: _pickFromCamera,
-                            ),
-                            AppButton(
-                              label: AppStrings.ber05AddSamplePhotoBtn,
-                              variant: AppButtonVariant.text,
-                              isDisabled:
-                                  _items.length >= AppLimits.postMaxPhotos,
-                              onPressed: _addSamplePhoto,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.xs),
-                  Text(AppStrings.ber05ReorderHint, style: typo.caption),
-                ],
-              ),
-            ),
-            const Divider(),
-            Expanded(
-              child: _items.isEmpty
-                  ? StateView.empty(
-                      message: AppStrings.ber05PermissionBenefit,
-                      actionLabel: AppStrings.ber05PickFromGalleryBtn,
-                      onAction: _pickFromGallery,
-                    )
-                  : ReorderableListView.builder(
-                      padding: const EdgeInsets.all(AppSpacing.screenMargin),
-                      itemCount: _items.length,
-                      onReorderItem: (oldIndex, newIndex) {
-                        setState(() {
-                          final moved = _items.removeAt(oldIndex);
-                          _items.insert(newIndex, moved);
-                        });
-                      },
-                      itemBuilder: (context, index) {
-                        final item = _items[index];
-                        return Container(
-                          key: ValueKey<String>(item.id),
-                          margin: const EdgeInsets.only(bottom: AppSpacing.md),
-                          padding: const EdgeInsets.all(AppSpacing.md),
-                          decoration: BoxDecoration(
-                            color: colors.surface,
-                            borderRadius: AppRadius.cardRadius,
-                            border: Border.all(color: colors.border),
-                          ),
-                          child: Row(
-                            children: <Widget>[
-                              PlaceholderImage(
-                                seed: item.seed,
-                                width: 64,
-                                height: 64,
-                                borderRadius: AppRadius.photoRadius,
-                                caption: '${index + 1}',
+                              AppButton(
+                                label: AppStrings.aut06PickPhotoCamera,
+                                variant: AppButtonVariant.secondary,
+                                isDisabled:
+                                    _items.length >= AppLimits.postMaxPhotos,
+                                onPressed: _pickFromCamera,
                               ),
-                              const SizedBox(width: AppSpacing.md),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: <Widget>[
-                                    Text(
-                                      AppStrings.ber05CropLabel,
-                                      style: typo.captionStrong,
-                                    ),
-                                    const SizedBox(height: AppSpacing.xs),
-                                    Wrap(
-                                      spacing: AppSpacing.xs,
-                                      children: <Widget>[
-                                        AppChip(
-                                          label: AppStrings.ber05CropSquare,
-                                          isSelected:
-                                              (item.aspectRatio - 1.0).abs() <
-                                              0.05,
-                                          onTap: () => _setCropRatio(index, 1),
-                                        ),
-                                        AppChip(
-                                          label: AppStrings.ber05Crop4x3,
-                                          isSelected:
-                                              (item.aspectRatio - 4 / 3).abs() <
-                                              0.05,
-                                          onTap: () =>
-                                              _setCropRatio(index, 4 / 3),
-                                        ),
-                                        AppChip(
-                                          label: AppStrings.ber05Crop16x9,
-                                          isSelected:
-                                              (item.aspectRatio - 16 / 9)
-                                                  .abs() <
-                                              0.05,
-                                          onTap: () =>
-                                              _setCropRatio(index, 16 / 9),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Semantics(
-                                button: true,
-                                label: AppStrings.ber05RemovePhotoTooltip,
-                                child: IconButton(
-                                  tooltip: AppStrings.ber05RemovePhotoTooltip,
-                                  onPressed: () =>
-                                      setState(() => _items.removeAt(index)),
-                                  icon: Icon(
-                                    Icons.delete_outline_rounded,
-                                    color: colors.danger,
-                                  ),
-                                ),
-                              ),
-                              ReorderableDragStartListener(
-                                index: index,
-                                child: Icon(
-                                  Icons.drag_handle_rounded,
-                                  color: colors.textMuted,
-                                ),
+                              AppButton(
+                                label: AppStrings.ber05AddSamplePhotoBtn,
+                                variant: AppButtonVariant.text,
+                                isDisabled:
+                                    _items.length >= AppLimits.postMaxPhotos,
+                                onPressed: _addSamplePhoto,
                               ),
                             ],
                           ),
-                        );
-                      },
+                        ),
+                      ],
                     ),
-            ),
-          ],
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(AppStrings.ber05ReorderHint, style: typo.caption),
+                  ],
+                ),
+              ),
+              const Divider(),
+              Expanded(
+                child: _items.isEmpty
+                    ? StateView.empty(
+                        message: AppStrings.ber05PermissionBenefit,
+                        actionLabel: AppStrings.ber05PickFromGalleryBtn,
+                        onAction: _pickFromGallery,
+                      )
+                    : ReorderableListView.builder(
+                        padding: const EdgeInsets.all(AppSpacing.screenMargin),
+                        itemCount: _items.length,
+                        onReorderItem: (oldIndex, newIndex) {
+                          setState(() {
+                            final moved = _items.removeAt(oldIndex);
+                            _items.insert(newIndex, moved);
+                          });
+                        },
+                        itemBuilder: (context, index) {
+                          final item = _items[index];
+                          return Container(
+                            key: ValueKey<String>(item.id),
+                            margin: const EdgeInsets.only(
+                              bottom: AppSpacing.md,
+                            ),
+                            padding: const EdgeInsets.all(AppSpacing.md),
+                            decoration: BoxDecoration(
+                              color: colors.surface,
+                              borderRadius: AppRadius.cardRadius,
+                              border: Border.all(color: colors.border),
+                            ),
+                            child: Row(
+                              children: <Widget>[
+                                PlaceholderImage(
+                                  seed: item.seed,
+                                  width: 64,
+                                  height: 64,
+                                  borderRadius: AppRadius.photoRadius,
+                                  caption: '${index + 1}',
+                                ),
+                                const SizedBox(width: AppSpacing.md),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: <Widget>[
+                                      Text(
+                                        AppStrings.ber05CropLabel,
+                                        style: typo.captionStrong,
+                                      ),
+                                      const SizedBox(height: AppSpacing.xs),
+                                      Wrap(
+                                        spacing: AppSpacing.xs,
+                                        children: <Widget>[
+                                          AppChip(
+                                            label: AppStrings.ber05CropSquare,
+                                            isSelected:
+                                                (item.aspectRatio - 1.0).abs() <
+                                                0.05,
+                                            onTap: () =>
+                                                _setCropRatio(index, 1),
+                                          ),
+                                          AppChip(
+                                            label: AppStrings.ber05Crop4x3,
+                                            isSelected:
+                                                (item.aspectRatio - 4 / 3)
+                                                    .abs() <
+                                                0.05,
+                                            onTap: () =>
+                                                _setCropRatio(index, 4 / 3),
+                                          ),
+                                          AppChip(
+                                            label: AppStrings.ber05Crop16x9,
+                                            isSelected:
+                                                (item.aspectRatio - 16 / 9)
+                                                    .abs() <
+                                                0.05,
+                                            onTap: () =>
+                                                _setCropRatio(index, 16 / 9),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Semantics(
+                                  button: true,
+                                  label: AppStrings.ber05RemovePhotoTooltip,
+                                  child: IconButton(
+                                    tooltip: AppStrings.ber05RemovePhotoTooltip,
+                                    onPressed: () =>
+                                        setState(() => _items.removeAt(index)),
+                                    icon: Icon(
+                                      Icons.delete_outline_rounded,
+                                      color: colors.danger,
+                                    ),
+                                  ),
+                                ),
+                                ReorderableDragStartListener(
+                                  index: index,
+                                  child: Icon(
+                                    Icons.drag_handle_rounded,
+                                    color: colors.textMuted,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
     );

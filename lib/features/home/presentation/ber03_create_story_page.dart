@@ -10,6 +10,7 @@ import 'package:horas/core/theme/app_tokens.dart';
 import 'package:horas/core/utils/image_data_uri_helper.dart';
 import 'package:horas/core/widgets/widgets.dart';
 import 'package:horas/domain/models/models.dart';
+import 'package:horas/features/home/presentation/home_feed_controller.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -99,12 +100,13 @@ class _Ber03CreateStoryPageState extends ConsumerState<Ber03CreateStoryPage> {
       return;
     }
 
+    ref.read(storiesRefreshTickProvider.notifier).bump();
     AppToast.show(
       context,
       message: 'Cerita berhasil dibagikan untuk pengikutmu (24 jam).',
       variant: AppToastVariant.success,
     );
-    context.pop();
+    context.pop(true);
   }
 
   @override

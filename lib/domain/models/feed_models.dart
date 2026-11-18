@@ -420,12 +420,16 @@ final class Story {
   };
 
   factory Story.fromJson(Map<String, Object?> json) {
+    final authorMap = json['author'];
+    final fallbackAuthorId = (json['author_id'] as String?) ?? '';
     return Story(
       id: (json['id'] as String?) ?? '',
-      author: json['author'] is Map<String, Object?>
-          ? PersonSummary.fromJson(json['author'] as Map<String, Object?>)
-          : const PersonSummary(
-              id: '',
+      author: authorMap is Map
+          ? PersonSummary.fromJson(
+              authorMap.map((k, v) => MapEntry(k.toString(), v)),
+            )
+          : PersonSummary(
+              id: fallbackAuthorId,
               displayName: '',
               gender: UserGender.male,
               marga: '',
@@ -434,18 +438,37 @@ final class Story {
               proximity: AreaProximity.diKotamu,
               avatarSeed: '',
             ),
-      mediaSeed: (json['mediaSeed'] as String?) ?? '',
+      mediaSeed:
+          (json['mediaSeed'] as String?) ??
+          (json['media_seed'] as String?) ??
+          '',
       caption: (json['caption'] as String?) ?? '',
-      isVideo: (json['isVideo'] as bool?) ?? false,
-      durationSeconds: (json['durationSeconds'] as int?) ?? 5,
+      isVideo:
+          (json['isVideo'] as bool?) ?? (json['is_video'] as bool?) ?? false,
+      durationSeconds:
+          (json['durationSeconds'] as int?) ??
+          (json['duration_seconds'] as int?) ??
+          5,
       createdAt:
-          DateTime.tryParse((json['createdAt'] as String?) ?? '') ??
+          DateTime.tryParse(
+            (json['createdAt'] as String?) ??
+                (json['created_at'] as String?) ??
+                '',
+          ) ??
           DateTime.now(),
       expiresAt:
-          DateTime.tryParse((json['expiresAt'] as String?) ?? '') ??
+          DateTime.tryParse(
+            (json['expiresAt'] as String?) ??
+                (json['expires_at'] as String?) ??
+                '',
+          ) ??
           DateTime.now().add(const Duration(hours: 24)),
-      viewerCount: (json['viewerCount'] as int?) ?? 0,
-      isViewedByMe: (json['isViewedByMe'] as bool?) ?? false,
+      viewerCount:
+          (json['viewerCount'] as int?) ?? (json['viewer_count'] as int?) ?? 0,
+      isViewedByMe:
+          (json['isViewedByMe'] as bool?) ??
+          (json['is_viewed_by_me'] as bool?) ??
+          false,
     );
   }
 }
@@ -472,13 +495,17 @@ final class StoryViewer {
   };
 
   factory StoryViewer.fromJson(Map<String, Object?> json) {
+    final viewerMap = json['viewer'];
     return StoryViewer(
       id: (json['id'] as String?) ?? '',
-      storyId: (json['storyId'] as String?) ?? '',
-      viewer: json['viewer'] is Map<String, Object?>
-          ? PersonSummary.fromJson(json['viewer'] as Map<String, Object?>)
-          : const PersonSummary(
-              id: '',
+      storyId:
+          (json['storyId'] as String?) ?? (json['story_id'] as String?) ?? '',
+      viewer: viewerMap is Map
+          ? PersonSummary.fromJson(
+              viewerMap.map((k, v) => MapEntry(k.toString(), v)),
+            )
+          : PersonSummary(
+              id: (json['viewer_id'] as String?) ?? '',
               displayName: '',
               gender: UserGender.male,
               marga: '',
@@ -488,7 +515,11 @@ final class StoryViewer {
               avatarSeed: '',
             ),
       viewedAt:
-          DateTime.tryParse((json['viewedAt'] as String?) ?? '') ??
+          DateTime.tryParse(
+            (json['viewedAt'] as String?) ??
+                (json['viewed_at'] as String?) ??
+                '',
+          ) ??
           DateTime.now(),
     );
   }

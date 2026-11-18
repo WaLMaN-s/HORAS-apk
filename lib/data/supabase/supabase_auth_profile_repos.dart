@@ -372,10 +372,15 @@ final class SupabaseAuthRepository implements AuthRepository {
           bucket: 'avatars',
           sourcePathOrSeed: draft.photoSeedOrPath!,
         );
+        final bestAvatar = uploaded.publicUrl ?? uploaded.storagePath;
         await _gw.client
             .from('profiles')
-            .update(<String, Object?>{'avatar_path': uploaded.storagePath})
+            .update(<String, Object?>{
+              'avatar_seed': bestAvatar,
+              'avatar_path': bestAvatar,
+            })
             .eq('id', row['id'] as String);
+        _gw.invalidatePersonCache(row['id'] as String);
       } on Object {
         // Tetap lanjut onboarding bila foto profil ditunda saat koneksi lemah.
       }
@@ -666,11 +671,9 @@ final class SupabaseProfileRepository implements ProfileRepository {
         bucket: 'avatars',
         sourcePathOrSeed: avatarSeed,
       );
-      if (uploaded.publicUrl != null) {
-        updates['avatar_path'] = uploaded.publicUrl;
-      } else {
-        updates['avatar_seed'] = uploaded.storagePath;
-      }
+      final bestAvatar = uploaded.publicUrl ?? uploaded.storagePath;
+      updates['avatar_seed'] = bestAvatar;
+      updates['avatar_path'] = bestAvatar;
       await _gw.mediaUploader.markBatchFinished('avatars', <String>[
         avatarSeed,
       ]);

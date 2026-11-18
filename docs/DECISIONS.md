@@ -204,3 +204,8 @@ Dokumen ini mencatat seluruh keputusan teknis, asumsi produk saat PRD ambigu, da
   2. **Migrasi Database & Edge Functions:** Skema database termigrasi penuh (0001–0008), data benih (`seed.sql`), dan Edge Function `auth-otp-guard` serta `process-image` berjalan pada port Kong 54321, PostgreSQL port 54322, dan Studio UI port 54323.
   3. **Auto-Start Systemd Service (`horas-supabase.service`):** Memasang unit systemd di `/etc/systemd/system/horas-supabase.service` dengan ketergantungan `After=docker.service network-online.target` sehingga Supabase otomatis aktif saat server dinyalakan ulang.
   4. **Profil Peluncuran VS Code:** Menambahkan konfigurasi `HORAS (Ubuntu Server Live Tailscale)` dan `HORAS (Ubuntu Server Live LAN)` di `.vscode/launch.json` dengan URL Supabase `http://100.77.185.93:54321` dan Publishable Anon Key `sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH`.
+
+## D-028 · Izin HTTP Cleartext Khusus Build Debug ke Server Ubuntu (18 Nov 2026)
+- **Konteks:** Server Supabase di Ubuntu (`100.77.185.93` / `192.168.1.15`) belum memakai HTTPS, sedangkan Android 9+ memblokir koneksi `http://` secara bawaan.
+- **Keputusan:** Menambahkan `android/app/src/debug/res/xml/network_security_config.xml` yang mengizinkan cleartext **hanya di build debug** dan hanya ke host pengembangan (`10.0.2.2`, `localhost`, IP Tailscale, IP LAN). Build release tidak memuat konfigurasi ini dan tetap wajib HTTPS.
+- **Tindak lanjut sebelum rilis publik:** Pasang domain + sertifikat TLS (mis. Nginx reverse proxy + Let's Encrypt) di depan port 54321.

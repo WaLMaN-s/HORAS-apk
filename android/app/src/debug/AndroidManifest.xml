@@ -4,4 +4,9 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- D-028: HTTP tanpa TLS hanya diizinkan di build debug, dan hanya ke
+         host backend pengembangan (emulator, server Ubuntu via Tailscale/LAN).
+         Build release tetap wajib HTTPS. -->
+    <application android:networkSecurityConfig="@xml/network_security_config" />
 </manifest>

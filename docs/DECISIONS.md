@@ -225,3 +225,15 @@ Dokumen ini mencatat seluruh keputusan teknis, asumsi produk saat PRD ambigu, da
   2. **Penyebaran Edge Functions:** Men-deploy `auth-otp-guard` dan `process-image` ke Supabase Cloud (`--no-verify-jwt`).
   3. **Keystore Rilis Persisten:** Membuat keystore penandatanganan rilis di `/home/man/.android/horas-release-key.jks` (di luar git, direferensikan lewat `android/key.properties` yang di-gitignore) dan mengonfigurasi `signingConfigs.create("release")` di `android/app/build.gradle.kts` agar pembaruan APK berikutnya dapat diinstal menimpa aplikasi lama tanpa kehilangan data lokal pengguna.
   4. **Profil VS Code & Berkas APK Publik:** Menambahkan profil `HORAS (Supabase Cloud Publik)` di `.vscode/launch.json` dan menghasilkan berkas `build/app/outputs/flutter-apk/horas-live-publik.apk`.
+
+## D-031 · Deteksi Lokasi Otomatis di Onboarding, Unggah Foto Asli (Profil/Story/Postingan), Chat Langsung Setelah Mengikuti, & Tabel 9 Prioritas Rumus Panggilan Partuturan (18 Nov 2026)
+- **Konteks:** Pengguna meminta 4 penyempurnaan:
+  1. Di onboarding (`AUT-06`), hilangkan pilihan kota & kecamatan manual dan gantikan dengan deteksi lokasi terkini otomatis, serta tambahkan input **Marga Ibu (Boru Ibu)**.
+  2. Perbaiki unggah foto profil, gambar story, dan gambar postingan agar foto nyata dari galeri/kamera langsung tampil.
+  3. Bila sudah mengikuti (*follow*) seseorang, pengguna dapat langsung menge-chat seperti DM Instagram.
+  4. Terapkan tabel 9 prioritas rumus penentuan panggilan Partuturan (`Parra`, `Anggi`, `Haha`, `Pariban`, `Periksa generasi dan silsilah`, `Bapa Uda`, `Bapa Tua`, `Namboru`, `Nantulang`, `Tulang`, `Marpariban`, `Lae`, `Ito`).
+- **Keputusan & Implementasi:**
+  1. **Onboarding (`AUT-06`):** Menambahkan input `Marga Ibu / Boru Ibu` di Langkah 2 (`completeOnboardingStep2`) dan mengganti daftar chip kota/kecamatan di Langkah 3 dengan kartu deteksi lokasi perkiraan otomatis (`_detectAndFillCurrentLocation`).
+  2. **Unggah & Render Foto Nyata (`ImageDataUriHelper`, `PlaceholderImage`, `AppAvatar`):** Mengonversi foto hasil kompresi bebas EXIF (`AC-10`) menjadi Data URI (`data:image/jpeg;base64,...`) yang dirender langsung oleh `Image.memory` di `PlaceholderImage` dan `AppAvatar` (menyembunyikan teks inisial saat foto nyata tersedia) pada `AUT-06`, `AKN-02`, `BER-03`, `BER-04`, `BER-05`, dan `PSN-03`/`PSN-04`.
+  3. **Chat Setelah Mengikuti (`0010_follow_chat_and_partuturan.sql`, `SEK-04`):** Mengaktifkan `canMessage = true` dan `openDirectConversationWithUser` / RPC `open_or_create_direct_conversation` saat `isFollowing == true`.
+  4. **Rumus Panggilan Partuturan Data-Driven (`assets/partuturan/toba.v0.json` v0.2.0-draft & `PartuturanEngine`):** Menambahkan dukungan `ageDifferenceYears`, `sameMotherMarga`, dan `specificKinshipBranch` pada `PartuturanEngine` serta SQL `evaluate_partuturan` sesuai 9 prioritas panggilan tanpa meng-hardcode istilah di kode Dart (`TAR-R6`).

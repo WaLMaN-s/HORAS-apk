@@ -1,10 +1,10 @@
-import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:horas/core/config/feature_flags.dart';
 import 'package:horas/core/l10n/app_strings.dart';
 import 'package:horas/core/theme/app_theme.dart';
 import 'package:horas/core/theme/app_tokens.dart';
+import 'package:horas/core/utils/image_data_uri_helper.dart';
 import 'package:horas/core/widgets/widgets.dart';
 import 'package:horas/domain/policies/app_limits.dart';
 import 'package:horas/features/home/presentation/home_models.dart';
@@ -14,7 +14,7 @@ import 'package:permission_handler/permission_handler.dart' as perm;
 
 /// BER-05 Pilih dan Edit Media (BER-R2, BER-R4, AC-10).
 ///
-/// - Galeri, pilih sampai 10 foto dengan penghitung
+/// - Galeri & Kamera, pilih sampai 10 foto dengan penghitung
 /// - Pangkas rasio (1:1, 4:3, 16:9) & urutkan lewat seret (`ReorderableListView`)
 /// - Izin galeri ditolak memakai `StateView.permissionDenied`
 /// - Kompres di klien (`keepExif: false`), validasi maksimal 10 MB sebelum kompres
@@ -33,7 +33,7 @@ class Ber05MediaPickerPage extends ConsumerStatefulWidget {
 
 class _Ber05MediaPickerPageState extends ConsumerState<Ber05MediaPickerPage> {
   late List<SelectedMediaItem> _items;
-  bool _permissionDenied = false;
+  final bool _permissionDenied = false;
   int _sampleSeq = 1;
 
   @override
@@ -46,55 +46,69 @@ class _Ber05MediaPickerPageState extends ConsumerState<Ber05MediaPickerPage> {
     if (_items.length >= AppLimits.postMaxPhotos) return;
 
     try {
-      final status = await perm.Permission.photos.request();
-      if (status.isDenied || status.isPermanentlyDenied) {
-        if (mounted) {
-          setState(() => _permissionDenied = true);
-        }
-        return;
-      }
-    } on Object {
-      // Pada simulator/widget test tanpa platform channel, lanjutkan ke picker/fallback.
-    }
-
-    try {
-      final picker = ImagePicker();
-      final pickedFiles = await picker.pickMultiImage(
+      final pickedList = await ImageDataUriHelper.pickMultipleAndEncodeImages(
         limit: AppLimits.postMaxPhotos - _items.length,
-        imageQuality: 85,
+        maxDimension: 720,
+        quality: 75,
+        maxRawBytes: AppLimits.postPhotoMaxBytes,
       );
-      for (final file in pickedFiles) {
-        if (_items.length >= AppLimits.postMaxPhotos) break;
-        final rawBytes = await file.readAsBytes();
-        if (rawBytes.length > AppLimits.postPhotoMaxBytes) {
-          if (mounted) {
-            AppToast.show(
-              context,
-              message: 'Ukuran per foto maksimal 10 MB sebelum kompres.',
-              variant: AppToastVariant.error,
-            );
-          }
-          continue;
-        }
-        final compressed = await FlutterImageCompress.compressWithList(
-          rawBytes,
-          minWidth: 1080,
-          minHeight: 1080,
-          quality: 82,
-          keepExif: false, // AC-10: Hapus metadata EXIF di sisi klien
-        );
-        if (!mounted) return;
-        setState(() {
+      if (!mounted) return;
+      if (pickedList.isEmpty) return;
+      setState(() {
+        for (final item in pickedList) {
+          if (_items.length >= AppLimits.postMaxPhotos) break;
           _items.add(
             SelectedMediaItem(
               id: 'gal-${DateTime.now().microsecondsSinceEpoch}-${_items.length}',
-              seed: 'gallery-${file.name}-${_items.length}',
-              originalBytesCount: rawBytes.length,
-              compressedBytes: compressed,
+              seed: item.dataUri,
+              originalBytesCount: item.originalBytesCount,
+              compressedBytes: item.compressedBytes,
               aspectRatio: 1.0,
             ),
           );
-        });
+        }
+      });
+    } on FormatException {
+      if (mounted) {
+        AppToast.show(
+          context,
+          message: 'Ukuran per foto maksimal 10 MB sebelum kompres.',
+          variant: AppToastVariant.error,
+        );
+      }
+    } on Object {
+      _addSamplePhoto();
+    }
+  }
+
+  Future<void> _pickFromCamera() async {
+    if (_items.length >= AppLimits.postMaxPhotos) return;
+    try {
+      final encoded = await ImageDataUriHelper.pickAndEncodeImage(
+        ImageSource.camera,
+        maxDimension: 720,
+        quality: 75,
+        maxRawBytes: AppLimits.postPhotoMaxBytes,
+      );
+      if (!mounted || encoded == null) return;
+      setState(() {
+        _items.add(
+          SelectedMediaItem(
+            id: 'cam-${DateTime.now().microsecondsSinceEpoch}-${_items.length}',
+            seed: encoded.dataUri,
+            originalBytesCount: encoded.originalBytesCount,
+            compressedBytes: encoded.compressedBytes,
+            aspectRatio: 1.0,
+          ),
+        );
+      });
+    } on FormatException {
+      if (mounted) {
+        AppToast.show(
+          context,
+          message: 'Ukuran per foto maksimal 10 MB sebelum kompres.',
+          variant: AppToastVariant.error,
+        );
       }
     } on Object {
       _addSamplePhoto();
@@ -161,9 +175,7 @@ class _Ber05MediaPickerPageState extends ConsumerState<Ber05MediaPickerPage> {
           onOpenSettings: () {
             perm.openAppSettings();
           },
-          onContinueWithoutPermission: () {
-            setState(() => _permissionDenied = false);
-          },
+          onContinueWithoutPermission: () {},
         ),
       );
     }
@@ -203,32 +215,42 @@ class _Ber05MediaPickerPageState extends ConsumerState<Ber05MediaPickerPage> {
                         ),
                         style: typo.h3,
                       ),
-                      Wrap(
-                        spacing: AppSpacing.xs,
-                        children: <Widget>[
-                          if (flags.video)
+                      Flexible(
+                        child: Wrap(
+                          spacing: AppSpacing.xs,
+                          runSpacing: AppSpacing.xs,
+                          children: <Widget>[
+                            if (flags.video)
+                              AppButton(
+                                label: AppStrings.ber05AddVideoBtn,
+                                variant: AppButtonVariant.secondary,
+                                isDisabled:
+                                    _items.length >= AppLimits.postMaxPhotos,
+                                onPressed: () => _addSampleVideo(30),
+                              ),
                             AppButton(
-                              label: AppStrings.ber05AddVideoBtn,
+                              label: AppStrings.ber05PickFromGalleryBtn,
                               variant: AppButtonVariant.secondary,
                               isDisabled:
                                   _items.length >= AppLimits.postMaxPhotos,
-                              onPressed: () => _addSampleVideo(30),
+                              onPressed: _pickFromGallery,
                             ),
-                          AppButton(
-                            label: AppStrings.ber05PickFromGalleryBtn,
-                            variant: AppButtonVariant.secondary,
-                            isDisabled:
-                                _items.length >= AppLimits.postMaxPhotos,
-                            onPressed: _pickFromGallery,
-                          ),
-                          AppButton(
-                            label: AppStrings.ber05AddSamplePhotoBtn,
-                            variant: AppButtonVariant.text,
-                            isDisabled:
-                                _items.length >= AppLimits.postMaxPhotos,
-                            onPressed: _addSamplePhoto,
-                          ),
-                        ],
+                            AppButton(
+                              label: AppStrings.aut06PickPhotoCamera,
+                              variant: AppButtonVariant.secondary,
+                              isDisabled:
+                                  _items.length >= AppLimits.postMaxPhotos,
+                              onPressed: _pickFromCamera,
+                            ),
+                            AppButton(
+                              label: AppStrings.ber05AddSamplePhotoBtn,
+                              variant: AppButtonVariant.text,
+                              isDisabled:
+                                  _items.length >= AppLimits.postMaxPhotos,
+                              onPressed: _addSamplePhoto,
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -242,8 +264,8 @@ class _Ber05MediaPickerPageState extends ConsumerState<Ber05MediaPickerPage> {
               child: _items.isEmpty
                   ? StateView.empty(
                       message: AppStrings.ber05PermissionBenefit,
-                      actionLabel: AppStrings.ber05AddSamplePhotoBtn,
-                      onAction: _addSamplePhoto,
+                      actionLabel: AppStrings.ber05PickFromGalleryBtn,
+                      onAction: _pickFromGallery,
                     )
                   : ReorderableListView.builder(
                       padding: const EdgeInsets.all(AppSpacing.screenMargin),

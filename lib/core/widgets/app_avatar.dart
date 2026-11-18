@@ -48,6 +48,7 @@ class AppAvatar extends StatelessWidget {
     final typo = context.typo;
     final effectiveSeed = seed ?? name;
     final initials = initialsOf(name);
+    final hasRealPhoto = PlaceholderImage.isRealImageSeed(effectiveSeed);
 
     final avatarBody = RepaintBoundary(
       child: Container(
@@ -70,13 +71,14 @@ class AppAvatar extends StatelessWidget {
                 borderRadius: BorderRadius.zero,
                 showMountainSilhouette: false,
               ),
-              Text(
-                initials,
-                style: typo.bodyStrong.copyWith(
-                  color: colors.onPrimary,
-                  fontSize: math.max(11, size * 0.36),
+              if (!hasRealPhoto)
+                Text(
+                  initials,
+                  style: typo.bodyStrong.copyWith(
+                    color: colors.onPrimary,
+                    fontSize: math.max(11, size * 0.36),
+                  ),
                 ),
-              ),
             ],
           ),
         ),

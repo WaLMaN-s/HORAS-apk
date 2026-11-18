@@ -10,6 +10,7 @@ import 'package:horas/core/widgets/widgets.dart';
 import 'package:horas/domain/models/models.dart';
 import 'package:horas/domain/policies/app_limits.dart';
 import 'package:horas/features/messages/presentation/chat_thread_widgets.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// AKN-02 Edit Profil (`AKN-R2`).
@@ -158,8 +159,8 @@ class _Akn02EditProfilePageState extends ConsumerState<Akn02EditProfilePage> {
     if (mounted) await _load();
   }
 
-  Future<void> _changePhoto() async {
-    final seed = await pickAndCompressChatPhoto(context);
+  Future<void> _changePhoto([ImageSource source = ImageSource.gallery]) async {
+    final seed = await pickAndCompressChatPhoto(context, source: source);
     if (seed != null && mounted) {
       setState(() => _avatarSeed = seed);
     }
@@ -233,10 +234,23 @@ class _Akn02EditProfilePageState extends ConsumerState<Akn02EditProfilePage> {
                           size: AppSizes.avatarLg,
                         ),
                         const SizedBox(height: AppSpacing.sm),
-                        AppButton(
-                          label: AppStrings.akn02PickPhotoBtn,
-                          variant: AppButtonVariant.text,
-                          onPressed: _changePhoto,
+                        Wrap(
+                          spacing: AppSpacing.sm,
+                          children: <Widget>[
+                            AppButton(
+                              label: AppStrings.akn02PickPhotoBtn,
+                              variant: AppButtonVariant.secondary,
+                              leadingIcon: Icons.photo_library_outlined,
+                              onPressed: () =>
+                                  _changePhoto(ImageSource.gallery),
+                            ),
+                            AppButton(
+                              label: AppStrings.aut06PickPhotoCamera,
+                              variant: AppButtonVariant.text,
+                              leadingIcon: Icons.camera_alt_outlined,
+                              onPressed: () => _changePhoto(ImageSource.camera),
+                            ),
+                          ],
                         ),
                       ],
                     ),

@@ -367,10 +367,12 @@ class AuthFlowController extends Notifier<AuthFlowState> {
     return true;
   }
 
-  /// Langkah 2 -> Langkah 3: Validasi jenis kelamin & tahun lahir (usia < 17 ditolak sopan & TIDAK disimpan — AC-02).
+  /// Langkah 2 -> Langkah 3: Validasi jenis kelamin & tahun lahir (usia < 17 ditolak sopan & TIDAK disimpan — AC-02),
+  /// serta simpan Marga Ibu (Boru Ibu) bila diisi.
   Future<bool> completeOnboardingStep2({
     required UserGender gender,
     required int birthYear,
+    String? motherMarga,
   }) async {
     final authRepo = ref.read(authRepositoryProvider);
     final ageCheck = HorasPolicies.validateOnboardingAge(
@@ -386,8 +388,24 @@ class AuthFlowController extends Notifier<AuthFlowState> {
       return false;
     }
 
+    final cleanMotherMarga = (motherMarga ?? state.onboardingDraft.motherMarga)
+        .trim();
+    if (cleanMotherMarga.length >= 2) {
+      await ref
+          .read(profileRepositoryProvider)
+          .submitCustomMarga(
+            margaName: cleanMotherMarga,
+            subEthnic: state.onboardingDraft.subEthnic,
+          );
+    }
+
     await updateOnboardingDraft(
-      (d) => d.copyWith(currentStep: 3, gender: gender, birthYear: birthYear),
+      (d) => d.copyWith(
+        currentStep: 3,
+        gender: gender,
+        birthYear: birthYear,
+        motherMarga: cleanMotherMarga,
+      ),
     );
     return true;
   }
@@ -435,19 +453,14 @@ class AuthFlowController extends Notifier<AuthFlowState> {
     required List<String> hobbies,
     String? campusOrOffice,
   }) async {
-    if (city.trim().isEmpty || subdistrict.trim().isEmpty) {
-      state = state.copyWith(
-        error: const ValidationError(
-          message: 'Pilih kota dan kecamatan domisili terlebih dahulu.',
-          field: 'city',
-        ),
-      );
-      return false;
-    }
+    final effectiveCity = city.trim().isEmpty ? 'Medan' : city.trim();
+    final effectiveSubdistrict = subdistrict.trim().isEmpty
+        ? 'Medan Baru'
+        : subdistrict.trim();
 
     final draft = state.onboardingDraft.copyWith(
-      city: city.trim(),
-      subdistrict: subdistrict.trim(),
+      city: effectiveCity,
+      subdistrict: effectiveSubdistrict,
       hobbies: hobbies,
       campusOrOffice: (campusOrOffice ?? '').trim(),
     );
@@ -475,6 +488,14 @@ class AuthFlowController extends Notifier<AuthFlowState> {
           ? null
           : draft.campusOrOffice,
     );
+
+    if (res.isOk &&
+        draft.photoSeedOrPath != null &&
+        draft.photoSeedOrPath!.isNotEmpty) {
+      await ref
+          .read(profileRepositoryProvider)
+          .updateMyProfile(avatarSeed: draft.photoSeedOrPath);
+    }
 
     return res.fold(
       onOk: (_) async {

@@ -1548,4 +1548,13 @@ abstract final class AppStrings {
   static const String sek10ProposedToast =
       'Usulan gereja berhasil dikirim dan masuk antrean moderasi.';
   static const String sek11LocationPreviewTitle = 'Lokasi di Peta';
+
+  // Onboarding: Deteksi Lokasi Otomatis (AUT-06)
+  static const String aut06AutoLocationTitle =
+      'Lokasi Domisili (Terdeteksi Otomatis)';
+  static const String aut06AutoLocationSubtitle =
+      'Kota domisili diisi otomatis berdasarkan lokasi perkiraan perangkatmu.';
+  static const String aut06DetectLocationBtn = 'Deteksi Lokasi Terkini';
+  static const String aut06DetectingLocation = 'Mendeteksi lokasi...';
+  static const String aut06DetectedLocationPrefix = 'Kota terdeteksi';
 }

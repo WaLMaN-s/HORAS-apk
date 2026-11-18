@@ -197,5 +197,6 @@ Seluruh fitur Fase 2 telah selesai diimplementasikan pada lapisan domain, data m
 - Menambahkan tampilan peta gereja (`SEK-10`), pratinjau peta mini & tombol `Petunjuk Arah di Google Maps` (`SEK-11` & `MAN-08`), serta filter pengurutan `Terdekat` (`PlaceGeoHelper`) berbasis lokasi perkiraan di perangkat (`AUT-R10`) atau pusat kota domisili dengan label rentang jarak (`< 1 km`, `1–5 km`, `5–10 km`, `> 10 km`).
 
 ## Penyebaran Publik ke Supabase Cloud (`hupxmxxwusgeqqiijsnz`) & APK Rilis
-- Seluruh 9 migrasi (`0001`–`0009`), seed data, serta Edge Functions (`auth-otp-guard`, `process-image`) aktif di `https://hupxmxxwusgeqqiijsnz.supabase.co`.
+- Seluruh 10 migrasi (`0001`–`0010`), seed data, serta Edge Functions (`auth-otp-guard`, `process-image`) aktif di `https://hupxmxxwusgeqqiijsnz.supabase.co`.
 - Keystore rilis persisten (`/home/man/.android/horas-release-key.jks`) terkonfigurasi di `android/app/build.gradle.kts` untuk menghasilkan `horas-live-publik.apk` yang siap dibagikan ke pengguna tanpa Tailscale.
+- Deteksi lokasi otomatis & input Marga Ibu (Boru Ibu) di Onboarding (`AUT-06`), unggah foto asli (Profil, Story, Postingan, Chat) via `ImageDataUriHelper`, chat langsung setelah mengikuti pengguna (`SEK-04`, `PSN-03`), serta rumus 9 prioritas panggilan Partuturan (`toba.v0.json` v0.2.0-draft) telah aktif dan teruji (90/90 test lulus).

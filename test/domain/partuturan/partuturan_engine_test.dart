@@ -204,6 +204,171 @@ void main() {
           expect(find.text(AppStrings.semargaFullLabel), findsOneWidget);
         },
       );
+
+      test('Tabel 9 Prioritas Rumus Panggilan (Situmorang & Boru Ibu Siregar: Parra, Anggi, Haha, Pariban, Periksa generasi, Bapa Uda, Bapa Tua, Namboru, Nantulang)', () {
+        // Prioritas 1: Marga sama (Situmorang), laki-laki, selisih <= 5 tahun -> Parra
+        final p1 = engineWithDraft.evaluate(
+          const PartuturanEvaluationInput(
+            viewerMarga: 'Situmorang',
+            viewerGender: UserGender.male,
+            viewerMotherMarga: 'Siregar',
+            subEthnic: SubEthnic.toba,
+            targetMarga: 'Situmorang',
+            targetGender: UserGender.male,
+            generationInfo: GenerationInfo(
+              delta: 0,
+              ageDifferenceYears: 3,
+              source: GenerationSource.tahunLahir,
+            ),
+          ),
+        );
+        expect(p1.istilah, 'Parra');
+
+        // Prioritas 2: Marga sama, laki-laki lebih muda > 5 tahun -> Anggi
+        final p2 = engineWithDraft.evaluate(
+          const PartuturanEvaluationInput(
+            viewerMarga: 'Situmorang',
+            viewerGender: UserGender.male,
+            viewerMotherMarga: 'Siregar',
+            subEthnic: SubEthnic.toba,
+            targetMarga: 'Situmorang',
+            targetGender: UserGender.male,
+            generationInfo: GenerationInfo(
+              delta: 0,
+              ageDifferenceYears: -7,
+              source: GenerationSource.tahunLahir,
+            ),
+          ),
+        );
+        expect(p2.istilah, 'Anggi');
+
+        // Prioritas 3: Marga sama, laki-laki lebih tua > 5 tahun -> Haha
+        final p3 = engineWithDraft.evaluate(
+          const PartuturanEvaluationInput(
+            viewerMarga: 'Situmorang',
+            viewerGender: UserGender.male,
+            viewerMotherMarga: 'Siregar',
+            subEthnic: SubEthnic.toba,
+            targetMarga: 'Situmorang',
+            targetGender: UserGender.male,
+            generationInfo: GenerationInfo(
+              delta: 0,
+              ageDifferenceYears: 8,
+              source: GenerationSource.tahunLahir,
+            ),
+          ),
+        );
+        expect(p3.istilah, 'Haha');
+
+        // Prioritas 4: Marga ibu sama (Siregar), perempuan, selisih umur <= 7 tahun -> Pariban
+        final p4 = engineWithDraft.evaluate(
+          const PartuturanEvaluationInput(
+            viewerMarga: 'Situmorang',
+            viewerGender: UserGender.male,
+            viewerMotherMarga: 'Siregar',
+            subEthnic: SubEthnic.toba,
+            targetMarga: 'Siregar',
+            targetGender: UserGender.female,
+            targetMotherMarga: 'Siregar',
+            generationInfo: GenerationInfo(
+              delta: 0,
+              ageDifferenceYears: 4,
+              source: GenerationSource.tahunLahir,
+            ),
+          ),
+        );
+        expect(p4.istilah, 'Pariban');
+
+        // Prioritas 5: Marga ibu sama (Siregar), perempuan, selisih umur > 7 tahun -> Periksa generasi dan silsilah
+        final p5 = engineWithDraft.evaluate(
+          const PartuturanEvaluationInput(
+            viewerMarga: 'Situmorang',
+            viewerGender: UserGender.male,
+            viewerMotherMarga: 'Siregar',
+            subEthnic: SubEthnic.toba,
+            targetMarga: 'Nasution',
+            targetGender: UserGender.female,
+            targetMotherMarga: 'Siregar',
+            generationInfo: GenerationInfo(
+              delta: 0,
+              ageDifferenceYears: 10,
+              source: GenerationSource.tahunLahir,
+            ),
+          ),
+        );
+        expect(p5.istilah, 'Periksa generasi dan silsilah');
+
+        // Prioritas 6: Adik laki-laki ayah -> Bapa Uda
+        final p6 = engineWithDraft.evaluate(
+          const PartuturanEvaluationInput(
+            viewerMarga: 'Situmorang',
+            viewerGender: UserGender.male,
+            viewerMotherMarga: 'Siregar',
+            subEthnic: SubEthnic.toba,
+            targetMarga: 'Situmorang',
+            targetGender: UserGender.male,
+            specificBranch: 'adik_ayah',
+            generationInfo: GenerationInfo(
+              delta: 1,
+              source: GenerationSource.sundut,
+            ),
+          ),
+        );
+        expect(p6.istilah, 'Bapa Uda');
+
+        // Prioritas 7: Abang laki-laki ayah -> Bapa Tua
+        final p7 = engineWithDraft.evaluate(
+          const PartuturanEvaluationInput(
+            viewerMarga: 'Situmorang',
+            viewerGender: UserGender.male,
+            viewerMotherMarga: 'Siregar',
+            subEthnic: SubEthnic.toba,
+            targetMarga: 'Situmorang',
+            targetGender: UserGender.male,
+            specificBranch: 'abang_ayah',
+            generationInfo: GenerationInfo(
+              delta: 1,
+              source: GenerationSource.sundut,
+            ),
+          ),
+        );
+        expect(p7.istilah, 'Bapa Tua');
+
+        // Prioritas 8: Saudara perempuan ayah -> Namboru
+        final p8 = engineWithDraft.evaluate(
+          const PartuturanEvaluationInput(
+            viewerMarga: 'Situmorang',
+            viewerGender: UserGender.male,
+            viewerMotherMarga: 'Siregar',
+            subEthnic: SubEthnic.toba,
+            targetMarga: 'Situmorang',
+            targetGender: UserGender.female,
+            generationInfo: GenerationInfo(
+              delta: 1,
+              source: GenerationSource.sundut,
+            ),
+          ),
+        );
+        expect(p8.istilah, 'Namboru');
+
+        // Prioritas 9: Istri saudara laki-laki ibu -> Nantulang
+        final p9 = engineWithDraft.evaluate(
+          const PartuturanEvaluationInput(
+            viewerMarga: 'Situmorang',
+            viewerGender: UserGender.male,
+            viewerMotherMarga: 'Siregar',
+            subEthnic: SubEthnic.toba,
+            targetMarga: 'Siregar',
+            targetGender: UserGender.female,
+            specificBranch: 'istri_tulang',
+            generationInfo: GenerationInfo(
+              delta: 1,
+              source: GenerationSource.sundut,
+            ),
+          ),
+        );
+        expect(p9.istilah, 'Nantulang');
+      });
     },
   );
 }

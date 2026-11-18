@@ -114,6 +114,7 @@ final class SupabaseGateway {
 
   Future<String> resolveStorageUrl(String bucket, String pathOrSeed) async {
     if (pathOrSeed.isEmpty ||
+        pathOrSeed.startsWith('data:image/') ||
         pathOrSeed.startsWith('http://') ||
         pathOrSeed.startsWith('https://') ||
         !pathOrSeed.contains('/')) {

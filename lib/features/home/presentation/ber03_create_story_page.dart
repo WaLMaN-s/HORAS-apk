@@ -7,13 +7,16 @@ import 'package:horas/core/l10n/app_strings.dart';
 import 'package:horas/core/router/app_pages.dart';
 import 'package:horas/core/theme/app_theme.dart';
 import 'package:horas/core/theme/app_tokens.dart';
+import 'package:horas/core/utils/image_data_uri_helper.dart';
 import 'package:horas/core/widgets/widgets.dart';
 import 'package:horas/domain/models/models.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// BER-03 Buat Story (BER-R12).
 ///
 /// - Foto atau video maks 15 detik, tayang 24 jam, hanya untuk pengikut.
+/// - Mendukung pilih foto nyata dari Galeri atau Kamera (bebas EXIF/GPS).
 /// - Memiliki status memuat, offline, error.
 class Ber03CreateStoryPage extends ConsumerStatefulWidget {
   const Ber03CreateStoryPage({super.key});
@@ -36,7 +39,26 @@ class _Ber03CreateStoryPageState extends ConsumerState<Ber03CreateStoryPage> {
     super.dispose();
   }
 
-  void _selectPhoto() {
+  Future<void> _selectPhoto([ImageSource source = ImageSource.gallery]) async {
+    try {
+      final encoded = await ImageDataUriHelper.pickAndEncodeImage(
+        source,
+        maxDimension: 720,
+        quality: 75,
+      );
+      if (!mounted) return;
+      if (encoded != null) {
+        setState(() {
+          _isVideo = false;
+          _durationSeconds = 5;
+          _mediaSeed = encoded.dataUri;
+        });
+        return;
+      }
+    } on Object {
+      // Fallback deterministik pada simulator/pengujian tanpa galeri fisik.
+    }
+    if (!mounted) return;
     setState(() {
       _isVideo = false;
       _durationSeconds = 5;
@@ -90,6 +112,8 @@ class _Ber03CreateStoryPageState extends ConsumerState<Ber03CreateStoryPage> {
     final flags = ref.watch(featureFlagsProvider);
     final colors = context.colors;
     final typo = context.typo;
+    final hasRealPhoto =
+        !_isVideo && PlaceholderImage.isRealImageSeed(_mediaSeed);
 
     if (!flags.stories) {
       return Scaffold(
@@ -122,78 +146,86 @@ class _Ber03CreateStoryPageState extends ConsumerState<Ber03CreateStoryPage> {
             // Kotak Pratinjau Media
             AspectRatio(
               aspectRatio: 9 / 12,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: colors.primaryDark,
-                  borderRadius: BorderRadius.circular(AppRadius.photo),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: <Widget>[
-                    Icon(
-                      _isVideo
-                          ? Icons.videocam_rounded
-                          : Icons.photo_library_outlined,
-                      size: 64,
-                      color: colors.onPrimary,
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    Text(
-                      _isVideo
-                          ? '${AppStrings.ber03VideoLabel} (${_durationSeconds}d)'
-                          : AppStrings.ber03PhotoLabel,
-                      style: typo.h3.copyWith(color: colors.onPrimary),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    Text(
-                      AppStrings.ber03DurationNotice,
-                      style: typo.caption.copyWith(
-                        color: colors.onPrimary.withValues(alpha: 0.8),
+              child: hasRealPhoto
+                  ? PlaceholderImage(
+                      seed: _mediaSeed,
+                      borderRadius: BorderRadius.circular(AppRadius.photo),
+                    )
+                  : Container(
+                      decoration: BoxDecoration(
+                        color: colors.primaryDark,
+                        borderRadius: BorderRadius.circular(AppRadius.photo),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: <Widget>[
+                          Icon(
+                            _isVideo
+                                ? Icons.videocam_rounded
+                                : Icons.photo_library_outlined,
+                            size: 64,
+                            color: colors.onPrimary,
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          Text(
+                            _isVideo
+                                ? '${AppStrings.ber03VideoLabel} (${_durationSeconds}d)'
+                                : AppStrings.ber03PhotoLabel,
+                            style: typo.h3.copyWith(color: colors.onPrimary),
+                          ),
+                          const SizedBox(height: AppSpacing.sm),
+                          Text(
+                            AppStrings.ber03DurationNotice,
+                            style: typo.caption.copyWith(
+                              color: colors.onPrimary.withValues(alpha: 0.8),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
-              ),
             ),
             const SizedBox(height: AppSpacing.lg),
 
-            // Pilihan Foto atau Video
-            Row(
+            // Pilihan Foto (Galeri / Kamera) atau Video
+            Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
               children: <Widget>[
-                Expanded(
-                  child: OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: !_isVideo ? colors.primary : colors.text,
-                      side: BorderSide(
-                        color: !_isVideo ? colors.primary : colors.border,
-                        width: !_isVideo ? 2 : 1,
-                      ),
-                      minimumSize: const Size.fromHeight(
-                        AppSizes.minTouchTarget,
-                      ),
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: !_isVideo ? colors.primary : colors.text,
+                    side: BorderSide(
+                      color: !_isVideo ? colors.primary : colors.border,
+                      width: !_isVideo ? 2 : 1,
                     ),
-                    onPressed: _selectPhoto,
-                    icon: const Icon(Icons.photo_outlined),
-                    label: const Text(AppStrings.ber03PhotoLabel),
+                    minimumSize: const Size(0, AppSizes.minTouchTarget),
                   ),
+                  onPressed: () => _selectPhoto(ImageSource.gallery),
+                  icon: const Icon(Icons.photo_library_outlined),
+                  label: const Text(AppStrings.aut06PickPhotoGallery),
                 ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: _isVideo ? colors.primary : colors.text,
-                      side: BorderSide(
-                        color: _isVideo ? colors.primary : colors.border,
-                        width: _isVideo ? 2 : 1,
-                      ),
-                      minimumSize: const Size.fromHeight(
-                        AppSizes.minTouchTarget,
-                      ),
-                    ),
-                    onPressed: _selectVideo,
-                    icon: const Icon(Icons.videocam_outlined),
-                    label: const Text(AppStrings.ber03VideoLabel),
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: colors.text,
+                    side: BorderSide(color: colors.border),
+                    minimumSize: const Size(0, AppSizes.minTouchTarget),
                   ),
+                  onPressed: () => _selectPhoto(ImageSource.camera),
+                  icon: const Icon(Icons.camera_alt_outlined),
+                  label: const Text(AppStrings.aut06PickPhotoCamera),
+                ),
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: _isVideo ? colors.primary : colors.text,
+                    side: BorderSide(
+                      color: _isVideo ? colors.primary : colors.border,
+                      width: _isVideo ? 2 : 1,
+                    ),
+                    minimumSize: const Size(0, AppSizes.minTouchTarget),
+                  ),
+                  onPressed: _selectVideo,
+                  icon: const Icon(Icons.videocam_outlined),
+                  label: const Text(AppStrings.ber03VideoLabel),
                 ),
               ],
             ),

@@ -382,10 +382,12 @@ final class SupabaseChatRepository implements ChatRepository {
         }
       }
     }
-    throw const PermissionDeniedError(
-      message: 'Mulai dengan mengirim pesan pertama.',
-      permissionName: 'message',
+    final row = await _gw.client.rpc<Map<String, dynamic>>(
+      'open_or_create_direct_conversation',
+      params: <String, Object?>{'p_target_user_id': targetUserId},
     );
+    final hydrated = await _hydrateConversations(<Map<String, dynamic>>[row]);
+    return hydrated.first;
   });
 
   @override

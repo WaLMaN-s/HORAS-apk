@@ -6,7 +6,9 @@ import 'package:horas/domain/partuturan/partuturan_confidence.dart';
 /// Hubungan marga target terhadap marga di profil pelihat dalam berkas aturan JSON.
 enum TargetMargaRelationType {
   sameAsViewerMarga('sameAsViewerMarga'),
-  sameAsViewerMotherMarga('sameAsViewerMotherMarga');
+  sameAsViewerMotherMarga('sameAsViewerMotherMarga'),
+  sameMotherMarga('sameMotherMarga'),
+  specificKinshipBranch('specificKinshipBranch');
 
   const TargetMargaRelationType(this.jsonCode);
 
@@ -35,6 +37,12 @@ final class PartuturanRuleEntry {
     required this.confidence,
     required this.explanationTemplate,
     this.followUpQuestion,
+    this.minAgeDiffYears,
+    this.maxAgeDiffYears,
+    this.maxAbsAgeDiffYears,
+    this.minAbsAgeDiffYears,
+    this.requireAgeDifferenceKnown = false,
+    this.specificBranchCondition,
   });
 
   final String id;
@@ -47,6 +55,12 @@ final class PartuturanRuleEntry {
   final PartuturanConfidence confidence;
   final String explanationTemplate;
   final String? followUpQuestion;
+  final int? minAgeDiffYears;
+  final int? maxAgeDiffYears;
+  final int? maxAbsAgeDiffYears;
+  final int? minAbsAgeDiffYears;
+  final bool requireAgeDifferenceKnown;
+  final String? specificBranchCondition;
 
   factory PartuturanRuleEntry.fromJson(Map<String, Object?> json) {
     final rel = TargetMargaRelationType.tryParse(
@@ -68,6 +82,13 @@ final class PartuturanRuleEntry {
       confidence: PartuturanConfidence.fromJson(json['confidence'] as String?),
       explanationTemplate: (json['explanationTemplate'] as String?) ?? '',
       followUpQuestion: json['followUpQuestion'] as String?,
+      minAgeDiffYears: json['minAgeDiffYears'] as int?,
+      maxAgeDiffYears: json['maxAgeDiffYears'] as int?,
+      maxAbsAgeDiffYears: json['maxAbsAgeDiffYears'] as int?,
+      minAbsAgeDiffYears: json['minAbsAgeDiffYears'] as int?,
+      requireAgeDifferenceKnown:
+          (json['requireAgeDifferenceKnown'] as bool?) ?? false,
+      specificBranchCondition: json['specificBranch'] as String?,
     );
   }
 
@@ -76,8 +97,14 @@ final class PartuturanRuleEntry {
     required UserGender viewerGender,
     required UserGender targetGender,
     required GenerationInfo generationInfo,
+    String? specificBranch,
   }) {
     if (targetMargaRelation != relation) {
+      return false;
+    }
+    if (specificBranchCondition != null &&
+        specificBranchCondition!.isNotEmpty &&
+        specificBranchCondition != specificBranch) {
       return false;
     }
     if (viewerGenderCondition != 'any' &&
@@ -93,6 +120,24 @@ final class PartuturanRuleEntry {
     }
     if (generationDelta != null && generationInfo.delta != generationDelta) {
       return false;
+    }
+    final ageDiff = generationInfo.ageDifferenceYears;
+    if (requireAgeDifferenceKnown && ageDiff == null) {
+      return false;
+    }
+    if (ageDiff != null) {
+      if (minAgeDiffYears != null && ageDiff < minAgeDiffYears!) {
+        return false;
+      }
+      if (maxAgeDiffYears != null && ageDiff > maxAgeDiffYears!) {
+        return false;
+      }
+      if (maxAbsAgeDiffYears != null && ageDiff.abs() > maxAbsAgeDiffYears!) {
+        return false;
+      }
+      if (minAbsAgeDiffYears != null && ageDiff.abs() < minAbsAgeDiffYears!) {
+        return false;
+      }
     }
     return true;
   }
@@ -158,6 +203,8 @@ final class PartuturanEvaluationInput {
     required this.targetGender,
     required this.generationInfo,
     this.viewerMotherMarga,
+    this.targetMotherMarga,
+    this.specificBranch,
     this.confirmedKinshipTerm,
   });
 
@@ -167,6 +214,8 @@ final class PartuturanEvaluationInput {
   final SubEthnic subEthnic;
   final String targetMarga;
   final UserGender targetGender;
+  final String? targetMotherMarga;
+  final String? specificBranch;
   final GenerationInfo generationInfo;
 
   /// Hanya terisi apabila ada klaim hubungan kerabat yang dikonfirmasi kedua pihak (TAR-R5, TAR-R7).
@@ -192,6 +241,8 @@ final class PartuturanEngine {
     final vMarga = _norm(input.viewerMarga);
     final tMarga = _norm(input.targetMarga);
     final mMarga = _norm(input.viewerMotherMarga);
+    final tMotherMarga = _norm(input.targetMotherMarga);
+    final cleanBranch = (input.specificBranch ?? '').trim();
     final isSemarga = vMarga.isNotEmpty && vMarga == tMarga;
 
     final subKey = input.subEthnic.name.toLowerCase();
@@ -226,21 +277,24 @@ final class PartuturanEngine {
       );
     }
 
-    // Tentukan relasi marga target terhadap marga pelihat / marga ibu pelihat
-    TargetMargaRelationType? relation;
-    if (isSemarga) {
-      relation = TargetMargaRelationType.sameAsViewerMarga;
-    } else if (mMarga.isNotEmpty && tMarga == mMarga) {
-      relation = TargetMargaRelationType.sameAsViewerMotherMarga;
-    }
+    // Kumpulkan relasi yang relevan menurut urutan prioritas tabel rumus panggilan
+    final relations = <TargetMargaRelationType>[
+      if (cleanBranch.isNotEmpty) TargetMargaRelationType.specificKinshipBranch,
+      if (isSemarga) TargetMargaRelationType.sameAsViewerMarga,
+      if (!isSemarga && mMarga.isNotEmpty && tMarga == mMarga)
+        TargetMargaRelationType.sameAsViewerMotherMarga,
+      if (mMarga.isNotEmpty && tMotherMarga == mMarga)
+        TargetMargaRelationType.sameMotherMarga,
+    ];
 
-    if (relation != null) {
+    for (final relation in relations) {
       for (final rule in ruleSet.rules) {
         if (rule.matches(
           relation: relation,
           viewerGender: input.viewerGender,
           targetGender: input.targetGender,
           generationInfo: input.generationInfo,
+          specificBranch: cleanBranch.isEmpty ? null : cleanBranch,
         )) {
           final explanation = _interpolate(
             rule.explanationTemplate,
@@ -314,31 +368,38 @@ final class GenerationResolver {
     int? viewerBirthYear,
     int? targetBirthYear,
   }) {
+    final int? ageDiff = (viewerBirthYear != null && targetBirthYear != null)
+        ? (viewerBirthYear - targetBirthYear)
+        : null;
+
     if (viewerSundut != null && targetSundut != null) {
       // Sundut lebih kecil berarti generasi lebih tua (di atas pelihat -> delta positif).
       return GenerationInfo(
         delta: viewerSundut - targetSundut,
+        ageDifferenceYears: ageDiff,
         source: GenerationSource.sundut,
       );
     }
-    if (viewerBirthYear != null && targetBirthYear != null) {
-      final yearDiff = viewerBirthYear - targetBirthYear;
-      if (yearDiff >= 15) {
-        final gensAbove = ((yearDiff + 10) ~/ 25).clamp(1, 3);
+    if (ageDiff != null) {
+      if (ageDiff >= 15) {
+        final gensAbove = ((ageDiff + 10) ~/ 25).clamp(1, 3);
         return GenerationInfo(
           delta: gensAbove,
+          ageDifferenceYears: ageDiff,
           source: GenerationSource.tahunLahir,
         );
       }
-      if (yearDiff <= -15) {
-        final gensBelow = ((-yearDiff + 10) ~/ 25).clamp(1, 3);
+      if (ageDiff <= -15) {
+        final gensBelow = ((-ageDiff + 10) ~/ 25).clamp(1, 3);
         return GenerationInfo(
           delta: -gensBelow,
+          ageDifferenceYears: ageDiff,
           source: GenerationSource.tahunLahir,
         );
       }
-      return const GenerationInfo(
+      return GenerationInfo(
         delta: 0,
+        ageDifferenceYears: ageDiff,
         source: GenerationSource.tahunLahir,
       );
     }

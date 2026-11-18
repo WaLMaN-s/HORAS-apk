@@ -36,19 +36,28 @@ enum GenerationSource {
   }
 }
 
-/// Informasi selisih generasi yang dihitung oleh `GenerationResolver` tanpa membocorkan tahun lahir.
+/// Informasi selisih generasi dan rentang selisih usia yang dihitung oleh `GenerationResolver`
+/// tanpa membocorkan tahun lahir pasti ke DTO orang lain.
 ///
 /// `delta == 1` berarti target satu generasi di atas pelihat;
 /// `delta == 0` berarti generasi sejajar;
 /// `delta == -1` berarti satu generasi di bawah pelihat.
+/// `ageDifferenceYears` positif berarti target lebih tua N tahun dari pelihat;
+/// negatif berarti target lebih muda N tahun dari pelihat.
 final class GenerationInfo {
-  const GenerationInfo({required this.source, this.delta});
+  const GenerationInfo({
+    required this.source,
+    this.delta,
+    this.ageDifferenceYears,
+  });
 
   const GenerationInfo.unknown()
     : delta = null,
+      ageDifferenceYears = null,
       source = GenerationSource.tidakDiketahui;
 
   final int? delta;
+  final int? ageDifferenceYears;
   final GenerationSource source;
 
   bool get isKnown =>
@@ -56,12 +65,14 @@ final class GenerationInfo {
 
   Map<String, Object?> toJson() => <String, Object?>{
     'delta': delta,
+    'ageDifferenceYears': ageDifferenceYears,
     'source': source.jsonCode,
   };
 
   factory GenerationInfo.fromJson(Map<String, Object?> json) {
     return GenerationInfo(
       delta: json['delta'] as int?,
+      ageDifferenceYears: json['ageDifferenceYears'] as int?,
       source: GenerationSource.fromJson(json['source'] as String?),
     );
   }

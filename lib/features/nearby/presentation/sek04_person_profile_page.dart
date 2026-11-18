@@ -221,7 +221,7 @@ class _Sek04PersonProfilePageState
     final person = _person;
     if (person == null || !person.canMessage) return;
 
-    if (person.isConnected) {
+    if (person.isConnected || person.isFollowing || _followStatus != null) {
       await context.push('${AppPages.psn03.routePath}?userId=${person.id}');
       return;
     }

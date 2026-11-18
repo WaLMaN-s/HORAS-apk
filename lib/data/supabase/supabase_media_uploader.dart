@@ -56,6 +56,13 @@ final class SupabaseMediaUploader {
       );
     }
 
+    if (sourcePathOrSeed.startsWith('data:image/')) {
+      return UploadedMediaResult(
+        storagePath: sourcePathOrSeed,
+        sizeBytes: sourcePathOrSeed.length,
+      );
+    }
+
     // Jika input merupakan seed sintetis non-file (misal pengujian tanpa berkas fisik),
     // kembalikan path bersih deterministik agar kontrak mock & tes tetap setara.
     final file = File(sourcePathOrSeed);

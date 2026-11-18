@@ -3924,11 +3924,14 @@ final class MockChatRepository implements ChatRepository {
       );
     }
 
-    // PSN-R1: hanya boleh buka langsung bila sudah Terhubung.
-    if (!_store.isConnectedBetween(me.id, target.id)) {
+    // PSN-R1: boleh buka langsung bila sudah Terhubung atau sudah Mengikuti (gaya IG).
+    final isFollowingTarget = _store.follows.any(
+      (f) => f.followerId == me.id && f.followeeId == target.id,
+    );
+    if (!_store.isConnectedBetween(me.id, target.id) && !isFollowingTarget) {
       return const Err<Conversation>(
         PermissionDeniedError(
-          message: 'Pengguna belum Terhubung. Kirim Permintaan pesan dari profilnya terlebih dahulu.',
+          message: 'Ikuti atau hubungkan pengguna terlebih dahulu untuk memulai percakapan.',
           permissionName: 'pesan',
         ),
       );
@@ -4095,15 +4098,18 @@ final class MockChatRepository implements ChatRepository {
     }
 
     final connected = _store.isConnectedBetween(me.id, target.id);
+    final isFollowingTarget = _store.follows.any(
+      (f) => f.followerId == me.id && f.followeeId == target.id,
+    );
     final sharedContext =
         _store.sharesCommunityOrSession(me.id, target.id) &&
         target.privacySettings.allowMessagesFromSharedContext;
 
-    // PSN-R1 & AC-06: Hanya boleh kirim pesan bila Terhubung atau berbagi komunitas/sesi
-    if (!connected && !sharedContext) {
+    // PSN-R1 & AC-06: Boleh kirim pesan bila Terhubung, Mengikuti, atau berbagi komunitas/sesi
+    if (!connected && !isFollowingTarget && !sharedContext) {
       return const Err<Message>(
         ValidationError(
-          message: 'Pesan pribadi hanya dapat dikirim kepada Kenalan yang sudah Terhubung atau anggota komunitas/sesi yang sama.',
+          message: 'Pesan pribadi hanya dapat dikirim kepada pengguna yang diikuti, Kenalan yang Terhubung, atau anggota komunitas/sesi yang sama.',
           field: 'targetUserId',
         ),
       );
@@ -5562,6 +5568,8 @@ final class MockPartuturanRepository implements PartuturanRepository {
     required UserGender targetGender,
     required GenerationInfo generationInfo,
     String? viewerMotherMarga,
+    String? targetMotherMarga,
+    String? specificBranch,
   }) async {
     final net = await _store.simulateNetworkCall();
     if (net is Err<void>) return Err<PartuturanResult>(net.failure);
@@ -5574,6 +5582,8 @@ final class MockPartuturanRepository implements PartuturanRepository {
         subEthnic: subEthnic,
         targetMarga: targetMarga,
         targetGender: targetGender,
+        targetMotherMarga: targetMotherMarga,
+        specificBranch: specificBranch,
         generationInfo: generationInfo,
       ),
     );

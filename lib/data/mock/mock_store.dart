@@ -695,6 +695,7 @@ final class MockStore {
         subEthnic: viewer.subEthnic,
         targetMarga: target.marga,
         targetGender: target.gender,
+        targetMotherMarga: target.motherMarga,
         generationInfo: genInfo,
         confirmedKinshipTerm: confirmedTerm,
       ),
@@ -756,12 +757,13 @@ final class MockStore {
       visibleAgeGroup = _ageGroupLabel(age);
     }
 
-    // PSN-R1 & AC-06: Tombol Pesan hanya aktif bila Terhubung atau berbagi komunitas/sesi
-    // dan penerima mengizinkan pesan dari konteks bersama.
+    // PSN-R1 & AC-06: Tombol Pesan aktif bila Terhubung, sudah Mengikuti (gaya IG),
+    // atau berbagi komunitas/sesi dan penerima mengizinkan pesan dari konteks bersama.
     final canMessage =
         !isSelf &&
         !blocked &&
         (connected ||
+            following ||
             (sharesCommunityOrSession(effectiveViewer.id, target.id) &&
                 privacy.allowMessagesFromSharedContext));
 

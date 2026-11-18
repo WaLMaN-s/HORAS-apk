@@ -33,18 +33,21 @@ class _Tar06CheckPartuturanPageState
 
   // Input Manual
   final TextEditingController _margaACtrl = TextEditingController(
-    text: 'Simanjuntak',
+    text: 'Situmorang',
   );
   final TextEditingController _motherMargaACtrl = TextEditingController(
-    text: 'Sitorus',
+    text: 'Siregar',
   );
   final TextEditingController _margaBCtrl = TextEditingController(
-    text: 'Sitorus',
+    text: 'Siregar',
   );
+  final TextEditingController _motherMargaBCtrl = TextEditingController();
+  final TextEditingController _ageDiffCtrl = TextEditingController();
   SubEthnic _manualSubEthnic = SubEthnic.toba;
   UserGender _genderA = UserGender.male;
   UserGender _genderB = UserGender.male;
   int? _manualGenDelta = 1;
+  String? _specificBranch;
 
   PartuturanResult? _result;
 
@@ -59,6 +62,8 @@ class _Tar06CheckPartuturanPageState
     _margaACtrl.dispose();
     _motherMargaACtrl.dispose();
     _margaBCtrl.dispose();
+    _motherMargaBCtrl.dispose();
+    _ageDiffCtrl.dispose();
     super.dispose();
   }
 
@@ -132,11 +137,13 @@ class _Tar06CheckPartuturanPageState
       _error = null;
     });
 
-    final genInfo = _manualGenDelta == null
+    final parsedAgeDiff = int.tryParse(_ageDiffCtrl.text.trim());
+    final genInfo = _manualGenDelta == null && parsedAgeDiff == null
         ? const GenerationInfo.unknown()
         : GenerationInfo(
             source: GenerationSource.tahunLahir,
-            delta: _manualGenDelta,
+            delta: _manualGenDelta ?? 0,
+            ageDifferenceYears: parsedAgeDiff,
           );
 
     final res = await ref
@@ -150,6 +157,10 @@ class _Tar06CheckPartuturanPageState
           subEthnic: _manualSubEthnic,
           targetMarga: _margaBCtrl.text.trim(),
           targetGender: _genderB,
+          targetMotherMarga: _motherMargaBCtrl.text.trim().isEmpty
+              ? null
+              : _motherMargaBCtrl.text.trim(),
+          specificBranch: _specificBranch,
           generationInfo: genInfo,
         );
     if (!mounted) return;
@@ -307,6 +318,11 @@ class _Tar06CheckPartuturanPageState
                               label: AppStrings.tar06ManualMargaBLabel,
                             ),
                             const SizedBox(height: AppSpacing.md),
+                            AppTextField(
+                              controller: _motherMargaBCtrl,
+                              label: 'Marga Ibu / Boru Ibu B (Opsional)',
+                            ),
+                            const SizedBox(height: AppSpacing.md),
                             SegmentedButton<UserGender>(
                               segments: <ButtonSegment<UserGender>>[
                                 for (final g in UserGender.values)
@@ -321,6 +337,53 @@ class _Tar06CheckPartuturanPageState
                                   setState(() => _genderB = sel.first);
                                 }
                               },
+                            ),
+                            const SizedBox(height: AppSpacing.md),
+                            AppTextField(
+                              controller: _ageDiffCtrl,
+                              label: 'Selisih Umur B terhadap A (tahun, + lebih tua / - lebih muda)',
+                              hintText: 'Contoh: 3, -6, 8',
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    signed: true,
+                                  ),
+                            ),
+                            const SizedBox(height: AppSpacing.md),
+                            DropdownButtonFormField<String?>(
+                              initialValue: _specificBranch,
+                              decoration: const InputDecoration(
+                                labelText: 'Jalur Keluarga Spesifik (Opsional)',
+                              ),
+                              items: const <DropdownMenuItem<String?>>[
+                                DropdownMenuItem<String?>(
+                                  value: null,
+                                  child: Text('Otomatis dari Marga & Generasi'),
+                                ),
+                                DropdownMenuItem<String?>(
+                                  value: 'adik_ayah',
+                                  child: Text('Adik laki-laki ayah (Bapa Uda)'),
+                                ),
+                                DropdownMenuItem<String?>(
+                                  value: 'abang_ayah',
+                                  child: Text(
+                                    'Abang laki-laki ayah (Bapa Tua)',
+                                  ),
+                                ),
+                                DropdownMenuItem<String?>(
+                                  value: 'saudara_perempuan_ayah',
+                                  child: Text(
+                                    'Saudara perempuan ayah (Namboru)',
+                                  ),
+                                ),
+                                DropdownMenuItem<String?>(
+                                  value: 'istri_tulang',
+                                  child: Text(
+                                    'Istri saudara laki-laki ibu (Nantulang)',
+                                  ),
+                                ),
+                              ],
+                              onChanged: (v) =>
+                                  setState(() => _specificBranch = v),
                             ),
                             const SizedBox(height: AppSpacing.md),
                             Text(

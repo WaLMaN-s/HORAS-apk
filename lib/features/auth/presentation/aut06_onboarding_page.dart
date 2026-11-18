@@ -1,4 +1,4 @@
-import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:horas/core/config/repository_providers.dart';
@@ -8,16 +8,21 @@ import 'package:horas/core/l10n/app_strings.dart';
 import 'package:horas/core/router/app_pages.dart';
 import 'package:horas/core/theme/app_theme.dart';
 import 'package:horas/core/theme/app_tokens.dart';
+import 'package:horas/core/utils/image_data_uri_helper.dart';
 import 'package:horas/core/widgets/widgets.dart';
 import 'package:horas/domain/models/models.dart';
 import 'package:horas/domain/partuturan/partuturan_confidence.dart';
+import 'package:horas/domain/policies/coarse_location_matcher.dart';
 import 'package:horas/features/auth/presentation/auth_flow_controller.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:permission_handler/permission_handler.dart' as perm;
 
-/// AUT-06 Onboarding 4 Langkah + Layar Penjelas Manfaat Izin (AUT-R5 .. AUT-R7, AUT-R10, AC-02).
+/// AUT-06 Onboarding 3 Langkah + Layar Penjelas Manfaat Izin (AUT-R5 .. AUT-R7, AUT-R10, AC-02).
 ///
+/// - Langkah 1: Foto Profil, Username, dan Marga (2 kotak terpisah).
+/// - Langkah 2: Jenis Kelamin, Tahun Lahir, dan Marga Ibu / Boru Ibu (untuk rumus Partuturan).
+/// - Langkah 3: Lokasi Domisili terdeteksi otomatis + Minat/Hobi.
 /// Draf disimpan setiap langkah dan otomatis dilanjutkan bila aplikasi ditutup.
 class Aut06OnboardingPage extends ConsumerStatefulWidget {
   const Aut06OnboardingPage({super.key});
@@ -28,11 +33,17 @@ class Aut06OnboardingPage extends ConsumerStatefulWidget {
 }
 
 class _Aut06OnboardingPageState extends ConsumerState<Aut06OnboardingPage> {
+  static const MethodChannel _coarseLocationChannel = MethodChannel(
+    'id.horas.app/coarse_location',
+  );
+
   late final TextEditingController _nameController;
   late final TextEditingController _margaSearchController;
+  late final TextEditingController _motherMargaController;
   late final TextEditingController _campusOfficeController;
 
   List<WilayahCity> _allCities = const <WilayahCity>[];
+  bool _isDetectingLocation = false;
 
   static const List<String> _hobbyOptions = <String>[
     'Badminton',
@@ -54,6 +65,7 @@ class _Aut06OnboardingPageState extends ConsumerState<Aut06OnboardingPage> {
     final draft = ref.read(authFlowControllerProvider).onboardingDraft;
     _nameController = TextEditingController(text: draft.displayName);
     _margaSearchController = TextEditingController(text: draft.marga);
+    _motherMargaController = TextEditingController(text: draft.motherMarga);
     _campusOfficeController = TextEditingController(text: draft.campusOrOffice);
     _loadMasterLists();
   }
@@ -74,29 +86,23 @@ class _Aut06OnboardingPageState extends ConsumerState<Aut06OnboardingPage> {
   void dispose() {
     _nameController.dispose();
     _margaSearchController.dispose();
+    _motherMargaController.dispose();
     _campusOfficeController.dispose();
     super.dispose();
   }
 
-  /// Memilih foto dengan `image_picker` dan mengompresnya dengan `flutter_image_compress` (BER-R2, AUT-06).
+  /// Memilih foto dengan `image_picker`, menghapus EXIF (`AC-10`), dan menyimpannya sebagai Data URI.
   Future<void> _pickAndCompressAvatar(ImageSource source) async {
     final controller = ref.read(authFlowControllerProvider.notifier);
     try {
-      final picker = ImagePicker();
-      final picked = await picker.pickImage(source: source, imageQuality: 85);
-      if (picked != null) {
-        final rawBytes = await picked.readAsBytes();
-        final compressed = await FlutterImageCompress.compressWithList(
-          rawBytes,
-          minWidth: 512,
-          minHeight: 512,
-          quality: 80,
-          keepExif: false, // AC-10: Hapus metadata lokasi EXIF di klien
-        );
+      final encoded = await ImageDataUriHelper.pickAndEncodeImage(
+        source,
+        maxDimension: 512,
+        quality: 75,
+      );
+      if (encoded != null) {
         await controller.updateOnboardingDraft(
-          (d) => d.copyWith(
-            photoSeedOrPath: 'compressed-${compressed.length}-${picked.name}',
-          ),
+          (d) => d.copyWith(photoSeedOrPath: encoded.dataUri),
         );
         return;
       }
@@ -108,6 +114,55 @@ class _Aut06OnboardingPageState extends ConsumerState<Aut06OnboardingPage> {
     );
   }
 
+  /// Mendeteksi lokasi perkiraan terkini dan mengisi kota + kecamatan secara otomatis.
+  Future<void> _detectAndFillCurrentLocation({
+    bool requestPermission = false,
+  }) async {
+    if (_isDetectingLocation) return;
+    setState(() => _isDetectingLocation = true);
+    final controller = ref.read(authFlowControllerProvider.notifier);
+
+    double lat = 3.5952;
+    double lng = 98.6722;
+    try {
+      var status = await perm.Permission.location.status;
+      if (!status.isGranted && requestPermission) {
+        status = await perm.Permission.location.request();
+      }
+      if (status.isGranted) {
+        final raw = await _coarseLocationChannel
+            .invokeMapMethod<String, double>('getCoarseLocation');
+        if (raw?['latitude'] != null && raw?['longitude'] != null) {
+          lat = raw!['latitude']!;
+          lng = raw['longitude']!;
+        }
+      }
+    } on Object {
+      // Gunakan koordinat cadangan pada lingkungan test/simulator.
+    }
+
+    final cityNames = _allCities.map((c) => c.name).toList();
+    final matchedCityName = CoarseLocationCityMatcher.matchNearestCityName(
+      coarseLat: lat,
+      coarseLon: lng,
+      availableCityNames: cityNames,
+    );
+    final matchedCityObj = _allCities
+        .where((c) => c.name.toLowerCase() == matchedCityName.toLowerCase())
+        .firstOrNull;
+    final matchedSubdistrict =
+        (matchedCityObj != null && matchedCityObj.subdistricts.isNotEmpty)
+        ? matchedCityObj.subdistricts.first
+        : matchedCityName;
+
+    await controller.updateOnboardingDraft(
+      (d) => d.copyWith(city: matchedCityName, subdistrict: matchedSubdistrict),
+    );
+    if (mounted) {
+      setState(() => _isDetectingLocation = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final flowState = ref.watch(authFlowControllerProvider);
@@ -115,7 +170,7 @@ class _Aut06OnboardingPageState extends ConsumerState<Aut06OnboardingPage> {
     final colors = context.colors;
     final typo = context.typo;
 
-    // AUT-R10: Setelah 4 langkah selesai, tampilkan layar penjelas manfaat izin (bukan di splash).
+    // AUT-R10: Setelah langkah selesai, tampilkan layar penjelas manfaat izin (bukan di splash).
     if (draft.showPermissionExplainer) {
       return _buildPermissionExplainerScreen(context, flowState);
     }
@@ -142,7 +197,7 @@ class _Aut06OnboardingPageState extends ConsumerState<Aut06OnboardingPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              // Indikator progres 4 langkah
+              // Indikator progres 3 langkah
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: <Widget>[
@@ -379,6 +434,18 @@ class _Aut06OnboardingPageState extends ConsumerState<Aut06OnboardingPage> {
               ),
           ],
         ),
+        const SizedBox(height: AppSpacing.lg),
+
+        // Input Marga Ibu / Boru Ibu untuk perhitungan panggilan Partuturan (Tulang, Pariban, dll.)
+        AppTextField(
+          label: AppStrings.aut06MotherMargaLabel,
+          hintText: AppStrings.aut06MotherMargaHint,
+          controller: _motherMargaController,
+          leadingIcon: Icons.family_restroom_outlined,
+          onChanged: (val) => controller.updateOnboardingDraft(
+            (d) => d.copyWith(motherMarga: val),
+          ),
+        ),
 
         // AC-02: Pesan penolakan sopan bila usia < 17 tahun & data tidak disimpan
         if (flowState.under17PoliteRejectionMessage != null) ...<Widget>[
@@ -403,6 +470,7 @@ class _Aut06OnboardingPageState extends ConsumerState<Aut06OnboardingPage> {
           onPressed: () => controller.completeOnboardingStep2(
             gender: draft.gender,
             birthYear: draft.birthYear,
+            motherMarga: _motherMargaController.text,
           ),
         ),
       ],
@@ -414,12 +482,7 @@ class _Aut06OnboardingPageState extends ConsumerState<Aut06OnboardingPage> {
     final draft = flowState.onboardingDraft;
     final colors = context.colors;
     final typo = context.typo;
-
-    final selectedCityObj = _allCities
-        .where((c) => c.name.toLowerCase() == draft.city.toLowerCase())
-        .firstOrNull;
-    final subdistricts =
-        selectedCityObj?.subdistricts ?? const <String>['Medan Baru'];
+    final detectedCity = draft.city.isEmpty ? 'Medan' : draft.city;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -432,45 +495,67 @@ class _Aut06OnboardingPageState extends ConsumerState<Aut06OnboardingPage> {
         ),
         const SizedBox(height: AppSpacing.lg),
 
-        Text(AppStrings.aut06CityLabel, style: typo.captionStrong),
-        const SizedBox(height: AppSpacing.sm),
-        Wrap(
-          spacing: AppSpacing.sm,
-          runSpacing: AppSpacing.sm,
-          children: <Widget>[
-            for (final c in _allCities.take(10))
-              AppChip(
-                label: c.name,
-                isSelected: draft.city.toLowerCase() == c.name.toLowerCase(),
-                onTap: () => controller.updateOnboardingDraft(
-                  (d) => d.copyWith(
-                    city: c.name,
-                    subdistrict: c.subdistricts.isNotEmpty
-                        ? c.subdistricts.first
-                        : c.name,
+        // Kartu Deteksi Lokasi Otomatis (tanpa perlu pilih kota & kecamatan manual)
+        Container(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          decoration: BoxDecoration(
+            color: colors.surface,
+            borderRadius: AppRadius.cardRadius,
+            border: Border.all(color: colors.border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Row(
+                children: <Widget>[
+                  Icon(
+                    Icons.my_location_rounded,
+                    color: colors.primary,
+                    size: AppSizes.iconMd,
                   ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: Text(
+                      AppStrings.aut06AutoLocationTitle,
+                      style: typo.bodyStrong,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                AppStrings.aut06AutoLocationSubtitle,
+                style: typo.caption.copyWith(color: colors.textMuted),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md,
+                  vertical: AppSpacing.sm,
+                ),
+                decoration: BoxDecoration(
+                  color: colors.chipInactive,
+                  borderRadius: AppRadius.buttonRadius,
+                ),
+                child: Text(
+                  _isDetectingLocation
+                      ? AppStrings.aut06DetectingLocation
+                      : '${AppStrings.aut06DetectedLocationPrefix}: $detectedCity',
+                  style: typo.captionStrong.copyWith(color: colors.primary),
                 ),
               ),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.lg),
-
-        Text(AppStrings.aut06SubdistrictLabel, style: typo.captionStrong),
-        const SizedBox(height: AppSpacing.sm),
-        Wrap(
-          spacing: AppSpacing.sm,
-          runSpacing: AppSpacing.sm,
-          children: <Widget>[
-            for (final sub in subdistricts)
-              AppChip(
-                label: sub,
-                isSelected:
-                    draft.subdistrict.toLowerCase() == sub.toLowerCase(),
-                onTap: () => controller.updateOnboardingDraft(
-                  (d) => d.copyWith(subdistrict: sub),
-                ),
+              const SizedBox(height: AppSpacing.sm),
+              AppButton(
+                label: AppStrings.aut06DetectLocationBtn,
+                variant: AppButtonVariant.secondary,
+                leadingIcon: Icons.gps_fixed_rounded,
+                isLoading: _isDetectingLocation,
+                onPressed: () =>
+                    _detectAndFillCurrentLocation(requestPermission: true),
               ),
-          ],
+            ],
+          ),
         ),
         const SizedBox(height: AppSpacing.lg),
 
@@ -515,8 +600,10 @@ class _Aut06OnboardingPageState extends ConsumerState<Aut06OnboardingPage> {
           isExpanded: true,
           isLoading: flowState.isLoading,
           onPressed: () => controller.completeOnboardingStep4(
-            city: draft.city,
-            subdistrict: draft.subdistrict,
+            city: detectedCity,
+            subdistrict: draft.subdistrict.isEmpty
+                ? 'Medan Baru'
+                : draft.subdistrict,
             hobbies: draft.hobbies,
             campusOrOffice: _campusOfficeController.text,
           ),
@@ -628,17 +715,30 @@ class _Aut06OnboardingPageState extends ConsumerState<Aut06OnboardingPage> {
                         variant: AppButtonVariant.secondary,
                         onPressed: () async {
                           var granted = true;
+                          var lat = 3.5952;
+                          var lon = 98.6722;
                           try {
                             final status = await perm.Permission.location
                                 .request();
                             granted = status.isGranted;
+                            if (granted) {
+                              final raw = await _coarseLocationChannel
+                                  .invokeMapMethod<String, double>(
+                                    'getCoarseLocation',
+                                  );
+                              if (raw?['latitude'] != null &&
+                                  raw?['longitude'] != null) {
+                                lat = raw!['latitude']!;
+                                lon = raw['longitude']!;
+                              }
+                            }
                           } on Object {
                             granted = true;
                           }
                           await controller
                               .matchCoarseLocationAndDiscardCoordinates(
-                                coarseLat: 3.5952,
-                                coarseLon: 98.6722,
+                                coarseLat: lat,
+                                coarseLon: lon,
                                 permissionGranted: granted,
                               );
                         },

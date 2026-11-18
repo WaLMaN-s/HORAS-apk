@@ -1,4 +1,3 @@
-import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:horas/core/config/feature_flags.dart';
@@ -6,6 +5,7 @@ import 'package:horas/core/l10n/app_strings.dart';
 import 'package:horas/core/router/app_pages.dart';
 import 'package:horas/core/theme/app_theme.dart';
 import 'package:horas/core/theme/app_tokens.dart';
+import 'package:horas/core/utils/image_data_uri_helper.dart';
 import 'package:horas/core/widgets/widgets.dart';
 import 'package:horas/domain/models/models.dart';
 import 'package:horas/domain/policies/app_limits.dart';
@@ -30,34 +30,28 @@ final class FailedOutgoingMessage {
   final String errorMessage;
 }
 
-/// Memilih dan mengompres foto chat tanpa EXIF dengan batas maksimal 5 MB (`PSN-R3`).
-Future<String?> pickAndCompressChatPhoto(BuildContext context) async {
+/// Memilih dan mengompres foto chat/profil tanpa EXIF dengan batas maksimal 5 MB (`PSN-R3`, `AC-10`).
+Future<String?> pickAndCompressChatPhoto(
+  BuildContext context, {
+  ImageSource source = ImageSource.gallery,
+}) async {
   try {
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 85,
+    final encoded = await ImageDataUriHelper.pickAndEncodeImage(
+      source,
+      maxDimension: 640,
+      quality: 75,
+      maxRawBytes: AppLimits.messagePhotoMaxBytes,
     );
-    if (picked == null) return null;
-    final rawBytes = await picked.readAsBytes();
-    if (rawBytes.length > AppLimits.messagePhotoMaxBytes) {
-      if (context.mounted) {
-        AppToast.show(
-          context,
-          message: AppStrings.psn03PhotoTooLargeError,
-          variant: AppToastVariant.error,
-        );
-      }
-      return null;
+    return encoded?.dataUri;
+  } on FormatException {
+    if (context.mounted) {
+      AppToast.show(
+        context,
+        message: AppStrings.psn03PhotoTooLargeError,
+        variant: AppToastVariant.error,
+      );
     }
-    final compressed = await FlutterImageCompress.compressWithList(
-      rawBytes,
-      minWidth: 1080,
-      minHeight: 1080,
-      quality: 82,
-      keepExif: false, // Hapus metadata EXIF
-    );
-    return 'chat-photo-${compressed.length}-${picked.name}';
+    return null;
   } on Object {
     // Fallback deterministik pada simulator / widget test tanpa platform channel.
     return 'chat-photo-sample-${DateTime.now().millisecondsSinceEpoch}';

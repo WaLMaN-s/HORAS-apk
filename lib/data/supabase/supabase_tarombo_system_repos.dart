@@ -542,6 +542,7 @@ final class SupabasePartuturanRepository implements PartuturanRepository {
         subEthnic: viewer.subEthnic,
         targetMarga: target.marga,
         targetGender: target.gender,
+        targetMotherMarga: target.visibleMotherMarga,
         generationInfo: genInfo,
         confirmedKinshipTerm: claimRow?['claimed_istilah'] as String?,
       ),
@@ -572,6 +573,7 @@ final class SupabasePartuturanRepository implements PartuturanRepository {
         subEthnic: a.subEthnic,
         targetMarga: b.marga,
         targetGender: b.gender,
+        targetMotherMarga: b.visibleMotherMarga,
         generationInfo: genInfo,
       ),
     );
@@ -586,6 +588,8 @@ final class SupabasePartuturanRepository implements PartuturanRepository {
     required UserGender targetGender,
     required GenerationInfo generationInfo,
     String? viewerMotherMarga,
+    String? targetMotherMarga,
+    String? specificBranch,
   }) => _gw.guard(() async {
     final engine = await _gw.partuturanService.createEngine(
       refreshFromRemote: false,
@@ -598,6 +602,8 @@ final class SupabasePartuturanRepository implements PartuturanRepository {
         subEthnic: subEthnic,
         targetMarga: targetMarga,
         targetGender: targetGender,
+        targetMotherMarga: targetMotherMarga,
+        specificBranch: specificBranch,
         generationInfo: generationInfo,
       ),
     );

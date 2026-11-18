@@ -538,6 +538,8 @@ abstract interface class PartuturanRepository {
     required UserGender targetGender,
     required GenerationInfo generationInfo,
     String? viewerMotherMarga,
+    String? targetMotherMarga,
+    String? specificBranch,
   });
   Future<Result<PartuturanFeedback>> submitNotThisFeedback({
     required String targetMarga,

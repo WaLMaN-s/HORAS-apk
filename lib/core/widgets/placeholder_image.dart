@@ -1,10 +1,14 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:horas/core/theme/app_theme.dart';
 import 'package:horas/core/theme/app_tokens.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// Gambar placeholder deterministik berbasis `seed` dengan gradien bertema
-/// Danau Toba dan tenun ulos Batak (tanpa aset foto eksternal — Tahap 5).
+/// Danau Toba dan tenun ulos Batak, atau merender foto nyata bila `seed` berupa
+/// URL (`http`/`https`) maupun Data URI (`data:image/...;base64,...`).
 class PlaceholderImage extends StatelessWidget {
   const PlaceholderImage({
     required this.seed,
@@ -41,8 +45,29 @@ class PlaceholderImage extends StatelessWidget {
         (Color(0xFF3D2645), Color(0xFF832161), Color(0xFFDA4167)),
       ];
 
+  /// Mengembalikan `true` apabila [seed] merupakan foto nyata (URL atau Data URI base64).
+  static bool isRealImageSeed(String? seed) {
+    if (seed == null || seed.isEmpty) return false;
+    return seed.startsWith('data:image/') ||
+        seed.startsWith('http://') ||
+        seed.startsWith('https://');
+  }
+
+  /// Mendekode Data URI `data:image/...;base64,...` menjadi [Uint8List].
+  static Uint8List? tryDecodeDataUri(String seed) {
+    if (!seed.startsWith('data:image/')) return null;
+    final commaIdx = seed.indexOf(',');
+    if (commaIdx == -1 || commaIdx + 1 >= seed.length) return null;
+    try {
+      return base64Decode(seed.substring(commaIdx + 1));
+    } on Object {
+      return null;
+    }
+  }
+
   static (Color, Color, Color) paletteForSeed(String seed) {
-    final hash = seed.codeUnits.fold<int>(
+    final sample = seed.length > 64 ? seed.substring(0, 64) : seed;
+    final hash = sample.codeUnits.fold<int>(
       0,
       (prev, elem) => (prev * 31 + elem) & 0x7FFFFFFF,
     );
@@ -53,14 +78,17 @@ class PlaceholderImage extends StatelessWidget {
   Widget build(BuildContext context) {
     final typo = context.typo;
     final colors = context.colors;
-    final palette = paletteForSeed(seed);
-    final seedHash = seed.codeUnits.fold<int>(
+    final sample = seed.length > 64 ? seed.substring(0, 64) : seed;
+    final palette = paletteForSeed(sample);
+    final seedHash = sample.codeUnits.fold<int>(
       17,
       (prev, elem) => (prev * 37 + elem) & 0x7FFFFFFF,
     );
 
     final isNetworkUrl =
         seed.startsWith('http://') || seed.startsWith('https://');
+    final dataUriBytes = tryDecodeDataUri(seed);
+
     final gradientFallback = RepaintBoundary(
       child: CustomPaint(
         isComplex: true,
@@ -89,19 +117,33 @@ class PlaceholderImage extends StatelessWidget {
       ),
     );
 
+    Widget rawVisual;
+    if (dataUriBytes != null) {
+      rawVisual = Image.memory(
+        dataUriBytes,
+        width: width,
+        height: height,
+        fit: BoxFit.cover,
+        gaplessPlayback: true,
+        errorBuilder: (_, _, _) => gradientFallback,
+      );
+    } else if (isNetworkUrl) {
+      rawVisual = CachedNetworkImage(
+        imageUrl: seed,
+        width: width,
+        height: height,
+        fit: BoxFit.cover,
+        placeholder: (context, url) => gradientFallback,
+        errorWidget: (context, url, error) => gradientFallback,
+      );
+    } else {
+      rawVisual = gradientFallback;
+    }
+
     Widget imageContent = SizedBox(
       width: width,
       height: height,
-      child: isNetworkUrl
-          ? CachedNetworkImage(
-              imageUrl: seed,
-              width: width,
-              height: height,
-              fit: BoxFit.cover,
-              placeholder: (context, url) => gradientFallback,
-              errorWidget: (context, url, error) => gradientFallback,
-            )
-          : gradientFallback,
+      child: rawVisual,
     );
 
     if (borderRadius != BorderRadius.zero) {
@@ -110,7 +152,7 @@ class PlaceholderImage extends StatelessWidget {
 
     return Semantics(
       image: true,
-      label: semanticsLabel ?? caption ?? seed,
+      label: semanticsLabel ?? caption ?? sample,
       child: imageContent,
     );
   }

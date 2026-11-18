@@ -81,5 +81,7 @@
 	</array>
 	<key>FlutterDeepLinkingEnabled</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>HORAS menggunakan lokasi perkiraan di perangkat Anda untuk mengurutkan lapangan olahraga dan gereja terdekat serta memusatkan tampilan peta.</string>
 </dict>
 </plist>

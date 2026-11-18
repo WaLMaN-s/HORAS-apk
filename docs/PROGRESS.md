@@ -187,6 +187,11 @@ Seluruh fitur Fase 2 telah selesai diimplementasikan pada lapisan domain, data m
 
 ## Penyebaran Supabase ke Ubuntu Server Live (`100.77.185.93`)
 - Supabase CLI v3.2.0 terpasang dan aktif di Ubuntu Server 24.04.
-- Skema migrasi 0001–0008, seed data Batak (wilayah, marga, aturan partuturan Toba v0, komunitas), dan Edge Function `auth-otp-guard` & `process-image` live.
+- Skema migrasi 0001–0009, seed data Batak (wilayah, marga, aturan partuturan Toba v0, komunitas, lapangan, gereja), dan Edge Function `auth-otp-guard` & `process-image` live.
 - Layanan otomatis berjalan di latar belakang via systemd (`horas-supabase.service`, auto-start on reboot).
 - Profil VS Code `HORAS (Ubuntu Server Live Tailscale)` dan `HORAS (Ubuntu Server Live LAN)` siap digunakan untuk menjalankan aplikasi Flutter ke server backend live.
+
+## Penyempurnaan Peta, Titik Lokasi Lapangan & Gereja, Petunjuk Arah, & Urutan Terdekat (`MAN-07`, `MAN-08`, `SEK-10`, `SEK-11`)
+- Menambahkan dukungan koordinat (`latitude`, `longitude`) pada model `Church`, tabel `public.churches` (`0009_place_coordinates.sql`), `proposeCourt`, dan `proposeChurch`.
+- Menyediakan komponen `PlaceLocationPickerPage` dan `OsmAttributionBadge` (`lib/core/widgets/place_location_picker.dart`) untuk memilih titik lokasi di peta saat mengusulkan lapangan/gereja.
+- Menambahkan tampilan peta gereja (`SEK-10`), pratinjau peta mini & tombol `Petunjuk Arah di Google Maps` (`SEK-11` & `MAN-08`), serta filter pengurutan `Terdekat` (`PlaceGeoHelper`) berbasis lokasi perkiraan di perangkat (`AUT-R10`) atau pusat kota domisili dengan label rentang jarak (`< 1 km`, `1–5 km`, `5–10 km`, `> 10 km`).

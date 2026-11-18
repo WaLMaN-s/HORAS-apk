@@ -349,7 +349,12 @@ final class Court {
   final double? latitude;
   final double? longitude;
 
-  Court copyWith({int? wrongInfoReportCount, CourtModerationStatus? status}) {
+  Court copyWith({
+    int? wrongInfoReportCount,
+    CourtModerationStatus? status,
+    double? latitude,
+    double? longitude,
+  }) {
     return Court(
       id: id,
       name: name,
@@ -361,6 +366,8 @@ final class Court {
       imageSeed: imageSeed,
       wrongInfoReportCount: wrongInfoReportCount ?? this.wrongInfoReportCount,
       status: status ?? this.status,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
     );
   }
 

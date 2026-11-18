@@ -1263,6 +1263,8 @@ abstract final class MockSeedData {
         contactEmail: 'sekretariat@hkbpsudirmanmedan.org',
         isVerified: true,
         memberCount: 42, // >= 5, tampil
+        latitude: 3.5811,
+        longitude: 98.6756,
       ),
       Church(
         id: 'church-02',
@@ -1286,6 +1288,8 @@ abstract final class MockSeedData {
         contactEmail: 'info@gkpimenteng.org',
         isVerified: true,
         memberCount: 18, // >= 5, tampil
+        latitude: -6.1865,
+        longitude: 106.8341,
       ),
       Church(
         id: 'church-03',
@@ -1304,6 +1308,8 @@ abstract final class MockSeedData {
         contactEmail: 'kantor@hkisiantar.org',
         isVerified: false,
         memberCount: 7, // >= 5, tampil
+        latitude: 2.9547,
+        longitude: 99.0623,
       ),
       Church(
         id: 'church-04',
@@ -1321,6 +1327,8 @@ abstract final class MockSeedData {
         contactPhone: '+628126000004',
         isVerified: true,
         memberCount: 2, // < 5, disembunyikan sesuai SEK-R13
+        latitude: -6.1912,
+        longitude: 106.8389,
       ),
       Church(
         id: 'church-05',
@@ -1343,6 +1351,8 @@ abstract final class MockSeedData {
         contactPhone: '+628126000005',
         isVerified: false,
         memberCount: 3, // < 5, disembunyikan sesuai SEK-R13
+        latitude: -6.1968,
+        longitude: 106.8891,
       ),
     ];
   }

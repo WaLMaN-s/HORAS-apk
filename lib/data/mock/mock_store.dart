@@ -2063,6 +2063,8 @@ final class MockStore {
     required List<ChurchServiceSchedule> serviceSchedules,
     String contactPhone = '',
     String contactEmail = '',
+    double? latitude,
+    double? longitude,
   }) {
     final church = Church(
       id: 'church-${DateTime.now().microsecondsSinceEpoch}',
@@ -2075,6 +2077,8 @@ final class MockStore {
       contactEmail: contactEmail,
       isVerified: false,
       memberCount: 1,
+      latitude: latitude,
+      longitude: longitude,
     );
     churches.add(church);
     return church;

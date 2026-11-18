@@ -330,18 +330,20 @@ ON CONFLICT (user_id, role) DO NOTHING;
 -- ---------------------------------------------------------------------------
 -- 6. 10 Lapangan Olahraga
 -- ---------------------------------------------------------------------------
-INSERT INTO public.courts (id, name, address, city, supported_sports, estimated_price_text, opening_hours, image_seed, moderation_status) VALUES
-  ('10000000-0000-4000-8000-000000000001', 'GOR Manunggal Medan', 'Jl. Gatot Subroto, Medan Helvetia', 'Medan', ARRAY['badminton','voli']::public.sport_type[], 'Perkiraan Rp60.000/jam', '07.00 - 23.00 WIB', 'court-gor-manunggal', 'approved'),
-  ('10000000-0000-4000-8000-000000000002', 'Lapangan Futsal Setia Budi', 'Jl. Setia Budi, Medan Selayang', 'Medan', ARRAY['futsal']::public.sport_type[], 'Perkiraan Rp120.000/jam', '08.00 - 24.00 WIB', 'court-setia-budi', 'approved'),
-  ('10000000-0000-4000-8000-000000000003', 'GOR Cempaka Putih & Tebet Arena', 'Jl. Tebet Timur Dalam, Jakarta Selatan', 'Jakarta Selatan', ARRAY['badminton','basket']::public.sport_type[], 'Perkiraan Rp90.000/jam', '06.00 - 23.00 WIB', 'court-tebet-arena', 'approved'),
-  ('10000000-0000-4000-8000-000000000004', 'Velodrome Sport Center Rawamangun', 'Jl. Balap Sepeda, Rawamangun', 'Jakarta Timur', ARRAY['futsal','badminton','jogging']::public.sport_type[], 'Perkiraan Rp100.000/jam', '06.00 - 22.00 WIB', 'court-rawamangun', 'approved'),
-  ('10000000-0000-4000-8000-000000000005', 'Sasakawa & Saraga Sport Bandung', 'Jl. Siliwangi, Coblong, Bandung', 'Bandung', ARRAY['basket','jogging','futsal']::public.sport_type[], 'Perkiraan Rp75.000/jam', '06.00 - 21.00 WIB', 'court-saraga-bdg', 'approved'),
-  ('10000000-0000-4000-8000-000000000006', 'GOR Lodaya Bandung', 'Jl. Lodaya, Lengkong, Bandung', 'Bandung', ARRAY['badminton','tenis_meja']::public.sport_type[], 'Perkiraan Rp65.000/jam', '07.00 - 22.00 WIB', 'court-lodaya-bdg', 'approved'),
-  ('10000000-0000-4000-8000-000000000007', 'GOR Banda Baru Batam Center', 'Kawasan Batam Kota, Batam', 'Batam', ARRAY['badminton','tenis_meja']::public.sport_type[], 'Perkiraan Rp70.000/jam', '08.00 - 23.00 WIB', 'court-banda-baru', 'approved'),
-  ('10000000-0000-4000-8000-000000000008', 'Arena Futsal Imperium Batu Aji', 'Jl. Brigjen Katamso, Batu Aji, Batam', 'Batam', ARRAY['futsal','voli']::public.sport_type[], 'Perkiraan Rp110.000/jam', '09.00 - 23.00 WIB', 'court-imperium-btm', 'approved'),
-  ('10000000-0000-4000-8000-000000000009', 'GOR Merdeka Pematangsiantar', 'Jl. Merdeka, Siantar Barat', 'Pematangsiantar', ARRAY['badminton','voli','tenis_meja']::public.sport_type[], 'Perkiraan Rp50.000/jam', '07.00 - 22.00 WIB', 'court-merdeka-pms', 'approved'),
-  ('10000000-0000-4000-8000-000000000010', 'Lapangan Horbo & Taman Bunga Siantar', 'Jl. Sudirman, Siantar Barat', 'Pematangsiantar', ARRAY['jogging','basket']::public.sport_type[], 'Perkiraan Rp0 (Fasilitas Umum)', '05.30 - 21.00 WIB', 'court-taman-bunga-pms', 'approved')
-ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.courts (id, name, address, city, supported_sports, estimated_price_text, opening_hours, image_seed, moderation_status, latitude, longitude) VALUES
+  ('10000000-0000-4000-8000-000000000001', 'GOR Manunggal Medan', 'Jl. Gatot Subroto, Medan Helvetia', 'Medan', ARRAY['badminton','voli']::public.sport_type[], 'Perkiraan Rp60.000/jam', '07.00 - 23.00 WIB', 'court-gor-manunggal', 'approved', 3.5952, 98.6722),
+  ('10000000-0000-4000-8000-000000000002', 'Lapangan Futsal Setia Budi', 'Jl. Setia Budi, Medan Selayang', 'Medan', ARRAY['futsal']::public.sport_type[], 'Perkiraan Rp120.000/jam', '08.00 - 24.00 WIB', 'court-setia-budi', 'approved', 3.5714, 98.6415),
+  ('10000000-0000-4000-8000-000000000003', 'GOR Cempaka Putih & Tebet Arena', 'Jl. Tebet Timur Dalam, Jakarta Selatan', 'Jakarta Selatan', ARRAY['badminton','basket']::public.sport_type[], 'Perkiraan Rp90.000/jam', '06.00 - 23.00 WIB', 'court-tebet-arena', 'approved', -6.2361, 106.8524),
+  ('10000000-0000-4000-8000-000000000004', 'Velodrome Sport Center Rawamangun', 'Jl. Balap Sepeda, Rawamangun', 'Jakarta Timur', ARRAY['futsal','badminton','jogging']::public.sport_type[], 'Perkiraan Rp100.000/jam', '06.00 - 22.00 WIB', 'court-rawamangun', 'approved', -6.1942, 106.8925),
+  ('10000000-0000-4000-8000-000000000005', 'Sasakawa & Saraga Sport Bandung', 'Jl. Siliwangi, Coblong, Bandung', 'Bandung', ARRAY['basket','jogging','futsal']::public.sport_type[], 'Perkiraan Rp75.000/jam', '06.00 - 21.00 WIB', 'court-saraga-bdg', 'approved', -6.8915, 107.6105),
+  ('10000000-0000-4000-8000-000000000006', 'GOR Lodaya Bandung', 'Jl. Lodaya, Lengkong, Bandung', 'Bandung', ARRAY['badminton','tenis_meja']::public.sport_type[], 'Perkiraan Rp65.000/jam', '07.00 - 22.00 WIB', 'court-lodaya-bdg', 'approved', -6.9298, 107.6258),
+  ('10000000-0000-4000-8000-000000000007', 'GOR Banda Baru Batam Center', 'Kawasan Batam Kota, Batam', 'Batam', ARRAY['badminton','tenis_meja']::public.sport_type[], 'Perkiraan Rp70.000/jam', '08.00 - 23.00 WIB', 'court-banda-baru', 'approved', 1.1301, 104.0529),
+  ('10000000-0000-4000-8000-000000000008', 'Arena Futsal Imperium Batu Aji', 'Jl. Brigjen Katamso, Batu Aji, Batam', 'Batam', ARRAY['futsal','voli']::public.sport_type[], 'Perkiraan Rp110.000/jam', '09.00 - 23.00 WIB', 'court-imperium-btm', 'approved', 1.0543, 103.9612),
+  ('10000000-0000-4000-8000-000000000009', 'GOR Merdeka Pematangsiantar', 'Jl. Merdeka, Siantar Barat', 'Pematangsiantar', ARRAY['badminton','voli','tenis_meja']::public.sport_type[], 'Perkiraan Rp50.000/jam', '07.00 - 22.00 WIB', 'court-merdeka-pms', 'approved', 2.9591, 99.0687),
+  ('10000000-0000-4000-8000-000000000010', 'Lapangan Horbo & Taman Bunga Siantar', 'Jl. Sudirman, Siantar Barat', 'Pematangsiantar', ARRAY['jogging','basket']::public.sport_type[], 'Perkiraan Rp0 (Fasilitas Umum)', '05.30 - 21.00 WIB', 'court-taman-bunga-pms', 'approved', 2.9612, 99.0654)
+ON CONFLICT (id) DO UPDATE
+  SET latitude = EXCLUDED.latitude,
+      longitude = EXCLUDED.longitude;
 
 -- ---------------------------------------------------------------------------
 -- 7. Komunitas + Grup Chat & Keanggotaan (termasuk com-10 closed AC-13)

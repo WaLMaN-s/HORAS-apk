@@ -2,10 +2,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:horas/core/config/app_config.dart';
 import 'package:horas/core/config/feature_flags.dart';
 import 'package:horas/core/errors/result.dart';
+import 'package:horas/core/l10n/app_strings.dart';
+import 'package:horas/core/theme/app_theme.dart';
+import 'package:horas/core/utils/place_geo_helper.dart';
+import 'package:horas/core/widgets/place_location_picker.dart';
 import 'package:horas/data/mock/mock_repositories.dart';
 import 'package:horas/data/mock/mock_store.dart';
 import 'package:horas/domain/models/models.dart';
 import 'package:horas/domain/partuturan/partuturan_confidence.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:material_ui/material_ui.dart';
 
 void main() {
   late MockStore store;
@@ -301,5 +307,128 @@ void main() {
       expect(court.latitude, 3.5952);
       expect(court.longitude, 98.6722);
     });
+
+    test('Church round-trip JSON dengan koordinat serta proposeCourt & proposeChurch menyimpan titik peta', () async {
+      final courtRepo = MockCourtRepository(store);
+      final proposedCourtRes = await courtRepo.proposeCourt(
+        name: 'GOR Horbo Balige',
+        address: 'Jl. Sisingamangaraja Balige',
+        city: 'Balige',
+        supportedSports: const <SportType>[SportType.badminton],
+        estimatedPriceText: 'Rp45.000/jam',
+        openingHours: '08.00 - 22.00 WIB',
+        latitude: 2.3333,
+        longitude: 99.0667,
+      );
+      expect(proposedCourtRes.isOk, isTrue);
+      final proposedCourt = (proposedCourtRes as Ok<Court>).value;
+      expect(proposedCourt.latitude, 2.3333);
+      expect(proposedCourt.longitude, 99.0667);
+
+      final proposedChurchRes = await churchRepo.proposeChurch(
+        name: 'HKBP Balige',
+        denomination: ChurchDenomination.hkbp,
+        address: 'Jl. Gereja No. 1 Balige',
+        city: 'Balige',
+        serviceSchedules: const <ChurchServiceSchedule>[
+          ChurchServiceSchedule(
+            dayOfWeek: 'Minggu',
+            time: '09.00 WIB',
+            language: 'Batak Toba',
+          ),
+        ],
+        latitude: 2.3345,
+        longitude: 99.0651,
+      );
+      expect(proposedChurchRes.isOk, isTrue);
+      final proposedChurch = (proposedChurchRes as Ok<Church>).value;
+      expect(proposedChurch.latitude, 2.3345);
+      expect(proposedChurch.longitude, 99.0651);
+
+      final json = proposedChurch.toJson();
+      final roundTrip = Church.fromJson(json);
+      expect(roundTrip.latitude, 2.3345);
+      expect(roundTrip.longitude, 99.0651);
+    });
+
+    test('PlaceGeoHelper mengurutkan tempat terdekat, menghasilkan label rentang jarak, dan tautan petunjuk arah', () {
+      final medanCenter = PlaceGeoHelper.cityCenterFor('Medan');
+      final courts = store.courts;
+      final sorted = PlaceGeoHelper.sortByNearest<Court>(
+        courts,
+        refLat: medanCenter.latitude,
+        refLng: medanCenter.longitude,
+        getLatitude: (c) => c.latitude,
+        getLongitude: (c) => c.longitude,
+        getCity: (c) => c.city,
+      );
+      expect(sorted.first.city, 'Medan');
+
+      expect(PlaceGeoHelper.distanceRangeLabel(0.4), '< 1 km');
+      expect(PlaceGeoHelper.distanceRangeLabel(2.5), '1–5 km');
+      expect(PlaceGeoHelper.distanceRangeLabel(7.2), '5–10 km');
+      expect(PlaceGeoHelper.distanceRangeLabel(25.0), '> 10 km');
+
+      final dirUri = PlaceGeoHelper.googleMapsDirectionsUri(
+        name: 'GOR Manunggal',
+        address: 'Jl. Gatot Subroto',
+        city: 'Medan',
+        latitude: 3.5952,
+        longitude: 98.6722,
+      );
+      expect(dirUri.toString(), contains('maps/dir/'));
+      expect(dirUri.toString(), contains('3.5952,98.6722'));
+
+      final fallbackUri = PlaceGeoHelper.googleMapsDirectionsUri(
+        name: 'GOR Tanpa Titik',
+        address: 'Jl. Merdeka',
+        city: 'Medan',
+      );
+      expect(fallbackUri.toString(), contains('maps/search/'));
+    });
+
+    testWidgets(
+      'PlaceLocationPickerPage menampilkan atribusi OpenStreetMap dan mengembalikan LatLng saat disimpan',
+      (tester) async {
+        LatLng? result;
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.light(),
+            home: Builder(
+              builder: (context) => Scaffold(
+                body: Center(
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      result = await PlaceLocationPickerPage.show(
+                        context,
+                        initialLatitude: 3.5952,
+                        initialLongitude: 98.6722,
+                        fallbackCity: 'Medan',
+                      );
+                    },
+                    child: const Text('Buka Pemilih Titik'),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+
+        await tester.tap(find.text('Buka Pemilih Titik'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+
+        expect(find.text(AppStrings.mapAttributionOsm), findsOneWidget);
+        expect(find.text(AppStrings.mapSaveLocationBtn), findsOneWidget);
+
+        await tester.tap(find.text(AppStrings.mapSaveLocationBtn));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+
+        expect(result, isNotNull);
+        expect(result!.latitude, closeTo(3.5952, 0.001));
+        expect(result!.longitude, closeTo(98.6722, 0.001));
+      },
+    );
   });
 }

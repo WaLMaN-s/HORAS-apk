@@ -1510,4 +1510,42 @@ abstract final class AppStrings {
   static const String man07ViewMap = 'Peta Lapangan';
   static const String man07MapDisclaimer =
       'Peta menggunakan ubin publik OpenStreetMap (fair-use). Sebelum produksi, gunakan penyedia peta berlisensi/mandiri.';
+
+  // Peta, Titik Lokasi Tempat Umum, & Urutan Terdekat (MAN-07, MAN-08, SEK-10, SEK-11)
+  static const String mapAttributionOsm = '© OpenStreetMap contributors';
+  static const String mapPickLocationBtn = 'Pilih Titik di Peta (Opsional)';
+  static const String mapChangeLocationBtn = 'Ubah Titik di Peta';
+  static const String mapPickLocationTitle = 'Pilih Titik Lokasi';
+  static const String mapPickLocationHint =
+      'Geser peta agar pin berada tepat di lokasi tempat, lalu ketuk Simpan Titik.';
+  static const String mapSaveLocationBtn = 'Simpan Titik';
+  static const String mapSelectedCoordinatesPrefix = 'Titik peta dipilih';
+  static const String mapDirectionsBtn = 'Petunjuk Arah di Google Maps';
+  static const String mapMyLocationTooltip = 'Pusatkan ke Lokasi Saya';
+  static const String mapSortNearest = 'Terdekat';
+  static const String mapSortDefault = 'Urutan Baku';
+  static const String mapLocationRationaleTitle = 'Gunakan Lokasi Perkiraan?';
+  static const String mapLocationRationaleMessage =
+      'HORAS menggunakan lokasi perkiraan di perangkat Anda hanya untuk mengurutkan lapangan dan gereja terdekat serta memusatkan peta. Lokasi Anda tidak pernah dikirim atau disimpan ke server.';
+  static const String mapLocationAllowBtn = 'Gunakan Lokasi';
+  static const String mapLocationUseCityFallbackToast =
+      'Mengurutkan berdasarkan pusat kota pilihan Anda.';
+
+  static const String sek10ViewList = 'Daftar';
+  static const String sek10ViewMap = 'Peta Gereja';
+  static const String sek10ChurchNameLabel = 'Nama Gereja Lengkap';
+  static const String sek10ChurchNameHint = 'Misal: HKBP Sudirman Medan';
+  static const String sek10DenominationLabel = 'Denominasi Gereja';
+  static const String sek10ChurchAddressLabel = 'Alamat Lengkap';
+  static const String sek10ChurchAddressHint = 'Jalan, nomor, kelurahan';
+  static const String sek10ChurchCityLabel = 'Kota / Kabupaten';
+  static const String sek10ChurchPhoneLabel =
+      'Kontak Gereja / Sekretariat (Opsional)';
+  static const String sek10ChurchPhoneHint = '+62...';
+  static const String sek10SubmitProposeBtn = 'Kirim Usulan Gereja';
+  static const String sek10ProposeValidationError =
+      'Nama, alamat, dan kota gereja wajib diisi.';
+  static const String sek10ProposedToast =
+      'Usulan gereja berhasil dikirim dan masuk antrean moderasi.';
+  static const String sek11LocationPreviewTitle = 'Lokasi di Peta';
 }

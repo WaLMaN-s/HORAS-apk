@@ -3789,6 +3789,8 @@ final class MockCourtRepository implements CourtRepository {
     required List<SportType> supportedSports,
     required String estimatedPriceText,
     required String openingHours,
+    double? latitude,
+    double? longitude,
   }) async {
     final net = await _store.simulateNetworkCall();
     if (net is Err<void>) return Err<Court>(net.failure);
@@ -3814,6 +3816,8 @@ final class MockCourtRepository implements CourtRepository {
       estimatedPriceText: estimatedPriceText.trim(),
       openingHours: openingHours.trim(),
       status: CourtModerationStatus.pendingModeration, // MAN-R10
+      latitude: latitude,
+      longitude: longitude,
     );
     _store.courts.add(court);
     return Ok<Court>(court);
@@ -6375,6 +6379,8 @@ final class MockChurchRepository implements ChurchRepository {
     required List<ChurchServiceSchedule> serviceSchedules,
     String contactPhone = '',
     String contactEmail = '',
+    double? latitude,
+    double? longitude,
   }) async {
     final net = await _store.simulateNetworkCall();
     if (net is Err<void>) return Err<Church>(net.failure);
@@ -6397,6 +6403,8 @@ final class MockChurchRepository implements ChurchRepository {
       serviceSchedules: serviceSchedules,
       contactPhone: contactPhone.trim(),
       contactEmail: contactEmail.trim(),
+      latitude: latitude,
+      longitude: longitude,
     );
     _store.notifyListeners();
     return Ok<Church>(church);

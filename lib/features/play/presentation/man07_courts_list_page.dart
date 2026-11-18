@@ -9,6 +9,7 @@ import 'package:horas/core/l10n/app_strings.dart';
 import 'package:horas/core/router/app_pages.dart';
 import 'package:horas/core/theme/app_theme.dart';
 import 'package:horas/core/theme/app_tokens.dart';
+import 'package:horas/core/utils/place_geo_helper.dart';
 import 'package:horas/core/widgets/widgets.dart';
 import 'package:horas/domain/models/models.dart';
 import 'package:horas/features/play/presentation/play_controller.dart';
@@ -27,16 +28,25 @@ class Man07CourtsListPage extends ConsumerStatefulWidget {
 }
 
 class _Man07CourtsListPageState extends ConsumerState<Man07CourtsListPage> {
+  final MapController _mapController = MapController();
   SportType? _selectedSport;
   List<Court> _courts = const <Court>[];
   bool _isLoading = true;
   bool _showMap = false;
+  bool _sortByNearest = false;
+  ({double latitude, double longitude})? _refCoords;
   AppError? _error;
 
   @override
   void initState() {
     super.initState();
     Future<void>.microtask(_load);
+  }
+
+  @override
+  void dispose() {
+    _mapController.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -56,10 +66,74 @@ class _Man07CourtsListPageState extends ConsumerState<Man07CourtsListPage> {
       });
       return;
     }
+    var list = (res as Ok<List<Court>>).value;
+    if (_sortByNearest && _refCoords != null) {
+      list = PlaceGeoHelper.sortByNearest<Court>(
+        list,
+        refLat: _refCoords!.latitude,
+        refLng: _refCoords!.longitude,
+        getLatitude: (c) => c.latitude,
+        getLongitude: (c) => c.longitude,
+        getCity: (c) => c.city,
+      );
+    }
     setState(() {
-      _courts = (res as Ok<List<Court>>).value;
+      _courts = list;
       _isLoading = false;
     });
+  }
+
+  Future<void> _toggleSortByNearest() async {
+    if (_sortByNearest) {
+      setState(() => _sortByNearest = false);
+      await _load();
+      return;
+    }
+    final city = ref.read(playControllerProvider).selectedCity;
+    final resolved = await PlaceGeoHelper.resolveDeviceOrCityCoordinates(
+      context,
+      fallbackCity: city,
+    );
+    if (!mounted) return;
+    if (!resolved.usedDeviceLocation) {
+      AppToast.show(
+        context,
+        message: AppStrings.mapLocationUseCityFallbackToast,
+      );
+    }
+    setState(() {
+      _refCoords = (latitude: resolved.latitude, longitude: resolved.longitude);
+      _sortByNearest = true;
+      _courts = PlaceGeoHelper.sortByNearest<Court>(
+        _courts,
+        refLat: resolved.latitude,
+        refLng: resolved.longitude,
+        getLatitude: (c) => c.latitude,
+        getLongitude: (c) => c.longitude,
+        getCity: (c) => c.city,
+      );
+    });
+  }
+
+  Future<void> _centerOnMyLocation() async {
+    final city = ref.read(playControllerProvider).selectedCity;
+    final resolved = await PlaceGeoHelper.resolveDeviceOrCityCoordinates(
+      context,
+      fallbackCity: city,
+    );
+    if (!mounted) return;
+    setState(() {
+      _refCoords = (latitude: resolved.latitude, longitude: resolved.longitude);
+    });
+    _mapController.move(LatLng(resolved.latitude, resolved.longitude), 13.5);
+  }
+
+  LatLng _pointForCourt(Court court) {
+    if (court.latitude != null && court.longitude != null) {
+      return LatLng(court.latitude!, court.longitude!);
+    }
+    final fallback = PlaceGeoHelper.cityCenterFor(court.city);
+    return LatLng(fallback.latitude, fallback.longitude);
   }
 
   @override
@@ -83,15 +157,7 @@ class _Man07CourtsListPageState extends ConsumerState<Man07CourtsListPage> {
         },
       );
     } else if (flags.courtMap && _showMap) {
-      final validCourts = _courts
-          .where((c) => c.latitude != null && c.longitude != null)
-          .toList();
-      final centerLat = validCourts.isNotEmpty
-          ? validCourts.first.latitude!
-          : 3.5952;
-      final centerLng = validCourts.isNotEmpty
-          ? validCourts.first.longitude!
-          : 98.6722;
+      final firstPoint = _pointForCourt(_courts.first);
 
       content = Column(
         children: <Widget>[
@@ -108,45 +174,81 @@ class _Man07CourtsListPageState extends ConsumerState<Man07CourtsListPage> {
             ),
           ),
           Expanded(
-            child: FlutterMap(
-              options: MapOptions(
-                initialCenter: LatLng(centerLat, centerLng),
-                initialZoom: 13.0,
-              ),
+            child: Stack(
               children: <Widget>[
-                TileLayer(
-                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  userAgentPackageName: 'id.horas.app',
+                FlutterMap(
+                  mapController: _mapController,
+                  options: MapOptions(
+                    initialCenter: firstPoint,
+                    initialZoom: 13.0,
+                  ),
+                  children: <Widget>[
+                    TileLayer(
+                      urlTemplate:
+                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      userAgentPackageName: 'id.horas.app',
+                    ),
+                    MarkerLayer(
+                      markers: _courts.map((c) {
+                        final point = _pointForCourt(c);
+                        return Marker(
+                          point: point,
+                          width: 44,
+                          height: 44,
+                          child: Semantics(
+                            label: c.name,
+                            button: true,
+                            child: GestureDetector(
+                              onTap: () async {
+                                await context.push(
+                                  '${AppPages.man08.routePath}?courtId=${c.id}',
+                                );
+                                await _load();
+                              },
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: colors.primary,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: colors.onPrimary,
+                                    width: 2,
+                                  ),
+                                  boxShadow: AppShadows.softCard(colors.shadow),
+                                ),
+                                child: Icon(
+                                  Icons.sports_tennis,
+                                  color: colors.onPrimary,
+                                  size: 22,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ],
                 ),
-                MarkerLayer(
-                  markers: validCourts.map((c) {
-                    return Marker(
-                      point: LatLng(c.latitude!, c.longitude!),
-                      width: 44,
-                      height: 44,
-                      child: GestureDetector(
-                        onTap: () async {
-                          await context.push(
-                            '${AppPages.man08.routePath}?courtId=${c.id}',
-                          );
-                          await _load();
-                        },
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: colors.primary,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
-                            boxShadow: AppShadows.softCard(colors.shadow),
-                          ),
-                          child: const Icon(
-                            Icons.sports_tennis,
-                            color: Colors.white,
-                            size: 22,
-                          ),
-                        ),
+                const Positioned(
+                  left: AppSpacing.sm,
+                  bottom: AppSpacing.sm,
+                  child: OsmAttributionBadge(),
+                ),
+                Positioned(
+                  right: AppSpacing.md,
+                  bottom: AppSpacing.md,
+                  child: Material(
+                    color: colors.surface,
+                    shape: const CircleBorder(),
+                    elevation: 2,
+                    child: IconButton(
+                      tooltip: AppStrings.mapMyLocationTooltip,
+                      icon: Icon(
+                        Icons.my_location_outlined,
+                        color: colors.primary,
                       ),
-                    );
-                  }).toList(),
+                      onPressed: _centerOnMyLocation,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -163,6 +265,12 @@ class _Man07CourtsListPageState extends ConsumerState<Man07CourtsListPage> {
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: <Widget>[
+                  AppChip(
+                    label: AppStrings.mapSortNearest,
+                    isSelected: _sortByNearest,
+                    onTap: _toggleSortByNearest,
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
                   AppChip(
                     label: AppStrings.man02AllSports,
                     isSelected: _selectedSport == null,
@@ -189,8 +297,20 @@ class _Man07CourtsListPageState extends ConsumerState<Man07CourtsListPage> {
             ),
             const SizedBox(height: AppSpacing.lg),
 
-            ..._courts.map(
-              (court) => Padding(
+            ..._courts.map((court) {
+              String? distanceRange;
+              if (_refCoords != null) {
+                final pt = _pointForCourt(court);
+                final distKm = PlaceGeoHelper.haversineDistanceKm(
+                  lat1: _refCoords!.latitude,
+                  lng1: _refCoords!.longitude,
+                  lat2: pt.latitude,
+                  lng2: pt.longitude,
+                );
+                distanceRange = PlaceGeoHelper.distanceRangeLabel(distKm);
+              }
+
+              return Padding(
                 padding: const EdgeInsets.only(bottom: AppSpacing.md),
                 child: Card(
                   margin: EdgeInsets.zero,
@@ -220,7 +340,9 @@ class _Man07CourtsListPageState extends ConsumerState<Man07CourtsListPage> {
                                 Text(court.name, style: typo.bodyStrong),
                                 const SizedBox(height: AppSpacing.xs),
                                 Text(
-                                  court.address,
+                                  distanceRange != null
+                                      ? '${court.address} · $distanceRange'
+                                      : court.address,
                                   style: typo.caption.copyWith(
                                     color: colors.textMuted,
                                   ),
@@ -254,8 +376,8 @@ class _Man07CourtsListPageState extends ConsumerState<Man07CourtsListPage> {
                     ),
                   ),
                 ),
-              ),
-            ),
+              );
+            }),
           ],
         ),
       );

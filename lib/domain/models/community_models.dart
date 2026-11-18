@@ -419,6 +419,8 @@ final class Church {
     this.memberCount = 0,
     this.isUserHomeChurch = false,
     this.isHomeChurchVisible = false,
+    this.latitude,
+    this.longitude,
   });
 
   final String id;
@@ -433,6 +435,8 @@ final class Church {
   final int memberCount;
   final bool isUserHomeChurch;
   final bool isHomeChurchVisible;
+  final double? latitude;
+  final double? longitude;
 
   /// SEK-R13: Jumlah jemaat di HORAS hanya tampil bila minimal 5 orang.
   bool get canDisplayMemberCount => memberCount >= 5;
@@ -442,6 +446,8 @@ final class Church {
     int? memberCount,
     bool? isUserHomeChurch,
     bool? isHomeChurchVisible,
+    double? latitude,
+    double? longitude,
   }) {
     return Church(
       id: id,
@@ -456,6 +462,8 @@ final class Church {
       memberCount: memberCount ?? this.memberCount,
       isUserHomeChurch: isUserHomeChurch ?? this.isUserHomeChurch,
       isHomeChurchVisible: isHomeChurchVisible ?? this.isHomeChurchVisible,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
     );
   }
 
@@ -472,6 +480,8 @@ final class Church {
     'memberCount': memberCount,
     'isUserHomeChurch': isUserHomeChurch,
     'isHomeChurchVisible': isHomeChurchVisible,
+    'latitude': latitude,
+    'longitude': longitude,
   };
 
   factory Church.fromJson(Map<String, Object?> json) {
@@ -482,7 +492,7 @@ final class Church {
       return ChurchDenomination.hkbp;
     }
 
-    final rawSched = json['serviceSchedules'];
+    final rawSched = json['serviceSchedules'] ?? json['service_schedules'];
     final schedules = <ChurchServiceSchedule>[];
     if (rawSched is List<Object?>) {
       for (final s in rawSched) {
@@ -499,12 +509,30 @@ final class Church {
       address: (json['address'] as String?) ?? '',
       city: (json['city'] as String?) ?? '',
       serviceSchedules: schedules,
-      contactPhone: (json['contactPhone'] as String?) ?? '',
-      contactEmail: (json['contactEmail'] as String?) ?? '',
-      isVerified: (json['isVerified'] as bool?) ?? false,
-      memberCount: (json['memberCount'] as int?) ?? 0,
-      isUserHomeChurch: (json['isUserHomeChurch'] as bool?) ?? false,
-      isHomeChurchVisible: (json['isHomeChurchVisible'] as bool?) ?? false,
+      contactPhone:
+          (json['contactPhone'] as String?) ??
+          (json['contact_phone'] as String?) ??
+          '',
+      contactEmail:
+          (json['contactEmail'] as String?) ??
+          (json['contact_email'] as String?) ??
+          '',
+      isVerified:
+          (json['isVerified'] as bool?) ??
+          (json['is_verified'] as bool?) ??
+          false,
+      memberCount:
+          (json['memberCount'] as int?) ?? (json['member_count'] as int?) ?? 0,
+      isUserHomeChurch:
+          (json['isUserHomeChurch'] as bool?) ??
+          (json['is_user_home_church'] as bool?) ??
+          false,
+      isHomeChurchVisible:
+          (json['isHomeChurchVisible'] as bool?) ??
+          (json['is_home_church_visible'] as bool?) ??
+          false,
+      latitude: (json['latitude'] as num?)?.toDouble(),
+      longitude: (json['longitude'] as num?)?.toDouble(),
     );
   }
 }

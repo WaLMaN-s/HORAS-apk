@@ -285,20 +285,27 @@ final class SupabaseChurchRepository implements ChurchRepository {
     required List<ChurchServiceSchedule> serviceSchedules,
     String contactPhone = '',
     String contactEmail = '',
+    double? latitude,
+    double? longitude,
   }) => _gw.guard(() async {
+    final payload = <String, Object?>{
+      'name': name,
+      'denomination': denomination.name,
+      'address': address,
+      'city': city,
+      'service_schedules': serviceSchedules.map((s) => s.toJson()).toList(),
+      'contact_phone': contactPhone,
+      'contact_email': contactEmail,
+      'is_verified': false,
+      'member_count': 1,
+    };
+    if (latitude != null && longitude != null) {
+      payload['latitude'] = latitude;
+      payload['longitude'] = longitude;
+    }
     final row = await _gw.client
         .from('churches')
-        .insert(<String, Object?>{
-          'name': name,
-          'denomination': denomination.name,
-          'address': address,
-          'city': city,
-          'service_schedules': serviceSchedules.map((s) => s.toJson()).toList(),
-          'contact_phone': contactPhone,
-          'contact_email': contactEmail,
-          'is_verified': false,
-          'member_count': 1,
-        })
+        .insert(payload)
         .select()
         .single();
 

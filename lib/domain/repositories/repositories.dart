@@ -360,6 +360,8 @@ abstract interface class CourtRepository {
     required List<SportType> supportedSports,
     required String estimatedPriceText,
     required String openingHours,
+    double? latitude,
+    double? longitude,
   });
 }
 
@@ -623,6 +625,8 @@ abstract interface class ChurchRepository {
     required List<ChurchServiceSchedule> serviceSchedules,
     String contactPhone = '',
     String contactEmail = '',
+    double? latitude,
+    double? longitude,
   });
   Future<Result<Church>> setMyHomeChurch(
     String churchId, {

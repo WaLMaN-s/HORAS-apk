@@ -1001,6 +1001,8 @@ final class SupabaseCourtRepository implements CourtRepository {
       openingHours: (r['opening_hours'] as String?) ?? '',
       imageSeed: (r['image_seed'] as String?) ?? 'court-default',
       status: status,
+      latitude: (r['latitude'] as num?)?.toDouble(),
+      longitude: (r['longitude'] as num?)?.toDouble(),
     );
   }
 
@@ -1038,6 +1040,8 @@ final class SupabaseCourtRepository implements CourtRepository {
     required List<SportType> supportedSports,
     required String estimatedPriceText,
     required String openingHours,
+    double? latitude,
+    double? longitude,
   }) => _gw.guard(() async {
     final uid = _gw.currentUserId;
     if (uid == null) {
@@ -1046,20 +1050,25 @@ final class SupabaseCourtRepository implements CourtRepository {
         permissionName: 'auth',
       );
     }
+    final payload = <String, Object?>{
+      'name': name.trim(),
+      'address': address.trim(),
+      'city': city.trim(),
+      'supported_sports': supportedSports
+          .map(SupabaseGateway.sportTypeToSql)
+          .toList(growable: false),
+      'estimated_price_text': estimatedPriceText.trim(),
+      'opening_hours': openingHours.trim(),
+      'moderation_status': 'pending_review',
+      'suggested_by': uid,
+    };
+    if (latitude != null && longitude != null) {
+      payload['latitude'] = latitude;
+      payload['longitude'] = longitude;
+    }
     final row = await _gw.client
         .from('courts')
-        .insert(<String, Object?>{
-          'name': name.trim(),
-          'address': address.trim(),
-          'city': city.trim(),
-          'supported_sports': supportedSports
-              .map(SupabaseGateway.sportTypeToSql)
-              .toList(growable: false),
-          'estimated_price_text': estimatedPriceText.trim(),
-          'opening_hours': openingHours.trim(),
-          'moderation_status': 'pending_review',
-          'suggested_by': uid,
-        })
+        .insert(payload)
         .select()
         .single();
     return _courtFromRow(row);

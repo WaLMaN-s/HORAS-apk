@@ -1,3 +1,4 @@
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:horas/core/config/repository_providers.dart';
@@ -7,13 +8,17 @@ import 'package:horas/core/l10n/app_strings.dart';
 import 'package:horas/core/router/app_pages.dart';
 import 'package:horas/core/theme/app_theme.dart';
 import 'package:horas/core/theme/app_tokens.dart';
+import 'package:horas/core/utils/place_geo_helper.dart';
+import 'package:horas/core/widgets/widgets.dart';
 import 'package:horas/domain/models/models.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// SEK-11 Detail Gereja (SEK-R13).
 ///
 /// - Denominasi (HKBP, GKPI, HKI, GKPS, GBKP, lainnya).
-/// - Jadwal ibadah, kontak, kegiatan.
+/// - Jadwal ibadah, kontak, lokasi peta, petunjuk arah, kegiatan.
 /// - Jumlah jemaat di HORAS hanya tampil bila minimal 5 orang (SEK-R13).
 /// - Lencana Terverifikasi vs Belum diverifikasi.
 /// - Gereja asal opsional dan bawaan tersembunyi (SEK-R13).
@@ -72,6 +77,24 @@ class _Sek11ChurchDetailPageState extends ConsumerState<Sek11ChurchDetailPage> {
       }
       _isLoading = false;
     });
+  }
+
+  Future<void> _openExternalMap(Church church) async {
+    final uri = PlaceGeoHelper.googleMapsDirectionsUri(
+      name: church.name,
+      address: church.address,
+      city: church.city,
+      latitude: church.latitude,
+      longitude: church.longitude,
+    );
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!launched && mounted) {
+      AppToast.show(
+        context,
+        message: AppStrings.man08MapLaunchError,
+        variant: AppToastVariant.warning,
+      );
+    }
   }
 
   Future<void> _onSetHomeChurch() async {
@@ -218,6 +241,7 @@ class _Sek11ChurchDetailPageState extends ConsumerState<Sek11ChurchDetailPage> {
     }
 
     final church = _church!;
+    final hasCoords = church.latitude != null && church.longitude != null;
 
     return Scaffold(
       appBar: AppBar(
@@ -305,7 +329,7 @@ class _Sek11ChurchDetailPageState extends ConsumerState<Sek11ChurchDetailPage> {
                     ),
                     decoration: BoxDecoration(
                       color: church.isVerified
-                          ? Colors.blue.withValues(alpha: 0.1)
+                          ? colors.primary.withValues(alpha: 0.12)
                           : colors.chipInactive,
                       borderRadius: BorderRadius.circular(AppRadius.pill),
                     ),
@@ -318,7 +342,7 @@ class _Sek11ChurchDetailPageState extends ConsumerState<Sek11ChurchDetailPage> {
                               : Icons.info_outline,
                           size: AppSizes.iconSm,
                           color: church.isVerified
-                              ? Colors.blue
+                              ? colors.primary
                               : colors.textMuted,
                         ),
                         const SizedBox(width: AppSpacing.xs),
@@ -328,7 +352,7 @@ class _Sek11ChurchDetailPageState extends ConsumerState<Sek11ChurchDetailPage> {
                               : AppStrings.sek10UnverifiedBadge,
                           style: typo.caption.copyWith(
                             color: church.isVerified
-                                ? Colors.blue
+                                ? colors.primary
                                 : colors.textMuted,
                             fontWeight: FontWeight.w600,
                           ),
@@ -417,7 +441,7 @@ class _Sek11ChurchDetailPageState extends ConsumerState<Sek11ChurchDetailPage> {
 
             const SizedBox(height: AppSpacing.lg),
 
-            // Kontak & Lokasi
+            // Kontak, Peta Mini & Petunjuk Arah
             Container(
               padding: const EdgeInsets.all(AppSpacing.md),
               decoration: BoxDecoration(
@@ -475,6 +499,78 @@ class _Sek11ChurchDetailPageState extends ConsumerState<Sek11ChurchDetailPage> {
                       ],
                     ),
                   ],
+                  if (hasCoords) ...<Widget>[
+                    const SizedBox(height: AppSpacing.md),
+                    Text(
+                      AppStrings.sek11LocationPreviewTitle,
+                      style: typo.caption.copyWith(color: colors.textMuted),
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(AppRadius.card),
+                      child: SizedBox(
+                        height: 150,
+                        child: Stack(
+                          children: <Widget>[
+                            FlutterMap(
+                              options: MapOptions(
+                                initialCenter: LatLng(
+                                  church.latitude!,
+                                  church.longitude!,
+                                ),
+                                initialZoom: 14.5,
+                              ),
+                              children: <Widget>[
+                                TileLayer(
+                                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                  userAgentPackageName: 'id.horas.app',
+                                ),
+                                MarkerLayer(
+                                  markers: <Marker>[
+                                    Marker(
+                                      point: LatLng(
+                                        church.latitude!,
+                                        church.longitude!,
+                                      ),
+                                      width: 44,
+                                      height: 44,
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: colors.primary,
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: colors.onPrimary,
+                                            width: 2,
+                                          ),
+                                        ),
+                                        child: Icon(
+                                          Icons.church,
+                                          color: colors.onPrimary,
+                                          size: 20,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            const Positioned(
+                              right: AppSpacing.xs,
+                              bottom: AppSpacing.xs,
+                              child: OsmAttributionBadge(),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: AppSpacing.md),
+                  AppButton(
+                    label: AppStrings.mapDirectionsBtn,
+                    leadingIcon: Icons.directions_outlined,
+                    isExpanded: true,
+                    onPressed: () => _openExternalMap(church),
+                  ),
                 ],
               ),
             ),

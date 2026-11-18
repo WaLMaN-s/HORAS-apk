@@ -6,9 +6,11 @@ import 'package:horas/core/errors/result.dart';
 import 'package:horas/core/l10n/app_strings.dart';
 import 'package:horas/core/theme/app_theme.dart';
 import 'package:horas/core/theme/app_tokens.dart';
+import 'package:horas/core/utils/place_geo_helper.dart';
 import 'package:horas/core/widgets/widgets.dart';
 import 'package:horas/domain/models/models.dart';
 import 'package:horas/features/play/presentation/play_controller.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -41,6 +43,7 @@ class _Man08CourtDetailPageState extends ConsumerState<Man08CourtDetailPage> {
   final _priceController = TextEditingController();
   final _hoursController = TextEditingController();
   final Set<SportType> _selectedSports = <SportType>{SportType.badminton};
+  LatLng? _selectedPoint;
   bool _isSubmitting = false;
 
   @override
@@ -89,11 +92,12 @@ class _Man08CourtDetailPageState extends ConsumerState<Man08CourtDetailPage> {
   }
 
   Future<void> _openExternalMap(Court court) async {
-    final query = Uri.encodeComponent(
-      '${court.name}, ${court.address}, ${court.city}',
-    );
-    final uri = Uri.parse(
-      'https://www.google.com/maps/search/?api=1&query=$query',
+    final uri = PlaceGeoHelper.googleMapsDirectionsUri(
+      name: court.name,
+      address: court.address,
+      city: court.city,
+      latitude: court.latitude,
+      longitude: court.longitude,
     );
     final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!launched && mounted) {
@@ -102,6 +106,18 @@ class _Man08CourtDetailPageState extends ConsumerState<Man08CourtDetailPage> {
         message: AppStrings.man08MapLaunchError,
         variant: AppToastVariant.warning,
       );
+    }
+  }
+
+  Future<void> _pickPointOnMap() async {
+    final picked = await PlaceLocationPickerPage.show(
+      context,
+      initialLatitude: _selectedPoint?.latitude,
+      initialLongitude: _selectedPoint?.longitude,
+      fallbackCity: _cityController.text.trim(),
+    );
+    if (picked != null && mounted) {
+      setState(() => _selectedPoint = picked);
     }
   }
 
@@ -169,6 +185,8 @@ class _Man08CourtDetailPageState extends ConsumerState<Man08CourtDetailPage> {
           supportedSports: _selectedSports.toList(growable: false),
           estimatedPriceText: _priceController.text.trim(),
           openingHours: _hoursController.text.trim(),
+          latitude: _selectedPoint?.latitude,
+          longitude: _selectedPoint?.longitude,
         );
     if (!mounted) return;
     setState(() => _isSubmitting = false);
@@ -215,6 +233,25 @@ class _Man08CourtDetailPageState extends ConsumerState<Man08CourtDetailPage> {
                 controller: _cityController,
                 label: AppStrings.man08CityLabel,
               ),
+              const SizedBox(height: AppSpacing.md),
+              AppButton(
+                label: _selectedPoint == null
+                    ? AppStrings.mapPickLocationBtn
+                    : AppStrings.mapChangeLocationBtn,
+                variant: AppButtonVariant.secondary,
+                leadingIcon: Icons.add_location_alt_outlined,
+                isExpanded: true,
+                onPressed: _pickPointOnMap,
+              ),
+              if (_selectedPoint != null) ...<Widget>[
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  '${AppStrings.mapSelectedCoordinatesPrefix}: '
+                  '${_selectedPoint!.latitude.toStringAsFixed(5)}, '
+                  '${_selectedPoint!.longitude.toStringAsFixed(5)}',
+                  style: typo.caption.copyWith(color: colors.primary),
+                ),
+              ],
               const SizedBox(height: AppSpacing.md),
               Text(
                 AppStrings.man08SupportedSportsLabel,
@@ -334,9 +371,9 @@ class _Man08CourtDetailPageState extends ConsumerState<Man08CourtDetailPage> {
           ),
           const SizedBox(height: AppSpacing.lg),
           AppButton(
-            label: AppStrings.man08OpenMapsBtn,
+            label: AppStrings.mapDirectionsBtn,
             isExpanded: true,
-            leadingIcon: Icons.map_outlined,
+            leadingIcon: Icons.directions_outlined,
             onPressed: () => _openExternalMap(court),
           ),
           const SizedBox(height: AppSpacing.sm),

@@ -2,6 +2,19 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "HORAS (Supabase Cloud Publik)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": [
+        "--dart-define=USE_MOCK_BACKEND=false",
+        "--dart-define=ENV=prod",
+        "--dart-define=ALLOW_DRAFT_RULES=true",
+        "--dart-define=SUPABASE_URL=https://hupxmxxwusgeqqiijsnz.supabase.co",
+        "--dart-define=SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh1cHhteHh3dXNnZXFxaWlqc256Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ5Nzc3NzksImV4cCI6MjExMDU1Mzc3OX0.Ridna7wvPgIYT2tDa1sz0DmyKjWxKxm0Qzuto7wLG7Y"
+      ]
+    },
+    {
       "name": "HORAS (Mock Backend)",
       "request": "launch",
       "type": "dart",

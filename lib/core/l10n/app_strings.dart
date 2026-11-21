@@ -10,6 +10,7 @@ abstract final class AppStrings {
 
   // ── Istilah Antarmuka Baku (PRD 7.3) ────────────────────────────────────────
   static const String termIkuti = 'Ikuti';
+  static const String termFollback = 'Follback';
   static const String termMengikuti = 'Mengikuti';
   static const String termPengikut = 'Pengikut';
   static const String termKenalan = 'Kenalan';
@@ -660,6 +661,8 @@ abstract final class AppStrings {
   static const String sek03ResetBtn = 'Atur Ulang';
 
   static const String sek04FollowPending = 'Menunggu persetujuan';
+  static const String sek04FollowsYouNotice = 'Mengikutimu';
+  static const String sek04MutualFollowNotice = 'Saling mengikuti';
   static const String sek04UnfollowAction = 'Berhenti ikuti';
   static const String sek04ConnectionSent = 'Terkirim';
   static const String sek04AcceptBtn = 'Terima';
@@ -964,6 +967,23 @@ abstract final class AppStrings {
   static const String man01HistoryTooltip = 'Riwayat Sesi Saya';
   static const String man01FilterTooltip = 'Filter Sesi';
   static const String man01AllCourtsAction = 'Lihat Lapangan';
+  static const String man01ChurchesSection = 'Gereja Sekitar';
+  static const String man01AllChurchesAction = 'Lihat Gereja';
+  static const String man01DestinationHint =
+      'Lacak lokasi tujuan (mis. Cilandak, Kemang)...';
+  static const String man01TrackLocationBtn = 'Lacak';
+  static const String man01UseMyLocationBtn = 'Lokasi Saya';
+  static const String man01DeviceLocationLabel = 'Lokasi Anda saat ini';
+  static const String man01TargetLocationLabel = 'Lokasi tujuan';
+  static const String man01DiscoveringPlaces =
+      'Melacak lapangan & gereja di area ini...';
+  static const String man01DirectionsBtn = 'Petunjuk Arah';
+  static const String man01CreateSessionHereBtn = 'Buat Sesi di Sini';
+  static const String man01SourceMapBadge = 'Peta OpenStreetMap';
+  static const String man01EmptyCourtsInArea =
+      'Belum ada lapangan ditemukan di area ini. Coba ketik area lain atau usulkan lapangan.';
+  static const String man01EmptyChurchesInArea =
+      'Belum ada gereja ditemukan di area ini. Coba ketik area lain atau usulkan gereja.';
   static String man01ParticipantsRatio(int joined, int maxSlots) =>
       '$joined/$maxSlots peserta';
   static const String man01FreeFeeLabel = 'Gratis';

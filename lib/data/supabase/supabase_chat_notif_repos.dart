@@ -192,6 +192,9 @@ final class SupabaseChatRepository implements ChatRepository {
         .inFilter('conversation_id', convIds);
 
     final userIds = cpRows.map((c) => c['user_id'] as String).toSet();
+    for (final userId in userIds) {
+      _gw.invalidatePersonCache(userId);
+    }
     final people = await _gw.getBatchPersonSummaries(userIds);
 
     final participantsByConv = <String, List<PersonSummary>>{};

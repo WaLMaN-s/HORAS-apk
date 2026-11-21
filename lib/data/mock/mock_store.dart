@@ -710,6 +710,7 @@ final class MockStore {
     final isSelf = effectiveViewer.id == target.id;
     final connected = isConnectedBetween(effectiveViewer.id, target.id);
     final following = isFollowingUser(effectiveViewer.id, target.id);
+    final followedBy = isFollowingUser(target.id, effectiveViewer.id);
     final blocked = isBlockedBetween(effectiveViewer.id, target.id);
 
     final proximity =
@@ -757,13 +758,14 @@ final class MockStore {
       visibleAgeGroup = _ageGroupLabel(age);
     }
 
-    // PSN-R1 & AC-06: Tombol Pesan aktif bila Terhubung, sudah Mengikuti (gaya IG),
+    // PSN-R1 & AC-06: Tombol Pesan aktif bila Terhubung, sudah Mengikuti, diikuti (Follback gaya IG),
     // atau berbagi komunitas/sesi dan penerima mengizinkan pesan dari konteks bersama.
     final canMessage =
         !isSelf &&
         !blocked &&
         (connected ||
             following ||
+            followedBy ||
             (sharesCommunityOrSession(effectiveViewer.id, target.id) &&
                 privacy.allowMessagesFromSharedContext));
 
@@ -796,6 +798,7 @@ final class MockStore {
       isPrivateAccount:
           privacy.accountType == AccountVisibilityType.privateAccount,
       isFollowing: following,
+      isFollowedBy: followedBy,
       isConnected: connected,
       canMessage: canMessage,
     );
@@ -1240,7 +1243,6 @@ final class MockStore {
     // Ikuti & Kenalan awal untuk u-01
     for (final targetId in const <String>[
       'u-02',
-      'u-03',
       'u-04',
       'u-05',
       'u-11',

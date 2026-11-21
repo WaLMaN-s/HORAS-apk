@@ -298,5 +298,40 @@ void main() {
         expect(find.byType(Psn04GroupChatPage), findsOneWidget);
       },
     );
+
+    testWidgets(
+      'PSN-01 menampilkan avatar seed profil lawan bicara (bukan ID percakapan) pada daftar obrolan pribadi',
+      (tester) async {
+        final store = _makeStore();
+        final container = ProviderContainer(
+          overrides: [
+            enableMockNetworkLatencyProvider.overrideWithValue(false),
+            mockStoreProvider.overrideWithValue(store),
+            featureFlagsProvider.overrideWithValue(const FeatureFlags()),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: const HorasApp(),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text(AppStrings.tabPesan));
+        await tester.pumpAndSettle();
+        expect(find.byType(Psn01ConversationsPage), findsOneWidget);
+
+        final dmConv = store.conversations.firstWhere(
+          (c) => c.type == ConversationType.direct,
+        );
+        final other = dmConv.participants.firstWhere((p) => p.id != 'u-01');
+        final avatars = tester.widgetList<AppAvatar>(find.byType(AppAvatar));
+        expect(avatars.any((a) => a.seed == other.avatarSeed), isTrue);
+        expect(avatars.any((a) => a.seed == dmConv.id), isFalse);
+      },
+    );
   });
 }

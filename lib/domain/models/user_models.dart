@@ -394,6 +394,7 @@ final class PersonSummary {
     this.websiteUrl,
     this.isPrivateAccount = false,
     this.isFollowing = false,
+    this.isFollowedBy = false,
     this.isConnected = false,
     this.canMessage = false,
   });
@@ -423,6 +424,7 @@ final class PersonSummary {
   final String? websiteUrl;
   final bool isPrivateAccount;
   final bool isFollowing;
+  final bool isFollowedBy;
   final bool isConnected;
   final bool canMessage;
 
@@ -447,6 +449,7 @@ final class PersonSummary {
     String? websiteUrl,
     bool? isPrivateAccount,
     bool? isFollowing,
+    bool? isFollowedBy,
     bool? isConnected,
     bool? canMessage,
   }) {
@@ -473,6 +476,7 @@ final class PersonSummary {
       websiteUrl: websiteUrl ?? this.websiteUrl,
       isPrivateAccount: isPrivateAccount ?? this.isPrivateAccount,
       isFollowing: isFollowing ?? this.isFollowing,
+      isFollowedBy: isFollowedBy ?? this.isFollowedBy,
       isConnected: isConnected ?? this.isConnected,
       canMessage: canMessage ?? this.canMessage,
     );
@@ -500,6 +504,7 @@ final class PersonSummary {
     'websiteUrl': websiteUrl,
     'isPrivateAccount': isPrivateAccount,
     'isFollowing': isFollowing,
+    'isFollowedBy': isFollowedBy,
     'isConnected': isConnected,
     'canMessage': canMessage,
   };
@@ -567,6 +572,10 @@ final class PersonSummary {
       websiteUrl: json['websiteUrl'] as String?,
       isPrivateAccount: (json['isPrivateAccount'] as bool?) ?? false,
       isFollowing: (json['isFollowing'] as bool?) ?? false,
+      isFollowedBy:
+          (json['isFollowedBy'] as bool?) ??
+          (json['is_followed_by'] as bool?) ??
+          false,
       isConnected: (json['isConnected'] as bool?) ?? false,
       canMessage: (json['canMessage'] as bool?) ?? false,
     );

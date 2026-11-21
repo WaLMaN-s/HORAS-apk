@@ -3924,11 +3924,16 @@ final class MockChatRepository implements ChatRepository {
       );
     }
 
-    // PSN-R1: boleh buka langsung bila sudah Terhubung atau sudah Mengikuti (gaya IG).
+    // PSN-R1: boleh buka langsung bila sudah Terhubung, Mengikuti, atau diikuti (Follback gaya IG).
     final isFollowingTarget = _store.follows.any(
       (f) => f.followerId == me.id && f.followeeId == target.id,
     );
-    if (!_store.isConnectedBetween(me.id, target.id) && !isFollowingTarget) {
+    final isFollowedByTarget = _store.follows.any(
+      (f) => f.followerId == target.id && f.followeeId == me.id,
+    );
+    if (!_store.isConnectedBetween(me.id, target.id) &&
+        !isFollowingTarget &&
+        !isFollowedByTarget) {
       return const Err<Conversation>(
         PermissionDeniedError(
           message: 'Ikuti atau hubungkan pengguna terlebih dahulu untuk memulai percakapan.',
@@ -4101,12 +4106,18 @@ final class MockChatRepository implements ChatRepository {
     final isFollowingTarget = _store.follows.any(
       (f) => f.followerId == me.id && f.followeeId == target.id,
     );
+    final isFollowedByTarget = _store.follows.any(
+      (f) => f.followerId == target.id && f.followeeId == me.id,
+    );
     final sharedContext =
         _store.sharesCommunityOrSession(me.id, target.id) &&
         target.privacySettings.allowMessagesFromSharedContext;
 
-    // PSN-R1 & AC-06: Boleh kirim pesan bila Terhubung, Mengikuti, atau berbagi komunitas/sesi
-    if (!connected && !isFollowingTarget && !sharedContext) {
+    // PSN-R1 & AC-06: Boleh kirim pesan bila Terhubung, Mengikuti, diikuti (Follback), atau berbagi komunitas/sesi
+    if (!connected &&
+        !isFollowingTarget &&
+        !isFollowedByTarget &&
+        !sharedContext) {
       return const Err<Message>(
         ValidationError(
           message: 'Pesan pribadi hanya dapat dikirim kepada pengguna yang diikuti, Kenalan yang Terhubung, atau anggota komunitas/sesi yang sama.',

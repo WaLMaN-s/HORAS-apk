@@ -221,7 +221,10 @@ class _Sek04PersonProfilePageState
     final person = _person;
     if (person == null || !person.canMessage) return;
 
-    if (person.isConnected || person.isFollowing || _followStatus != null) {
+    if (person.isConnected ||
+        person.isFollowing ||
+        person.isFollowedBy ||
+        _followStatus != null) {
       await context.push('${AppPages.psn03.routePath}?userId=${person.id}');
       return;
     }
@@ -455,10 +458,15 @@ class _Sek04PersonProfilePageState
         person.isPrivateAccount && !person.isConnected && !person.isFollowing;
 
     final followLabel = _followStatus == null
-        ? AppStrings.termIkuti
+        ? (person.isFollowedBy ? AppStrings.termFollback : AppStrings.termIkuti)
         : _followStatus!.isPendingApproval
         ? AppStrings.sek04FollowPending
         : AppStrings.termMengikuti;
+    final canDirectChat =
+        person.isConnected ||
+        person.isFollowing ||
+        person.isFollowedBy ||
+        _followStatus != null;
 
     final authRepo = ref.read(authRepositoryProvider);
     final now = authRepo.currentTime;
@@ -625,15 +633,39 @@ class _Sek04PersonProfilePageState
                   ),
                 ],
 
-                // Tombol Aksi: Ikuti, Kenalan, Pesan (PSN-R1, AC-06)
-                Wrap(
-                  spacing: AppSpacing.sm,
-                  runSpacing: AppSpacing.sm,
+                // Status mengikuti gaya Instagram (Mengikutimu / Saling mengikuti)
+                if (person.isFollowedBy) ...<Widget>[
+                  Row(
+                    children: <Widget>[
+                      Icon(
+                        _followStatus != null &&
+                                !_followStatus!.isPendingApproval
+                            ? Icons.sync_alt_rounded
+                            : Icons.person_outline_rounded,
+                        size: AppSizes.iconXs,
+                        color: colors.primary,
+                      ),
+                      const SizedBox(width: AppSpacing.xs),
+                      Text(
+                        _followStatus != null &&
+                                !_followStatus!.isPendingApproval
+                            ? AppStrings.sek04MutualFollowNotice
+                            : AppStrings.sek04FollowsYouNotice,
+                        style: typo.captionStrong.copyWith(
+                          color: colors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                ],
+
+                // Baris Utama Gaya IG: [Follback / Ikuti / Mengikuti] sejajar di samping [Pesan]
+                Row(
                   children: <Widget>[
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(minWidth: 112),
+                    Expanded(
                       child: _followStatus == null
-                          ? OutlinedButton.icon(
+                          ? ElevatedButton.icon(
                               onPressed: _isBusyAction ? null : _toggleFollow,
                               icon: const Icon(Icons.person_add_alt_1_outlined),
                               label: Text(followLabel),
@@ -644,6 +676,34 @@ class _Sek04PersonProfilePageState
                               label: Text(followLabel),
                             ),
                     ),
+                    // AC-06 & PSN-R1: Tombol Pesan HANYA tampil bila person.canMessage == true
+                    if (person.canMessage) ...<Widget>[
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: FilledButton.tonalIcon(
+                          onPressed: _isBusyAction
+                              ? null
+                              : _handleMessageAction,
+                          icon: const Icon(Icons.chat_bubble_outline_rounded),
+                          label: Text(
+                            canDirectChat
+                                ? AppStrings.termPesan
+                                : '${AppStrings.termPesan} (${AppStrings.sek04MessageRequestBadge})',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.sm),
+
+                // Aksi Kenalan / Terhubung (SEK-04)
+                Wrap(
+                  spacing: AppSpacing.sm,
+                  runSpacing: AppSpacing.sm,
+                  children: <Widget>[
                     if (person.isConnected)
                       FilledButton.tonalIcon(
                         onPressed: _isBusyAction
@@ -658,21 +718,10 @@ class _Sek04PersonProfilePageState
                         child: Text(AppStrings.sek04ConnectionSent),
                       )
                     else if (_incomingRequest == null || _ignoredIncoming)
-                      ElevatedButton.icon(
+                      OutlinedButton.icon(
                         onPressed: _isBusyAction ? null : _openKenalanSheet,
                         icon: const Icon(Icons.waving_hand_outlined),
                         label: const Text(AppStrings.termKenalan),
-                      ),
-                    // AC-06 & PSN-R1: Tombol Pesan HANYA tampil bila person.canMessage == true
-                    if (person.canMessage)
-                      ElevatedButton.icon(
-                        onPressed: _isBusyAction ? null : _handleMessageAction,
-                        icon: const Icon(Icons.chat_bubble_outline_rounded),
-                        label: Text(
-                          person.isConnected
-                              ? AppStrings.termPesan
-                              : '${AppStrings.termPesan} (${AppStrings.sek04MessageRequestBadge})',
-                        ),
                       ),
                   ],
                 ),

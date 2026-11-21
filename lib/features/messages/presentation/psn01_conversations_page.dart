@@ -27,7 +27,9 @@ class Psn01ConversationsPage extends ConsumerWidget {
     final state = ref.watch(conversationsListProvider);
     final controller = ref.read(conversationsListProvider.notifier);
     final flags = ref.watch(featureFlagsProvider);
-    final now = ref.read(authRepositoryProvider).currentTime;
+    final authRepo = ref.read(authRepositoryProvider);
+    final currentUid = authRepo.currentUserId;
+    final now = authRepo.currentTime;
     final unreadCounts =
         ref.watch(unreadCountsProvider).value ??
         ref.read(navigationBadgeRepositoryProvider).currentUnreadCounts();
@@ -149,6 +151,22 @@ class Psn01ConversationsPage extends ConsumerWidget {
               final targetRoute = conv.type == ConversationType.direct
                   ? '${AppPages.psn03.routePath}?conversationId=${conv.id}'
                   : '${AppPages.psn04.routePath}?conversationId=${conv.id}';
+              final otherParticipant = conv.type == ConversationType.direct
+                  ? (conv.participants
+                            .where((p) => p.id != currentUid)
+                            .firstOrNull ??
+                        conv.participants.firstOrNull)
+                  : null;
+              final avatarName =
+                  (otherParticipant != null &&
+                      otherParticipant.displayName.isNotEmpty)
+                  ? otherParticipant.displayName
+                  : conv.title;
+              final avatarSeed =
+                  (otherParticipant != null &&
+                      otherParticipant.avatarSeed.isNotEmpty)
+                  ? otherParticipant.avatarSeed
+                  : conv.id;
 
               return InkWell(
                 onTap: () async {
@@ -163,10 +181,18 @@ class Psn01ConversationsPage extends ConsumerWidget {
                   child: Row(
                     children: <Widget>[
                       conv.type == ConversationType.direct
-                          ? AppAvatar(
-                              name: conv.title,
-                              seed: conv.id,
-                              size: AppSizes.avatarLg,
+                          ? InkWell(
+                              borderRadius: AppRadius.pillRadius,
+                              onTap: otherParticipant != null
+                                  ? () => context.push(
+                                      '${AppPages.sek04.routePath}?userId=${otherParticipant.id}',
+                                    )
+                                  : null,
+                              child: AppAvatar(
+                                name: avatarName,
+                                seed: avatarSeed,
+                                size: AppSizes.avatarLg,
+                              ),
                             )
                           : Container(
                               width: AppSizes.avatarLg,

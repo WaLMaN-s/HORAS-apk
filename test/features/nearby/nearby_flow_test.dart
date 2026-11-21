@@ -284,5 +284,66 @@ void main() {
         expect(horizontalLists, isNotEmpty);
       },
     );
+
+    testWidgets(
+      'SEK-04 gaya Instagram: tampil tombol Follback jika pengguna lain follow duluan dan tombol Pesan tepat di sampingnya',
+      (tester) async {
+        final store = MockStore(
+          appConfig: const AppConfig(
+            env: AppEnvironment.dev,
+            useMockBackend: true,
+            allowDraftRules: true,
+          ),
+          enableNetworkLatency: false,
+        );
+        // u-07 mengikuti u-01 duluan, namun u-01 belum mengikuti u-07
+        store.follows.add(
+          Follow(
+            id: 'fol-u07-u01',
+            followerId: 'u-07',
+            followeeId: 'u-01',
+            createdAt: store.now,
+          ),
+        );
+
+        final container = ProviderContainer(
+          overrides: [
+            enableMockNetworkLatencyProvider.overrideWithValue(false),
+            mockStoreProvider.overrideWithValue(store),
+            featureFlagsProvider.overrideWithValue(const FeatureFlags()),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: const HorasApp(),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final router = container.read(appRouterProvider);
+        router.push('${AppPages.sek04.routePath}?id=u-07').ignore();
+        await tester.pumpAndSettle();
+
+        expect(find.byType(Sek04PersonProfilePage), findsOneWidget);
+        expect(find.text(AppStrings.termFollback), findsOneWidget);
+        expect(find.text(AppStrings.sek04FollowsYouNotice), findsOneWidget);
+        expect(
+          find.descendant(
+            of: find.byType(Sek04PersonProfilePage),
+            matching: find.text(AppStrings.termPesan),
+          ),
+          findsOneWidget,
+        );
+
+        // Ketuk Follback -> berubah menjadi Mengikuti dan Saling mengikuti
+        await tester.tap(find.text(AppStrings.termFollback));
+        await tester.pumpAndSettle();
+        expect(find.text(AppStrings.termMengikuti), findsOneWidget);
+        expect(find.text(AppStrings.sek04MutualFollowNotice), findsOneWidget);
+      },
+    );
   });
 }

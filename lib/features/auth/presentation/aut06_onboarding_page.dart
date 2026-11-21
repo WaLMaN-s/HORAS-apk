@@ -9,10 +9,10 @@ import 'package:horas/core/router/app_pages.dart';
 import 'package:horas/core/theme/app_theme.dart';
 import 'package:horas/core/theme/app_tokens.dart';
 import 'package:horas/core/utils/image_data_uri_helper.dart';
+import 'package:horas/core/utils/place_discovery_service.dart';
 import 'package:horas/core/widgets/widgets.dart';
 import 'package:horas/domain/models/models.dart';
 import 'package:horas/domain/partuturan/partuturan_confidence.dart';
-import 'package:horas/domain/policies/coarse_location_matcher.dart';
 import 'package:horas/features/auth/presentation/auth_flow_controller.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:material_ui/material_ui.dart';
@@ -141,17 +141,19 @@ class _Aut06OnboardingPageState extends ConsumerState<Aut06OnboardingPage> {
       // Gunakan koordinat cadangan pada lingkungan test/simulator.
     }
 
-    final cityNames = _allCities.map((c) => c.name).toList();
-    final matchedCityName = CoarseLocationCityMatcher.matchNearestCityName(
-      coarseLat: lat,
-      coarseLon: lng,
-      availableCityNames: cityNames,
+    final rev = await PlaceDiscoveryService.reverseGeocodeArea(
+      latitude: lat,
+      longitude: lng,
+      availableCities: _allCities,
     );
+    final matchedCityName = rev.matchedCity;
     final matchedCityObj = _allCities
         .where((c) => c.name.toLowerCase() == matchedCityName.toLowerCase())
         .firstOrNull;
     final matchedSubdistrict =
-        (matchedCityObj != null && matchedCityObj.subdistricts.isNotEmpty)
+        (rev.subdistrict != null && rev.subdistrict!.isNotEmpty)
+        ? rev.subdistrict!
+        : (matchedCityObj != null && matchedCityObj.subdistricts.isNotEmpty)
         ? matchedCityObj.subdistricts.first
         : matchedCityName;
 

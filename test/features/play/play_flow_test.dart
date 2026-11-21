@@ -2,9 +2,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:horas/app.dart';
 import 'package:horas/core/config/app_config.dart';
+import 'package:horas/core/config/feature_flags.dart';
 import 'package:horas/core/config/repository_providers.dart';
 import 'package:horas/core/errors/result.dart';
 import 'package:horas/core/l10n/app_strings.dart';
+import 'package:horas/core/utils/place_discovery_service.dart';
 import 'package:horas/core/widgets/widgets.dart';
 import 'package:horas/data/mock/mock_repositories.dart';
 import 'package:horas/data/mock/mock_store.dart';
@@ -15,6 +17,7 @@ import 'package:horas/features/play/presentation/man03_create_session_page.dart'
 import 'package:horas/features/play/presentation/man04_session_detail_page.dart';
 import 'package:horas/features/play/presentation/man05_participants_page.dart';
 import 'package:horas/features/play/presentation/man06_patungan_page.dart';
+import 'package:horas/features/play/presentation/play_controller.dart';
 import 'package:material_ui/material_ui.dart';
 
 MockStore _makeStore() => MockStore(
@@ -557,6 +560,58 @@ void main() {
         expect(find.byType(Man05ParticipantsPage), findsOneWidget);
         expect(find.text(AppStrings.man05JoinedSection), findsOneWidget);
         expect(find.text(AppStrings.man05EmptyWaitlist), findsOneWidget);
+      },
+    );
+
+    test('PlaceDiscoveryService melacak area tujuan Cilandak ke Jakarta Selatan & mengembalikan lapangan/gereja terdekat', () async {
+      final resolved = await PlaceDiscoveryService.geocodeTargetArea(
+        'Cilandak',
+      );
+      expect(resolved.matchedCity, 'Jakarta Selatan');
+      expect(resolved.areaLabel, contains('Cilandak'));
+      expect(resolved.latitude, lessThan(0));
+      expect(resolved.longitude, greaterThan(100));
+    });
+
+    testWidgets(
+      'MAN-01 pelacakan lokasi tujuan Cilandak tetap menampilkan lapangan & gereja terdekat walau sesi kosong',
+      (tester) async {
+        final container = ProviderContainer(
+          overrides: [
+            enableMockNetworkLatencyProvider.overrideWithValue(false),
+            featureFlagsProvider.overrideWithValue(FeatureFlags.phase2),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: const HorasApp(),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text(AppStrings.tabMain));
+        await tester.pumpAndSettle();
+        expect(find.byType(Man01PlayPage), findsOneWidget);
+
+        await tester.enterText(
+          find.widgetWithText(AppTextField, ''),
+          'Cilandak',
+        );
+        await tester.tap(find.text(AppStrings.man01TrackLocationBtn));
+        await tester.pumpAndSettle();
+
+        final playState = container.read(playControllerProvider);
+        expect(playState.selectedCity, 'Jakarta Selatan');
+        expect(playState.areaLabel, 'Cilandak, Jakarta Selatan');
+        expect(playState.courts, isNotEmpty);
+        expect(playState.churches, isNotEmpty);
+        expect(
+          find.textContaining('Cilandak, Jakarta Selatan'),
+          findsAtLeastNWidgets(1),
+        );
       },
     );
   });

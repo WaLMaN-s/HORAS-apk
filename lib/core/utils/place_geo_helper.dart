@@ -170,6 +170,27 @@ abstract final class PlaceGeoHelper {
     return Uri.parse('https://www.google.com/maps/search/?api=1&query=$query');
   }
 
+  /// Membaca lokasi perkiraan perangkat secara diam-diam HANYA bila izin sudah diberikan.
+  /// Mengembalikan `null` apabila izin belum diberikan atau layanan lokasi tidak aktif.
+  static Future<({double latitude, double longitude})?>
+  tryReadGrantedDeviceLocation() async {
+    try {
+      final status = await perm.Permission.location.status;
+      if (!status.isGranted) return null;
+      final raw = await _channel.invokeMapMethod<String, double>(
+        'getCoarseLocation',
+      );
+      final lat = raw?['latitude'];
+      final lng = raw?['longitude'];
+      if (lat != null && lng != null) {
+        return (latitude: lat, longitude: lng);
+      }
+    } on Object {
+      // Abaikan pada lingkungan test / desktop / perangkat tanpa GPS.
+    }
+    return null;
+  }
+
   /// Meminta/membaca lokasi perkiraan perangkat (AUT-R10) hanya di memori lokal.
   /// Bila izin ditolak atau layanan lokasi tidak tersedia, otomatis kembali ke pusat kota `fallbackCity`.
   static Future<({double latitude, double longitude, bool usedDeviceLocation})>

@@ -47,11 +47,13 @@ app.*.map.json
 # Widget Preview related
 .widget_preview/
 
-# Rahasia dan penandatanganan (jangan pernah di-commit)
+# Rahasia, penandatanganan, dan artefak rilis (jangan pernah di-commit)
 key.properties
 **/android/key.properties
 *.jks
 *.keystore
+*.apk
+*.aab
 .env
 .env.*
 !.env.example

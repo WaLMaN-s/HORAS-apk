@@ -1,4 +1,7 @@
-import 'package:flutter/services.dart' show Clipboard, ClipboardData;
+import 'dart:async';
+
+import 'package:flutter/services.dart'
+    show Clipboard, ClipboardData, HapticFeedback;
 import 'package:go_router/go_router.dart';
 import 'package:horas/core/l10n/app_strings.dart';
 import 'package:horas/core/router/app_pages.dart';
@@ -6,14 +9,16 @@ import 'package:horas/core/theme/app_theme.dart';
 import 'package:horas/core/theme/app_tokens.dart';
 import 'package:horas/core/utils/relative_time_formatter.dart';
 import 'package:horas/core/widgets/app_avatar.dart';
+import 'package:horas/core/widgets/app_bottom_sheet.dart';
 import 'package:horas/core/widgets/app_toast.dart';
 import 'package:horas/core/widgets/partuturan_badge.dart';
+import 'package:horas/core/widgets/photo_lightbox_page.dart';
 import 'package:horas/core/widgets/placeholder_image.dart';
 import 'package:horas/domain/models/models.dart';
 import 'package:material_ui/material_ui.dart';
 
-/// Kartu postingan bergaya Threads untuk `BER-01`, `BER-06`, `SEK-04`, dan `AKN-01`/`AKN-03`.
-class PostCard extends StatelessWidget {
+/// Kartu postingan bergaya Threads + Instagram untuk `BER-01`, `BER-06`, `SEK-04`, dan `AKN-01`/`AKN-03`.
+class PostCard extends StatefulWidget {
   const PostCard({
     required this.post,
     required this.now,
@@ -47,27 +52,236 @@ class PostCard extends StatelessWidget {
   final VoidCallback? onEditTextTap;
   final VoidCallback? onDeleteTap;
 
+  @override
+  State<PostCard> createState() => _PostCardState();
+}
+
+class _PostCardState extends State<PostCard> {
+  bool _showHeartBurst = false;
+  bool _likeBounce = false;
+  Timer? _heartTimer;
+  Timer? _bounceTimer;
+
+  @override
+  void dispose() {
+    _heartTimer?.cancel();
+    _bounceTimer?.cancel();
+    super.dispose();
+  }
+
   void _openAuthorProfile(BuildContext context) {
-    if (onAuthorTap != null) {
-      onAuthorTap!();
+    if (widget.onAuthorTap != null) {
+      widget.onAuthorTap!();
       return;
     }
-    if (isOwnPost) {
+    if (widget.isOwnPost) {
       context.go(AppPages.akunPath);
     } else {
-      context.push('${AppPages.sek04.routePath}?id=${post.author.id}');
+      context.push('${AppPages.sek04.routePath}?id=${widget.post.author.id}');
     }
+  }
+
+  void _triggerLike({required bool fromDoubleTap}) {
+    if (fromDoubleTap) {
+      HapticFeedback.mediumImpact();
+      _heartTimer?.cancel();
+      setState(() => _showHeartBurst = true);
+      _heartTimer = Timer(const Duration(milliseconds: 680), () {
+        if (mounted) setState(() => _showHeartBurst = false);
+      });
+      if (!widget.post.isLikedByMe) {
+        widget.onLikeTap?.call();
+      }
+    } else {
+      HapticFeedback.lightImpact();
+      _bounceTimer?.cancel();
+      setState(() => _likeBounce = true);
+      _bounceTimer = Timer(const Duration(milliseconds: 170), () {
+        if (mounted) setState(() => _likeBounce = false);
+      });
+      widget.onLikeTap?.call();
+    }
+  }
+
+  Future<void> _copyPostLink(BuildContext context) async {
+    final link = 'horas://app/beranda/postingan-detail?id=${widget.post.id}';
+    await Clipboard.setData(ClipboardData(text: link));
+    if (context.mounted) {
+      HapticFeedback.lightImpact().ignore();
+      AppToast.show(
+        context,
+        message: AppStrings.ber01ShareCopiedToast,
+        variant: AppToastVariant.info,
+      );
+    }
+  }
+
+  Future<void> _openOptionsSheet(BuildContext context) async {
+    final colors = context.colors;
+    final typo = context.typo;
+
+    await AppBottomSheet.show<void>(
+      context,
+      title: AppStrings.ber01PostOptionsTitle,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: colors.chipInactive,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.link_rounded,
+                size: AppSizes.iconMd - 2,
+                color: colors.text,
+              ),
+            ),
+            title: Text(AppStrings.ber01CopyLinkAction, style: typo.bodyStrong),
+            onTap: () {
+              Navigator.of(context).pop();
+              _copyPostLink(context);
+            },
+          ),
+          if (widget.isOwnPost) ...<Widget>[
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: colors.chipInactive,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.edit_outlined,
+                  size: AppSizes.iconMd - 2,
+                  color: colors.text,
+                ),
+              ),
+              title: Text(AppStrings.ber01MenuEdit, style: typo.bodyStrong),
+              onTap: () {
+                Navigator.of(context).pop();
+                widget.onEditTextTap?.call();
+              },
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: colors.danger.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.delete_outline_rounded,
+                  size: AppSizes.iconMd - 2,
+                  color: colors.danger,
+                ),
+              ),
+              title: Text(
+                AppStrings.ber01MenuDelete,
+                style: typo.bodyStrong.copyWith(color: colors.danger),
+              ),
+              onTap: () {
+                Navigator.of(context).pop();
+                widget.onDeleteTap?.call();
+              },
+            ),
+          ] else ...<Widget>[
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: colors.chipInactive,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.volume_off_outlined,
+                  size: AppSizes.iconMd - 2,
+                  color: colors.text,
+                ),
+              ),
+              title: Text(AppStrings.ber01MenuMute, style: typo.bodyStrong),
+              onTap: () {
+                Navigator.of(context).pop();
+                widget.onMuteTap?.call();
+              },
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: colors.danger.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.flag_outlined,
+                  size: AppSizes.iconMd - 2,
+                  color: colors.danger,
+                ),
+              ),
+              title: Text(
+                AppStrings.ber01MenuReport,
+                style: typo.bodyStrong.copyWith(color: colors.danger),
+              ),
+              onTap: () {
+                Navigator.of(context).pop();
+                widget.onReportTap?.call();
+              },
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: colors.danger.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.block_rounded,
+                  size: AppSizes.iconMd - 2,
+                  color: colors.danger,
+                ),
+              ),
+              title: Text(
+                AppStrings.ber01MenuBlock,
+                style: typo.bodyStrong.copyWith(color: colors.danger),
+              ),
+              onTap: () {
+                Navigator.of(context).pop();
+                widget.onBlockTap?.call();
+              },
+            ),
+          ],
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final post = widget.post;
     final colors = context.colors;
     final typo = context.typo;
     final author = post.author;
     final partuturan = author.partuturan;
     final showPartuturan = partuturan != null && !partuturan.modeNetral;
 
-    final relativeTime = RelativeTimeFormatter.format(post.createdAt, now);
+    final relativeTime = RelativeTimeFormatter.format(
+      post.createdAt,
+      widget.now,
+    );
     final locationLabel = (post.cityTag != null && post.cityTag!.isNotEmpty)
         ? post.cityTag!
         : author.city;
@@ -81,13 +295,13 @@ class PostCard extends StatelessWidget {
       child: Material(
         color: colors.surface,
         child: InkWell(
-          onTap: onTapCard,
+          onTap: widget.onTapCard,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(
               AppSpacing.screenMargin,
               AppSpacing.md,
               AppSpacing.screenMargin,
-              AppSpacing.xs,
+              AppSpacing.sm,
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -218,13 +432,24 @@ class PostCard extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(width: AppSpacing.xs),
-                          _PostOverflowMenu(
-                            isOwnPost: isOwnPost,
-                            onReportTap: onReportTap,
-                            onMuteTap: onMuteTap,
-                            onBlockTap: onBlockTap,
-                            onEditTextTap: onEditTextTap,
-                            onDeleteTap: onDeleteTap,
+                          Semantics(
+                            button: true,
+                            label: AppStrings.ber01MenuTooltip,
+                            child: IconButton(
+                              constraints: const BoxConstraints(
+                                minWidth: AppSizes.minTouchTarget,
+                                minHeight: AppSizes.minTouchTarget,
+                              ),
+                              padding: EdgeInsets.zero,
+                              alignment: Alignment.topRight,
+                              tooltip: AppStrings.ber01MenuTooltip,
+                              onPressed: () => _openOptionsSheet(context),
+                              icon: Icon(
+                                Icons.more_horiz_rounded,
+                                size: AppSizes.iconMd,
+                                color: colors.textMuted,
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -255,28 +480,77 @@ class PostCard extends StatelessWidget {
                       ],
                       if (post.media.isNotEmpty) ...<Widget>[
                         const SizedBox(height: AppSpacing.sm + AppSpacing.xxs),
-                        _PostMediaGallery(
-                          media: post.media,
-                          onMediaTap: onTapCard,
+                        Stack(
+                          alignment: Alignment.center,
+                          children: <Widget>[
+                            _PostMediaGallery(
+                              media: post.media,
+                              authorName: author.displayName,
+                              onDoubleTapLike: () =>
+                                  _triggerLike(fromDoubleTap: true),
+                              onOpenLightbox: (index) {
+                                PhotoLightboxPage.show(
+                                  context,
+                                  seeds: post.media
+                                      .map((m) => m.seed)
+                                      .toList(growable: false),
+                                  initialIndex: index,
+                                  title: author.displayName,
+                                );
+                              },
+                            ),
+                            IgnorePointer(
+                              child: AnimatedOpacity(
+                                opacity: _showHeartBurst ? 1.0 : 0.0,
+                                duration: const Duration(milliseconds: 180),
+                                child: AnimatedScale(
+                                  scale: _showHeartBurst ? 1.0 : 0.45,
+                                  duration: const Duration(milliseconds: 220),
+                                  curve: Curves.easeOutBack,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(
+                                      AppSpacing.md,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withValues(
+                                        alpha: 0.35,
+                                      ),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.favorite_rounded,
+                                      color: Colors.white,
+                                      size: 56,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                       const SizedBox(height: AppSpacing.xs),
                       Row(
                         children: <Widget>[
-                          _ActionIconTextButton(
-                            icon: post.isLikedByMe
-                                ? Icons.favorite_rounded
-                                : Icons.favorite_border_rounded,
-                            iconColor: post.isLikedByMe
-                                ? colors.buttonPrimary
-                                : colors.textMuted,
-                            label: post.likeCount > 0
-                                ? '${post.likeCount}'
-                                : '',
-                            semanticsLabel:
-                                '${AppStrings.ber01LikeAction} (${post.likeCount})',
-                            onTap: onLikeTap,
-                            onLongPress: onLikesCountTap,
+                          AnimatedScale(
+                            scale: _likeBounce ? 1.24 : 1.0,
+                            duration: const Duration(milliseconds: 160),
+                            curve: Curves.easeOutBack,
+                            child: _ActionIconTextButton(
+                              icon: post.isLikedByMe
+                                  ? Icons.favorite_rounded
+                                  : Icons.favorite_border_rounded,
+                              iconColor: post.isLikedByMe
+                                  ? colors.buttonPrimary
+                                  : colors.textMuted,
+                              label: post.likeCount > 0
+                                  ? '${post.likeCount}'
+                                  : '',
+                              semanticsLabel:
+                                  '${AppStrings.ber01LikeAction} (${post.likeCount})',
+                              onTap: () => _triggerLike(fromDoubleTap: false),
+                              onLongPress: widget.onLikesCountTap,
+                            ),
                           ),
                           _ActionIconTextButton(
                             icon: Icons.chat_bubble_outline_rounded,
@@ -286,7 +560,7 @@ class PostCard extends StatelessWidget {
                                 : '',
                             semanticsLabel:
                                 '${AppStrings.ber01CommentAction} (${post.commentCount})',
-                            onTap: onCommentTap,
+                            onTap: widget.onCommentTap,
                           ),
                           Semantics(
                             button: true,
@@ -301,7 +575,10 @@ class PostCard extends StatelessWidget {
                               tooltip: post.isSavedByMe
                                   ? AppStrings.ber01SavedAction
                                   : AppStrings.ber01SaveAction,
-                              onPressed: onSaveTap,
+                              onPressed: () {
+                                HapticFeedback.lightImpact();
+                                widget.onSaveTap?.call();
+                              },
                               icon: Icon(
                                 post.isSavedByMe
                                     ? Icons.bookmark_rounded
@@ -322,20 +599,7 @@ class PostCard extends StatelessWidget {
                                 minHeight: AppSizes.minTouchTarget,
                               ),
                               tooltip: AppStrings.ber01ShareAction,
-                              onPressed: () async {
-                                final link =
-                                    'horas://app/beranda/postingan-detail?id=${post.id}';
-                                await Clipboard.setData(
-                                  ClipboardData(text: link),
-                                );
-                                if (context.mounted) {
-                                  AppToast.show(
-                                    context,
-                                    message: AppStrings.ber01ShareCopiedToast,
-                                    variant: AppToastVariant.info,
-                                  );
-                                }
-                              },
+                              onPressed: () => _copyPostLink(context),
                               icon: Icon(
                                 Icons.send_outlined,
                                 size: AppSizes.iconSm + 2,
@@ -345,6 +609,24 @@ class PostCard extends StatelessWidget {
                           ),
                         ],
                       ),
+                      if (post.likeCount > 0 && widget.onLikesCountTap != null)
+                        GestureDetector(
+                          onTap: widget.onLikesCountTap,
+                          behavior: HitTestBehavior.opaque,
+                          child: Padding(
+                            padding: const EdgeInsets.only(
+                              left: AppSpacing.xs,
+                              bottom: AppSpacing.xs,
+                            ),
+                            child: Text(
+                              AppStrings.ber01LikesSummary(post.likeCount),
+                              style: typo.micro.copyWith(
+                                color: colors.textMuted,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -357,21 +639,47 @@ class PostCard extends StatelessWidget {
   }
 }
 
-class _PostContentText extends StatelessWidget {
+class _PostContentText extends StatefulWidget {
   const _PostContentText({required this.text});
 
   final String text;
 
   @override
-  Widget build(BuildContext context) {
-    final typo = context.typo;
+  State<_PostContentText> createState() => _PostContentTextState();
+}
 
-    if (!text.contains('#')) {
-      return Text(text, style: typo.body);
+class _PostContentTextState extends State<_PostContentText> {
+  static const int _collapseCharThreshold = 220;
+  bool _expanded = false;
+
+  bool get _isLong {
+    final text = widget.text;
+    return text.length > _collapseCharThreshold ||
+        '\n'.allMatches(text).length >= 5;
+  }
+
+  String _truncated(String text) {
+    final lines = text.split('\n');
+    if (lines.length > 5) {
+      final firstFive = lines.take(5).join('\n');
+      if (firstFive.length <= _collapseCharThreshold) {
+        return '$firstFive...';
+      }
+    }
+    if (text.length > _collapseCharThreshold) {
+      return '${text.substring(0, _collapseCharThreshold).trimRight()}...';
+    }
+    return text;
+  }
+
+  Widget _renderRichText(BuildContext context, String content) {
+    final typo = context.typo;
+    if (!content.contains('#')) {
+      return Text(content, style: typo.body);
     }
 
     final colors = context.colors;
-    final words = text.split(' ');
+    final words = content.split(' ');
     final spans = <InlineSpan>[];
 
     for (var i = 0; i < words.length; i++) {
@@ -393,7 +701,7 @@ class _PostContentText extends StatelessWidget {
               child: Text(
                 '$word$space',
                 style: typo.body.copyWith(
-                  color: colors.primary,
+                  color: colors.accent,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -407,13 +715,80 @@ class _PostContentText extends StatelessWidget {
 
     return Text.rich(TextSpan(children: spans));
   }
+
+  @override
+  Widget build(BuildContext context) {
+    final display = (_isLong && !_expanded)
+        ? _truncated(widget.text)
+        : widget.text;
+    final typo = context.typo;
+    final colors = context.colors;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        _renderRichText(context, display),
+        if (_isLong)
+          GestureDetector(
+            onTap: () => setState(() => _expanded = !_expanded),
+            behavior: HitTestBehavior.opaque,
+            child: Padding(
+              padding: const EdgeInsets.only(top: AppSpacing.xs),
+              child: Text(
+                _expanded ? AppStrings.ber01ShowLess : AppStrings.ber01ReadMore,
+                style: typo.captionStrong.copyWith(color: colors.textMuted),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
 }
 
-class _PostMediaGallery extends StatelessWidget {
-  const _PostMediaGallery({required this.media, this.onMediaTap});
+class _PostMediaGallery extends StatefulWidget {
+  const _PostMediaGallery({
+    required this.media,
+    required this.authorName,
+    required this.onDoubleTapLike,
+    required this.onOpenLightbox,
+  });
 
   final List<PostMedia> media;
-  final VoidCallback? onMediaTap;
+  final String authorName;
+  final VoidCallback onDoubleTapLike;
+  final ValueChanged<int> onOpenLightbox;
+
+  @override
+  State<_PostMediaGallery> createState() => _PostMediaGalleryState();
+}
+
+class _PostMediaGalleryState extends State<_PostMediaGallery> {
+  final ScrollController _scrollController = ScrollController();
+  int _activeIndex = 0;
+  static const double _multiItemWidth = 256;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final idx = (_scrollController.offset / (_multiItemWidth + AppSpacing.sm))
+        .round()
+        .clamp(0, widget.media.length - 1);
+    if (idx != _activeIndex && mounted) {
+      setState(() => _activeIndex = idx);
+    }
+  }
 
   Widget _buildMediaItem(
     BuildContext context,
@@ -434,8 +809,8 @@ class _PostMediaGallery extends StatelessWidget {
         children: <Widget>[
           imageWidget,
           Container(
-            width: 44,
-            height: 44,
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
               color: Colors.black.withValues(alpha: 0.55),
               shape: BoxShape.circle,
@@ -451,18 +826,14 @@ class _PostMediaGallery extends StatelessWidget {
               bottom: 8,
               right: 8,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.75),
-                  borderRadius: BorderRadius.circular(AppRadius.button),
+                  color: Colors.black.withValues(alpha: 0.72),
+                  borderRadius: AppRadius.pillRadius,
                 ),
                 child: Text(
                   '${item.durationSeconds}d',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: context.typo.micro.copyWith(color: Colors.white),
                 ),
               ),
             ),
@@ -475,12 +846,14 @@ class _PostMediaGallery extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final borderColor = context.colors.border.withValues(alpha: 0.35);
+    final colors = context.colors;
+    final borderColor = colors.border.withValues(alpha: 0.4);
 
-    if (media.length == 1) {
-      final item = media.first;
+    if (widget.media.length == 1) {
+      final item = widget.media.first;
       return GestureDetector(
-        onTap: onMediaTap,
+        onTap: () => widget.onOpenLightbox(0),
+        onDoubleTap: widget.onDoubleTapLike,
         child: Container(
           decoration: BoxDecoration(
             borderRadius: AppRadius.photoRadius,
@@ -494,31 +867,62 @@ class _PostMediaGallery extends StatelessWidget {
       );
     }
 
-    return SizedBox(
-      height: 224,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        physics: const ClampingScrollPhysics(),
-        itemCount: media.length,
-        separatorBuilder: (context, index) =>
-            const SizedBox(width: AppSpacing.sm),
-        itemBuilder: (context, index) {
-          final item = media[index];
-          return GestureDetector(
-            onTap: onMediaTap,
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: AppRadius.photoRadius,
-                border: Border.all(
-                  color: borderColor,
-                  width: AppSizes.strokeThin,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        SizedBox(
+          height: 244,
+          child: ListView.separated(
+            controller: _scrollController,
+            scrollDirection: Axis.horizontal,
+            physics: const ClampingScrollPhysics(),
+            itemCount: widget.media.length,
+            separatorBuilder: (context, index) =>
+                const SizedBox(width: AppSpacing.sm),
+            itemBuilder: (context, index) {
+              final item = widget.media[index];
+              return GestureDetector(
+                onTap: () => widget.onOpenLightbox(index),
+                onDoubleTap: widget.onDoubleTapLike,
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: AppRadius.photoRadius,
+                    border: Border.all(
+                      color: borderColor,
+                      width: AppSizes.strokeThin,
+                    ),
+                  ),
+                  child: _buildMediaItem(
+                    context,
+                    item,
+                    width: _multiItemWidth,
+                    height: 244,
+                  ),
                 ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List<Widget>.generate(widget.media.length, (i) {
+            final active = i == _activeIndex;
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              margin: const EdgeInsets.symmetric(horizontal: 2.5),
+              width: active ? 16 : 5,
+              height: 5,
+              decoration: BoxDecoration(
+                color: active
+                    ? colors.accent
+                    : colors.border.withValues(alpha: 0.85),
+                borderRadius: AppRadius.pillRadius,
               ),
-              child: _buildMediaItem(context, item, width: 232, height: 224),
-            ),
-          );
-        },
-      ),
+            );
+          }),
+        ),
+      ],
     );
   }
 }
@@ -570,89 +974,6 @@ class _ActionIconTextButton extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _PostOverflowMenu extends StatelessWidget {
-  const _PostOverflowMenu({
-    required this.isOwnPost,
-    this.onReportTap,
-    this.onMuteTap,
-    this.onBlockTap,
-    this.onEditTextTap,
-    this.onDeleteTap,
-  });
-
-  final bool isOwnPost;
-  final VoidCallback? onReportTap;
-  final VoidCallback? onMuteTap;
-  final VoidCallback? onBlockTap;
-  final VoidCallback? onEditTextTap;
-  final VoidCallback? onDeleteTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-
-    return Semantics(
-      button: true,
-      label: AppStrings.ber01MenuTooltip,
-      child: PopupMenuButton<String>(
-        tooltip: AppStrings.ber01MenuTooltip,
-        padding: EdgeInsets.zero,
-        child: SizedBox(
-          width: AppSizes.minTouchTarget,
-          height: AppSizes.minTouchTarget,
-          child: Align(
-            alignment: Alignment.topRight,
-            child: Icon(
-              Icons.more_horiz_rounded,
-              size: AppSizes.iconMd,
-              color: colors.textMuted,
-            ),
-          ),
-        ),
-        onSelected: (value) {
-          switch (value) {
-            case 'edit':
-              onEditTextTap?.call();
-            case 'delete':
-              onDeleteTap?.call();
-            case 'report':
-              onReportTap?.call();
-            case 'mute':
-              onMuteTap?.call();
-            case 'block':
-              onBlockTap?.call();
-          }
-        },
-        itemBuilder: (context) => <PopupMenuEntry<String>>[
-          if (isOwnPost) ...<PopupMenuEntry<String>>[
-            const PopupMenuItem<String>(
-              value: 'edit',
-              child: Text(AppStrings.ber01MenuEdit),
-            ),
-            const PopupMenuItem<String>(
-              value: 'delete',
-              child: Text(AppStrings.ber01MenuDelete),
-            ),
-          ] else ...<PopupMenuEntry<String>>[
-            const PopupMenuItem<String>(
-              value: 'report',
-              child: Text(AppStrings.ber01MenuReport),
-            ),
-            const PopupMenuItem<String>(
-              value: 'mute',
-              child: Text(AppStrings.ber01MenuMute),
-            ),
-            const PopupMenuItem<String>(
-              value: 'block',
-              child: Text(AppStrings.ber01MenuBlock),
-            ),
-          ],
-        ],
       ),
     );
   }

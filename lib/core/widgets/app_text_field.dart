@@ -25,6 +25,7 @@ class AppTextField extends StatefulWidget {
     this.onSuffixTap,
     this.onChanged,
     this.onSubmitted,
+    this.borderless = false,
   });
 
   final String? label;
@@ -45,6 +46,7 @@ class AppTextField extends StatefulWidget {
   final VoidCallback? onSuffixTap;
   final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onSubmitted;
+  final bool borderless;
 
   @override
   State<AppTextField> createState() => _AppTextFieldState();
@@ -121,11 +123,13 @@ class _AppTextFieldState extends State<AppTextField> {
         ],
         AnimatedContainer(
           duration: const Duration(milliseconds: 150),
-          decoration: BoxDecoration(
-            color: widget.enabled ? colors.surface : colors.chipInactive,
-            borderRadius: AppRadius.buttonRadius,
-            border: Border.all(color: borderColor, width: borderWidth),
-          ),
+          decoration: widget.borderless
+              ? null
+              : BoxDecoration(
+                  color: widget.enabled ? colors.surface : colors.chipInactive,
+                  borderRadius: AppRadius.buttonRadius,
+                  border: Border.all(color: borderColor, width: borderWidth),
+                ),
           child: TextField(
             controller: widget.controller,
             focusNode: _effectiveFocusNode,
@@ -144,10 +148,15 @@ class _AppTextFieldState extends State<AppTextField> {
               hintText: widget.hintText,
               hintStyle: typo.body.copyWith(color: colors.textMuted),
               counterText: '',
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.md,
-                vertical: AppSpacing.md,
-              ),
+              contentPadding: widget.borderless
+                  ? const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.xs,
+                      vertical: AppSpacing.sm + 2,
+                    )
+                  : const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md,
+                      vertical: AppSpacing.md,
+                    ),
               border: InputBorder.none,
               prefixIcon: widget.leadingIcon != null
                   ? Icon(

@@ -1,14 +1,16 @@
+import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:horas/core/l10n/app_strings.dart';
 import 'package:horas/core/theme/app_theme.dart';
 import 'package:horas/core/theme/app_tokens.dart';
 import 'package:material_ui/material_ui.dart';
 
-/// Varian gaya [AppButton] (Tahap 5).
-enum AppButtonVariant { primary, secondary, text }
+/// Varian gaya [AppButton] (Tahap 5 + penyempurnaan premium IG/Threads).
+enum AppButtonVariant { primary, tonal, secondary, text }
 
-/// Tombol standar HORAS dengan dukungan varian `primary`, `secondary`, `text`
-/// serta status `normal`, `loading`, dan `disabled`.
-class AppButton extends StatelessWidget {
+/// Tombol standar HORAS dengan dukungan varian `primary`, `tonal`, `secondary`, `text`,
+/// animasi tekan lembut (*press scale*), umpan balik haptik, serta status `normal`,
+/// `loading`, dan `disabled`.
+class AppButton extends StatefulWidget {
   const AppButton({
     required this.label,
     super.key,
@@ -18,6 +20,7 @@ class AppButton extends StatelessWidget {
     this.isDisabled = false,
     this.isExpanded = false,
     this.isDestructive = false,
+    this.compact = false,
     this.leadingIcon,
     this.semanticsLabel,
   });
@@ -29,10 +32,30 @@ class AppButton extends StatelessWidget {
   final bool isDisabled;
   final bool isExpanded;
   final bool isDestructive;
+  final bool compact;
   final IconData? leadingIcon;
   final String? semanticsLabel;
 
-  bool get _canTap => !isDisabled && !isLoading && onPressed != null;
+  @override
+  State<AppButton> createState() => _AppButtonState();
+}
+
+class _AppButtonState extends State<AppButton> {
+  bool _isPressed = false;
+
+  bool get _canTap =>
+      !widget.isDisabled && !widget.isLoading && widget.onPressed != null;
+
+  void _setPressed(bool value) {
+    if (_isPressed == value || !mounted) return;
+    setState(() => _isPressed = value);
+  }
+
+  void _handleTap() {
+    if (!_canTap) return;
+    HapticFeedback.lightImpact();
+    widget.onPressed?.call();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,22 +66,35 @@ class AppButton extends StatelessWidget {
     final Color fgColor;
     final BorderSide borderSide;
 
-    final activePrimaryColor = isDestructive
+    final activePrimaryColor = widget.isDestructive
         ? colors.danger
         : colors.buttonPrimary;
-    final activeTextColor = isDestructive ? colors.danger : colors.accent;
+    final activeTextColor = widget.isDestructive
+        ? colors.danger
+        : colors.accent;
 
-    switch (variant) {
+    switch (widget.variant) {
       case AppButtonVariant.primary:
         bgColor = _canTap ? activePrimaryColor : colors.chipInactive;
         fgColor = _canTap ? colors.onPrimary : colors.textMuted;
         borderSide = BorderSide.none;
+      case AppButtonVariant.tonal:
+        bgColor = widget.isDestructive
+            ? colors.danger.withValues(alpha: 0.12)
+            : colors.chipInactive;
+        fgColor = _canTap
+            ? (widget.isDestructive ? colors.danger : colors.text)
+            : colors.textMuted;
+        borderSide = BorderSide(
+          color: colors.border.withValues(alpha: 0.55),
+          width: AppSizes.strokeThin,
+        );
       case AppButtonVariant.secondary:
         bgColor = colors.surface;
         fgColor = _canTap ? colors.text : colors.textMuted;
         borderSide = BorderSide(
           color: _canTap ? colors.border : colors.chipInactive,
-          width: AppSizes.strokeMedium,
+          width: AppSizes.strokeThin,
         );
       case AppButtonVariant.text:
         bgColor = const Color(0x00000000);
@@ -66,11 +102,14 @@ class AppButton extends StatelessWidget {
         borderSide = BorderSide.none;
     }
 
+    final textStyle = (widget.compact ? typo.captionStrong : typo.bodyStrong)
+        .copyWith(color: fgColor);
+
     final Widget childContent = Row(
-      mainAxisSize: isExpanded ? MainAxisSize.max : MainAxisSize.min,
+      mainAxisSize: widget.isExpanded ? MainAxisSize.max : MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
       children: <Widget>[
-        if (isLoading) ...<Widget>[
+        if (widget.isLoading) ...<Widget>[
           SizedBox(
             width: AppSizes.iconSm,
             height: AppSizes.iconSm,
@@ -81,42 +120,56 @@ class AppButton extends StatelessWidget {
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
-        ] else if (leadingIcon != null) ...<Widget>[
-          Icon(leadingIcon, size: AppSizes.iconSm, color: fgColor),
-          const SizedBox(width: AppSpacing.sm),
+        ] else if (widget.leadingIcon != null) ...<Widget>[
+          Icon(
+            widget.leadingIcon,
+            size: widget.compact ? AppSizes.iconSm - 1 : AppSizes.iconSm,
+            color: fgColor,
+          ),
+          SizedBox(width: widget.compact ? AppSpacing.xs + 2 : AppSpacing.sm),
         ],
         Flexible(
           child: Text(
-            label,
+            widget.label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: typo.bodyStrong.copyWith(color: fgColor),
+            style: textStyle,
           ),
         ),
       ],
     );
 
-    final button = ConstrainedBox(
-      constraints: BoxConstraints(
-        minHeight: AppSizes.minTouchTarget,
-        minWidth: isExpanded ? double.infinity : AppSizes.minTouchTarget,
-      ),
-      child: Material(
-        color: bgColor,
-        shape: RoundedRectangleBorder(
-          borderRadius: AppRadius.buttonRadius,
-          side: borderSide,
+    final button = AnimatedScale(
+      scale: (_isPressed && _canTap) ? 0.97 : 1.0,
+      duration: const Duration(milliseconds: 90),
+      curve: Curves.easeOutCubic,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          minHeight: AppSizes.minTouchTarget,
+          minWidth: widget.isExpanded
+              ? double.infinity
+              : AppSizes.minTouchTarget,
         ),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: _canTap ? onPressed : null,
-          borderRadius: AppRadius.buttonRadius,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.lg,
-              vertical: AppSpacing.sm + AppSpacing.xs,
+        child: Material(
+          color: bgColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: AppRadius.buttonRadius,
+            side: borderSide,
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: _canTap ? _handleTap : null,
+            onHighlightChanged: _canTap ? _setPressed : null,
+            borderRadius: AppRadius.buttonRadius,
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: widget.compact ? AppSpacing.md : AppSpacing.lg,
+                vertical: widget.compact
+                    ? AppSpacing.sm
+                    : AppSpacing.sm + AppSpacing.xs,
+              ),
+              child: childContent,
             ),
-            child: childContent,
           ),
         ),
       ),
@@ -125,7 +178,7 @@ class AppButton extends StatelessWidget {
     return Semantics(
       button: true,
       enabled: _canTap,
-      label: semanticsLabel ?? label,
+      label: widget.semanticsLabel ?? widget.label,
       child: button,
     );
   }

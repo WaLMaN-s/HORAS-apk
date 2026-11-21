@@ -1588,4 +1588,42 @@ abstract final class AppStrings {
   static const String aut06DetectLocationBtn = 'Deteksi Lokasi Terkini';
   static const String aut06DetectingLocation = 'Mendeteksi lokasi...';
   static const String aut06DetectedLocationPrefix = 'Kota terdeteksi';
+
+  // ── Penyempurnaan UI/UX Premium (IG & Threads) ─────────────────────────────
+  static const String ber01ReadMore = 'Selengkapnya';
+  static const String ber01ShowLess = 'Ringkas';
+  static String ber01LikesSummary(int count) => 'Disukai oleh $count orang';
+  static const String ber01PhotoViewerClose = 'Tutup pratinjau foto';
+  static const String ber01PostOptionsTitle = 'Opsi Postingan';
+  static const String ber01CopyLinkAction = 'Salin Tautan';
+  static const String ber02PausedIndicator = 'Dijeda';
+  static const String ber02QuickReactionLabel = 'Reaksi cepat';
+  static String ber07SheetTitle(int count) =>
+      count > 0 ? 'Komentar ($count)' : 'Komentar';
+
+  static const String akn01PostsCountLabel = 'Postingan';
+  static const String akn01TabGrid = 'Galeri';
+  static const String akn01EmptyGrid = 'Belum ada postingan berfoto.';
+  static const String akn01AvatarPreviewTitle = 'Foto Profil';
+  static const String sek04PostsCountLabel = 'Postingan';
+  static const String sek04GalleryTab = 'Galeri';
+
+  static const String psn01SearchHint = 'Cari percakapan...';
+  static const String psn01FilterAll = 'Semua';
+  static const String psn01FilterUnread = 'Belum dibaca';
+  static const String psn01FilterGroups = 'Grup';
+  static const String psn01EmptyFilterMessage =
+      'Tidak ada percakapan yang sesuai pencarian atau filter.';
+  static const String psn03DateToday = 'Hari ini';
+  static const String psn03DateYesterday = 'Kemarin';
+  static const String psn03ScrollToBottomTooltip = 'Ke pesan terbaru';
+  static const String psn03CopyMessageAction = 'Salin teks';
+  static const String psn03CopiedMessageToast = 'Teks pesan disalin.';
+
+  static const String man01TabAll = 'Semua';
+  static const String man01TabSessions = 'Sesi';
+  static const String man01TabCourts = 'Lapangan';
+  static const String man01TabChurches = 'Gereja';
+  static String man01SlotsRemaining(int left) =>
+      left <= 0 ? 'Slot penuh' : 'Sisa $left slot';
 }

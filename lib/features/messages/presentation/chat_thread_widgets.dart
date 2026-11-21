@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:horas/core/config/feature_flags.dart';
@@ -58,8 +59,68 @@ Future<String?> pickAndCompressChatPhoto(
   }
 }
 
-/// Gelembung pesan ringkas ala Instagram DM untuk `PSN-03` dan `PSN-04`.
-class ChatMessageBubble extends StatelessWidget {
+/// Pemisah tanggal melayang ala Instagram/WhatsApp (`Hari ini`, `Kemarin`, `18 Nov`).
+class ChatDateSeparator extends StatelessWidget {
+  const ChatDateSeparator({required this.date, required this.now, super.key});
+
+  final DateTime date;
+  final DateTime now;
+
+  static bool isDifferentDay(DateTime a, DateTime b) =>
+      a.year != b.year || a.month != b.month || a.day != b.day;
+
+  String _formatDateLabel() {
+    final today = DateTime(now.year, now.month, now.day);
+    final target = DateTime(date.year, date.month, date.day);
+    final diff = today.difference(target).inDays;
+    if (diff == 0) return AppStrings.psn03DateToday;
+    if (diff == 1) return AppStrings.psn03DateYesterday;
+    const months = <String>[
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'Mei',
+      'Jun',
+      'Jul',
+      'Agu',
+      'Sep',
+      'Okt',
+      'Nov',
+      'Des',
+    ];
+    return '${date.day} ${months[date.month - 1]}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final typo = context.typo;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.xs,
+          ),
+          decoration: BoxDecoration(
+            color: colors.chipInactive.withValues(alpha: 0.85),
+            borderRadius: AppRadius.pillRadius,
+          ),
+          child: Text(
+            _formatDateLabel(),
+            style: typo.micro.copyWith(color: colors.textMuted),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Gelembung pesan ringkas ala Instagram DM dengan gestur *swipe-to-reply* untuk `PSN-03` dan `PSN-04`.
+class ChatMessageBubble extends StatefulWidget {
   const ChatMessageBubble({
     required this.message,
     required this.isMine,
@@ -70,6 +131,7 @@ class ChatMessageBubble extends StatelessWidget {
     this.isGroupedWithNext = false,
     this.repliedMessage,
     this.onLongPress,
+    this.onSwipeReply,
     this.onPhotoTap,
     super.key,
   });
@@ -83,10 +145,20 @@ class ChatMessageBubble extends StatelessWidget {
   final bool isGroupedWithNext;
   final Message? repliedMessage;
   final VoidCallback? onLongPress;
+  final VoidCallback? onSwipeReply;
   final ValueChanged<String>? onPhotoTap;
 
+  @override
+  State<ChatMessageBubble> createState() => _ChatMessageBubbleState();
+}
+
+class _ChatMessageBubbleState extends State<ChatMessageBubble> {
+  static const double _swipeTriggerDistance = 42.0;
+  double _dragDx = 0.0;
+  bool _triggeredHaptic = false;
+
   String _statusLabel(MessageDeliveryStatus status) {
-    if (!showReadStatus && status == MessageDeliveryStatus.read) {
+    if (!widget.showReadStatus && status == MessageDeliveryStatus.read) {
       return AppStrings.psn03StatusDelivered;
     }
     return switch (status) {
@@ -99,294 +171,399 @@ class ChatMessageBubble extends StatelessWidget {
   BorderRadius _bubbleRadius() {
     const full = Radius.circular(20);
     const tight = Radius.circular(6);
-    if (isMine) {
+    if (widget.isMine) {
       return BorderRadius.only(
         topLeft: full,
         bottomLeft: full,
-        topRight: isGroupedWithPrevious ? tight : full,
-        bottomRight: isGroupedWithNext ? tight : full,
+        topRight: widget.isGroupedWithPrevious ? tight : full,
+        bottomRight: widget.isGroupedWithNext ? tight : full,
       );
     }
     return BorderRadius.only(
       topRight: full,
       bottomRight: full,
-      topLeft: isGroupedWithPrevious ? tight : full,
-      bottomLeft: isGroupedWithNext ? tight : full,
+      topLeft: widget.isGroupedWithPrevious ? tight : full,
+      bottomLeft: widget.isGroupedWithNext ? tight : full,
     );
+  }
+
+  void _onHorizontalDragUpdate(DragUpdateDetails details) {
+    if (widget.onSwipeReply == null || widget.message.isDeletedForEveryone) {
+      return;
+    }
+    final next = (_dragDx + details.delta.dx * 0.65).clamp(0.0, 56.0);
+    if (next >= _swipeTriggerDistance && !_triggeredHaptic) {
+      _triggeredHaptic = true;
+      HapticFeedback.mediumImpact();
+    } else if (next < _swipeTriggerDistance) {
+      _triggeredHaptic = false;
+    }
+    setState(() => _dragDx = next);
+  }
+
+  void _onHorizontalDragEnd(DragEndDetails _) {
+    if (_dragDx >= _swipeTriggerDistance) {
+      widget.onSwipeReply?.call();
+    }
+    _triggeredHaptic = false;
+    if (_dragDx != 0) {
+      setState(() => _dragDx = 0);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     final typo = context.typo;
+    final message = widget.message;
 
     final bubbleColor = message.isAnnouncement
         ? colors.confidenceAmberSurface
-        : isMine
+        : widget.isMine
         ? colors.primary
         : colors.chipInactive;
-    final textColor = (isMine && !message.isAnnouncement)
+    final textColor = (widget.isMine && !message.isAnnouncement)
         ? colors.onPrimary
         : colors.text;
-    final mutedColor = (isMine && !message.isAnnouncement)
+    final mutedColor = (widget.isMine && !message.isAnnouncement)
         ? colors.onPrimary.withValues(alpha: 0.78)
         : colors.textMuted;
     final radius = _bubbleRadius();
-    final showFooterMeta = !isGroupedWithNext;
+    final showFooterMeta = !widget.isGroupedWithNext;
+    final replyRevealProgress = (_dragDx / _swipeTriggerDistance).clamp(
+      0.0,
+      1.0,
+    );
 
-    return Padding(
-      padding: EdgeInsets.only(bottom: isGroupedWithNext ? 3 : AppSpacing.sm),
-      child: Column(
-        crossAxisAlignment: isMine
-            ? CrossAxisAlignment.end
-            : CrossAxisAlignment.start,
+    return GestureDetector(
+      onHorizontalDragUpdate: widget.onSwipeReply != null
+          ? _onHorizontalDragUpdate
+          : null,
+      onHorizontalDragEnd: widget.onSwipeReply != null
+          ? _onHorizontalDragEnd
+          : null,
+      child: Stack(
+        alignment: Alignment.centerLeft,
         children: <Widget>[
-          if (message.hasScamWarning)
-            Container(
-              margin: const EdgeInsets.only(bottom: AppSpacing.xs),
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.md,
-                vertical: AppSpacing.sm,
-              ),
-              decoration: BoxDecoration(
-                color: colors.danger.withValues(alpha: 0.12),
-                borderRadius: AppRadius.cardRadius,
-                border: Border.all(color: colors.danger),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Icon(
-                    Icons.warning_amber_rounded,
-                    color: colors.danger,
-                    size: 16,
-                  ),
-                  const SizedBox(width: AppSpacing.xs),
-                  Expanded(
-                    child: Text(
-                      AppStrings.psn03ScamWarningBanner,
-                      style: typo.caption.copyWith(color: colors.danger),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          if (isGroup && !isMine && !isGroupedWithPrevious)
-            Padding(
-              padding: const EdgeInsets.only(
-                left: AppSizes.avatarSm + AppSpacing.xs,
-                bottom: AppSpacing.xxs,
-              ),
-              child: Wrap(
-                spacing: AppSpacing.xs,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: <Widget>[
-                  Text(
-                    message.sender.displayName,
-                    style: typo.micro.copyWith(
-                      color: colors.textMuted,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  if (message.sender.partuturan != null)
-                    PartuturanBadge(
-                      result: message.sender.partuturan!,
-                      onTap: () => context
-                          .push(
-                            '${AppPages.tar05.routePath}?userId=${message.sender.id}',
-                          )
-                          .ignore(),
-                    ),
-                ],
-              ),
-            ),
-          Row(
-            mainAxisAlignment: isMine
-                ? MainAxisAlignment.end
-                : MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: <Widget>[
-              if (!isMine && isGroup) ...<Widget>[
-                if (!isGroupedWithNext)
-                  AppAvatar(
-                    name: message.sender.displayName,
-                    seed: message.sender.avatarSeed,
-                    size: AppSizes.avatarSm,
-                  )
-                else
-                  const SizedBox(width: AppSizes.avatarSm),
-                const SizedBox(width: AppSpacing.xs),
-              ],
-              Flexible(
-                child: InkWell(
-                  onLongPress: onLongPress,
-                  borderRadius: radius,
+          if (_dragDx > 4)
+            Positioned(
+              left: 4,
+              child: Opacity(
+                opacity: replyRevealProgress,
+                child: Transform.scale(
+                  scale: 0.7 + replyRevealProgress * 0.3,
                   child: Container(
-                    constraints: const BoxConstraints(maxWidth: 280),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.md,
-                      vertical: AppSpacing.sm,
-                    ),
+                    width: 30,
+                    height: 30,
                     decoration: BoxDecoration(
-                      color: bubbleColor,
-                      borderRadius: radius,
-                      border: message.isAnnouncement
-                          ? Border.all(color: colors.confidenceAmber)
-                          : null,
+                      color: colors.chipInactive,
+                      shape: BoxShape.circle,
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        if (message.isAnnouncement) ...<Widget>[
-                          Text(
-                            AppStrings.psn04PinnedAnnouncementTitle,
-                            style: typo.captionStrong.copyWith(
-                              color: colors.confidenceAmber,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                        ],
-                        if (repliedMessage != null) ...<Widget>[
-                          Container(
-                            width: double.infinity,
-                            margin: const EdgeInsets.only(
-                              bottom: AppSpacing.xs,
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.sm,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: colors.background.withValues(alpha: 0.25),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              '${repliedMessage!.sender.displayName}: ${repliedMessage!.isDeletedForEveryone ? AppStrings.psn01DeletedPreview : repliedMessage!.text}',
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: typo.micro.copyWith(color: mutedColor),
-                            ),
-                          ),
-                        ],
-                        if (message.voiceNoteSeed != null &&
-                            !message.isDeletedForEveryone) ...<Widget>[
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.sm,
-                              vertical: AppSpacing.xs,
-                            ),
-                            decoration: BoxDecoration(
-                              color: colors.background.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: <Widget>[
-                                Icon(
-                                  Icons.play_circle_fill_rounded,
-                                  color: textColor,
-                                  size: AppSizes.iconMd,
-                                ),
-                                const SizedBox(width: AppSpacing.xs),
-                                Icon(
-                                  Icons.graphic_eq_rounded,
-                                  color: textColor,
-                                  size: AppSizes.iconSm,
-                                ),
-                                const SizedBox(width: AppSpacing.xs),
-                                Text(
-                                  '${message.voiceNoteDurationSeconds ?? 5}d',
-                                  style: typo.captionStrong.copyWith(
-                                    color: textColor,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          if (message.text.isNotEmpty)
-                            const SizedBox(height: AppSpacing.xs),
-                        ],
-                        if (message.stickerSeed != null &&
-                            !message.isDeletedForEveryone) ...<Widget>[
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.md,
-                              vertical: AppSpacing.sm,
-                            ),
-                            decoration: BoxDecoration(
-                              color: colors.primary.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: colors.primary.withValues(alpha: 0.4),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: <Widget>[
-                                const Icon(
-                                  Icons.sticky_note_2,
-                                  color: Colors.amber,
-                                  size: AppSizes.iconSm,
-                                ),
-                                const SizedBox(width: AppSpacing.xs),
-                                Text(
-                                  message.stickerSeed!,
-                                  style: typo.bodyStrong.copyWith(
-                                    color: isMine ? textColor : colors.primary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          if (message.text.isNotEmpty)
-                            const SizedBox(height: AppSpacing.xs),
-                        ],
-                        if (message.photoSeed != null &&
-                            !message.isDeletedForEveryone) ...<Widget>[
-                          GestureDetector(
-                            onTap: () => onPhotoTap?.call(message.photoSeed!),
-                            child: PlaceholderImage(
-                              seed: message.photoSeed!,
-                              width: 220,
-                              height: 150,
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
-                          if (message.text.isNotEmpty)
-                            const SizedBox(height: AppSpacing.xs),
-                        ],
-                        if (message.text.isNotEmpty)
-                          Text(
-                            message.text,
-                            style: message.isDeletedForEveryone
-                                ? typo.caption.copyWith(
-                                    color: mutedColor,
-                                    fontStyle: FontStyle.italic,
-                                  )
-                                : typo.body.copyWith(color: textColor),
-                          ),
-                      ],
+                    child: Icon(
+                      Icons.reply_rounded,
+                      size: 16,
+                      color: colors.accent,
                     ),
                   ),
                 ),
               ),
-            ],
-          ),
-          if (showFooterMeta)
-            Padding(
+            ),
+          AnimatedContainer(
+            duration: _dragDx == 0
+                ? const Duration(milliseconds: 180)
+                : Duration.zero,
+            curve: Curves.easeOutCubic,
+            transform: Matrix4.translationValues(_dragDx, 0, 0),
+            child: Padding(
               padding: EdgeInsets.only(
-                top: 2,
-                left: (!isMine && isGroup)
-                    ? AppSizes.avatarSm + AppSpacing.xs
-                    : 0,
+                bottom: widget.isGroupedWithNext ? 3 : AppSpacing.sm,
               ),
-              child: Text(
-                isMine
-                    ? '${ChatFormatters.formatShortTime(message.createdAt, now)} · ${_statusLabel(message.deliveryStatus)}'
-                    : ChatFormatters.formatShortTime(message.createdAt, now),
-                style: typo.micro.copyWith(color: colors.textMuted),
+              child: Column(
+                crossAxisAlignment: widget.isMine
+                    ? CrossAxisAlignment.end
+                    : CrossAxisAlignment.start,
+                children: <Widget>[
+                  if (message.hasScamWarning)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: AppSpacing.xs),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
+                        vertical: AppSpacing.sm,
+                      ),
+                      decoration: BoxDecoration(
+                        color: colors.danger.withValues(alpha: 0.12),
+                        borderRadius: AppRadius.cardRadius,
+                        border: Border.all(color: colors.danger),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Icon(
+                            Icons.warning_amber_rounded,
+                            color: colors.danger,
+                            size: 16,
+                          ),
+                          const SizedBox(width: AppSpacing.xs),
+                          Expanded(
+                            child: Text(
+                              AppStrings.psn03ScamWarningBanner,
+                              style: typo.caption.copyWith(
+                                color: colors.danger,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  if (widget.isGroup &&
+                      !widget.isMine &&
+                      !widget.isGroupedWithPrevious)
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        left: AppSizes.avatarSm + AppSpacing.xs,
+                        bottom: AppSpacing.xxs,
+                      ),
+                      child: Wrap(
+                        spacing: AppSpacing.xs,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: <Widget>[
+                          Text(
+                            message.sender.displayName,
+                            style: typo.micro.copyWith(
+                              color: colors.textMuted,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          if (message.sender.partuturan != null)
+                            PartuturanBadge(
+                              result: message.sender.partuturan!,
+                              onTap: () => context
+                                  .push(
+                                    '${AppPages.tar05.routePath}?userId=${message.sender.id}',
+                                  )
+                                  .ignore(),
+                            ),
+                        ],
+                      ),
+                    ),
+                  Row(
+                    mainAxisAlignment: widget.isMine
+                        ? MainAxisAlignment.end
+                        : MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: <Widget>[
+                      if (!widget.isMine && widget.isGroup) ...<Widget>[
+                        if (!widget.isGroupedWithNext)
+                          AppAvatar(
+                            name: message.sender.displayName,
+                            seed: message.sender.avatarSeed,
+                            size: AppSizes.avatarSm,
+                          )
+                        else
+                          const SizedBox(width: AppSizes.avatarSm),
+                        const SizedBox(width: AppSpacing.xs),
+                      ],
+                      Flexible(
+                        child: InkWell(
+                          onLongPress: widget.onLongPress,
+                          borderRadius: radius,
+                          child: Container(
+                            constraints: const BoxConstraints(maxWidth: 280),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.md,
+                              vertical: AppSpacing.sm + 1,
+                            ),
+                            decoration: BoxDecoration(
+                              color: bubbleColor,
+                              borderRadius: radius,
+                              border: message.isAnnouncement
+                                  ? Border.all(color: colors.confidenceAmber)
+                                  : null,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: <Widget>[
+                                if (message.isAnnouncement) ...<Widget>[
+                                  Text(
+                                    AppStrings.psn04PinnedAnnouncementTitle,
+                                    style: typo.captionStrong.copyWith(
+                                      color: colors.confidenceAmber,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                ],
+                                if (widget.repliedMessage != null) ...<Widget>[
+                                  Container(
+                                    width: double.infinity,
+                                    margin: const EdgeInsets.only(
+                                      bottom: AppSpacing.xs,
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: AppSpacing.sm,
+                                      vertical: 5,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: colors.background.withValues(
+                                        alpha: 0.22,
+                                      ),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border(
+                                        left: BorderSide(
+                                          color: widget.isMine
+                                              ? colors.onPrimary.withValues(
+                                                  alpha: 0.85,
+                                                )
+                                              : colors.accent,
+                                          width: 3,
+                                        ),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      '${widget.repliedMessage!.sender.displayName}: ${widget.repliedMessage!.isDeletedForEveryone ? AppStrings.psn01DeletedPreview : widget.repliedMessage!.text}',
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: typo.micro.copyWith(
+                                        color: mutedColor,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                                if (message.voiceNoteSeed != null &&
+                                    !message.isDeletedForEveryone) ...<Widget>[
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: AppSpacing.sm,
+                                      vertical: AppSpacing.xs,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: colors.background.withValues(
+                                        alpha: 0.2,
+                                      ),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: <Widget>[
+                                        Icon(
+                                          Icons.play_circle_fill_rounded,
+                                          color: textColor,
+                                          size: AppSizes.iconMd,
+                                        ),
+                                        const SizedBox(width: AppSpacing.xs),
+                                        Icon(
+                                          Icons.graphic_eq_rounded,
+                                          color: textColor,
+                                          size: AppSizes.iconSm,
+                                        ),
+                                        const SizedBox(width: AppSpacing.xs),
+                                        Text(
+                                          '${message.voiceNoteDurationSeconds ?? 5}d',
+                                          style: typo.captionStrong.copyWith(
+                                            color: textColor,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  if (message.text.isNotEmpty)
+                                    const SizedBox(height: AppSpacing.xs),
+                                ],
+                                if (message.stickerSeed != null &&
+                                    !message.isDeletedForEveryone) ...<Widget>[
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: AppSpacing.md,
+                                      vertical: AppSpacing.sm,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: colors.primary.withValues(
+                                        alpha: 0.15,
+                                      ),
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(
+                                        color: colors.primary.withValues(
+                                          alpha: 0.4,
+                                        ),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: <Widget>[
+                                        const Icon(
+                                          Icons.sticky_note_2,
+                                          color: Colors.amber,
+                                          size: AppSizes.iconSm,
+                                        ),
+                                        const SizedBox(width: AppSpacing.xs),
+                                        Text(
+                                          message.stickerSeed!,
+                                          style: typo.bodyStrong.copyWith(
+                                            color: widget.isMine
+                                                ? textColor
+                                                : colors.primary,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  if (message.text.isNotEmpty)
+                                    const SizedBox(height: AppSpacing.xs),
+                                ],
+                                if (message.photoSeed != null &&
+                                    !message.isDeletedForEveryone) ...<Widget>[
+                                  GestureDetector(
+                                    onTap: () => widget.onPhotoTap?.call(
+                                      message.photoSeed!,
+                                    ),
+                                    child: PlaceholderImage(
+                                      seed: message.photoSeed!,
+                                      width: 220,
+                                      height: 150,
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                  ),
+                                  if (message.text.isNotEmpty)
+                                    const SizedBox(height: AppSpacing.xs),
+                                ],
+                                if (message.text.isNotEmpty)
+                                  Text(
+                                    message.text,
+                                    style: message.isDeletedForEveryone
+                                        ? typo.caption.copyWith(
+                                            color: mutedColor,
+                                            fontStyle: FontStyle.italic,
+                                          )
+                                        : typo.body.copyWith(color: textColor),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (showFooterMeta)
+                    Padding(
+                      padding: EdgeInsets.only(
+                        top: 2,
+                        left: (!widget.isMine && widget.isGroup)
+                            ? AppSizes.avatarSm + AppSpacing.xs
+                            : 0,
+                      ),
+                      child: Text(
+                        widget.isMine
+                            ? '${ChatFormatters.formatShortTime(message.createdAt, widget.now)} · ${_statusLabel(message.deliveryStatus)}'
+                            : ChatFormatters.formatShortTime(
+                                message.createdAt,
+                                widget.now,
+                              ),
+                        style: typo.micro.copyWith(color: colors.textMuted),
+                      ),
+                    ),
+                ],
               ),
             ),
+          ),
         ],
       ),
     );
@@ -445,7 +622,7 @@ class FailedMessageTile extends StatelessWidget {
   }
 }
 
-/// Bilah penulis pesan gaya pil Instagram (`PSN-03`, `PSN-04`, Fase 2 flag off).
+/// Bilah penulis pesan gaya pil kapsul mulus ala Instagram DM (`PSN-03`, `PSN-04`, Fase 2 flag off).
 class ChatComposerBar extends ConsumerWidget {
   const ChatComposerBar({
     required this.controller,
@@ -486,14 +663,19 @@ class ChatComposerBar extends ConsumerWidget {
 
     return Container(
       padding: const EdgeInsets.fromLTRB(
-        AppSpacing.sm,
-        AppSpacing.xs,
-        AppSpacing.sm,
+        AppSpacing.md,
+        AppSpacing.xs + 2,
+        AppSpacing.md,
         AppSpacing.sm,
       ),
       decoration: BoxDecoration(
         color: colors.surface,
-        border: Border(top: BorderSide(color: colors.border, width: 0.5)),
+        border: Border(
+          top: BorderSide(
+            color: colors.border.withValues(alpha: 0.45),
+            width: AppSizes.strokeThin,
+          ),
+        ),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -509,7 +691,10 @@ class ChatComposerBar extends ConsumerWidget {
                         padding: const EdgeInsets.only(right: AppSpacing.xs),
                         child: AppChip(
                           label: greeting,
-                          onTap: () => onQuickGreetingTap?.call(greeting),
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            onQuickGreetingTap?.call(greeting);
+                          },
                         ),
                       ),
                     )
@@ -520,22 +705,39 @@ class ChatComposerBar extends ConsumerWidget {
           ],
           if (replyToMessage != null) ...<Widget>[
             Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.md,
-                vertical: AppSpacing.xs,
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.xs,
+                AppSpacing.xs,
+                AppSpacing.xs,
               ),
               decoration: BoxDecoration(
                 color: colors.chipInactive,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: AppRadius.cardRadius,
+                border: Border(
+                  left: BorderSide(color: colors.accent, width: 3.5),
+                ),
               ),
               child: Row(
                 children: <Widget>[
                   Expanded(
-                    child: Text(
-                      '${AppStrings.psn03ReplyingToLabel} ${replyToMessage!.text}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: typo.caption,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(
+                          '${AppStrings.psn03ReplyingToLabel} ${replyToMessage!.sender.displayName}',
+                          style: typo.micro.copyWith(
+                            color: colors.accent,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        Text(
+                          replyToMessage!.text,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: typo.caption,
+                        ),
+                      ],
                     ),
                   ),
                   IconButton(
@@ -577,7 +779,11 @@ class ChatComposerBar extends ConsumerWidget {
             ),
             decoration: BoxDecoration(
               color: colors.chipInactive,
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.circular(26),
+              border: Border.all(
+                color: colors.border.withValues(alpha: 0.45),
+                width: AppSizes.strokeThin,
+              ),
             ),
             child: Row(
               children: <Widget>[
@@ -610,51 +816,33 @@ class ChatComposerBar extends ConsumerWidget {
                     tooltip: AppStrings.psn03StickerBtn,
                     onPressed: enabled
                         ? () {
-                            showModalBottomSheet<void>(
-                              context: context,
-                              builder: (ctx) => SafeArea(
-                                child: Padding(
-                                  padding: const EdgeInsets.all(AppSpacing.md),
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: <Widget>[
-                                      Text(
-                                        AppStrings.psn03StickerBtn,
-                                        style: typo.bodyStrong,
-                                      ),
-                                      const SizedBox(height: AppSpacing.md),
-                                      Wrap(
-                                        spacing: AppSpacing.sm,
-                                        runSpacing: AppSpacing.sm,
-                                        children:
-                                            <String>[
-                                                  'Horas!',
-                                                  'Mauliate!',
-                                                  'Tabo!',
-                                                  'Mejuah-juah!',
-                                                  'Njuah-njuah!',
-                                                  'Horas Ma Di Hita!',
-                                                ]
-                                                .map(
-                                                  (stk) => ActionChip(
-                                                    avatar: const Icon(
-                                                      Icons.sticky_note_2,
-                                                      size: 16,
-                                                    ),
-                                                    label: Text(stk),
-                                                    onPressed: () {
-                                                      Navigator.of(ctx).pop();
-                                                      onSendSticker?.call(stk);
-                                                    },
-                                                  ),
-                                                )
-                                                .toList(growable: false),
-                                      ),
-                                    ],
-                                  ),
-                                ),
+                            AppBottomSheet.show<void>(
+                              context,
+                              title: AppStrings.psn03StickerBtn,
+                              child: Wrap(
+                                spacing: AppSpacing.sm,
+                                runSpacing: AppSpacing.sm,
+                                children:
+                                    <String>[
+                                          'Horas!',
+                                          'Mauliate!',
+                                          'Tabo!',
+                                          'Mejuah-juah!',
+                                          'Njuah-njuah!',
+                                          'Horas Ma Di Hita!',
+                                        ]
+                                        .map(
+                                          (stk) => AppChip(
+                                            leadingIcon:
+                                                Icons.sticky_note_2_outlined,
+                                            label: stk,
+                                            onTap: () {
+                                              Navigator.of(context).pop();
+                                              onSendSticker?.call(stk);
+                                            },
+                                          ),
+                                        )
+                                        .toList(growable: false),
                               ),
                             );
                           }
@@ -673,21 +861,49 @@ class ChatComposerBar extends ConsumerWidget {
                     hintText: AppStrings.psn03ComposerHint,
                     maxLength: AppLimits.messageTextMaxChars,
                     enabled: enabled,
+                    borderless: true,
                     textInputAction: TextInputAction.send,
                     onSubmitted: enabled ? (_) => onSend() : null,
                   ),
                 ),
                 const SizedBox(width: AppSpacing.xs),
-                IconButton(
-                  tooltip: AppStrings.psn03SendBtnTooltip,
-                  onPressed: enabled && !isSending ? onSend : null,
-                  icon: Semantics(
-                    label: AppStrings.psn03SendBtnTooltip,
-                    child: Icon(
-                      Icons.send_rounded,
-                      color: enabled ? colors.primary : colors.textMuted,
-                    ),
-                  ),
+                ValueListenableBuilder<TextEditingValue>(
+                  valueListenable: controller,
+                  builder: (context, value, _) {
+                    final hasPayload =
+                        value.text.trim().isNotEmpty ||
+                        pendingPhotoSeed != null;
+                    return IconButton(
+                      tooltip: AppStrings.psn03SendBtnTooltip,
+                      onPressed: enabled && !isSending
+                          ? () {
+                              HapticFeedback.lightImpact();
+                              onSend();
+                            }
+                          : null,
+                      icon: Semantics(
+                        label: AppStrings.psn03SendBtnTooltip,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 160),
+                          width: 34,
+                          height: 34,
+                          decoration: BoxDecoration(
+                            color: (enabled && hasPayload)
+                                ? colors.buttonPrimary
+                                : Colors.transparent,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.send_rounded,
+                            size: AppSizes.iconSm + 1,
+                            color: (enabled && hasPayload)
+                                ? colors.onPrimary
+                                : (enabled ? colors.accent : colors.textMuted),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ],
             ),

@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart' hide Block;
 import 'package:horas/core/config/repository_providers.dart';
@@ -11,10 +12,13 @@ import 'package:horas/core/widgets/widgets.dart';
 import 'package:horas/domain/models/models.dart';
 import 'package:horas/domain/partuturan/partuturan_confidence.dart';
 import 'package:horas/domain/policies/app_limits.dart';
+import 'package:horas/features/home/presentation/ber07_comments_page.dart';
 import 'package:horas/features/nearby/presentation/nearby_controller.dart';
 import 'package:material_ui/material_ui.dart';
 
-/// SEK-04 Profil Orang Lain (`SEK-R4`, `SEK-R5`, `SEK-R6`, `PSN-R1`, `AC-05`, `AC-06`).
+enum _ProfileContentTab { posts, photos, gallery }
+
+/// SEK-04 Profil Orang Lain bergaya Instagram & Threads (`SEK-R4`, `SEK-R5`, `SEK-R6`, `PSN-R1`, `AC-05`, `AC-06`).
 class Sek04PersonProfilePage extends ConsumerStatefulWidget {
   const Sek04PersonProfilePage({required this.userId, super.key});
 
@@ -29,7 +33,7 @@ class _Sek04PersonProfilePageState
     extends ConsumerState<Sek04PersonProfilePage> {
   bool _isLoading = true;
   bool _isBusyAction = false;
-  bool _photosOnlyTab = false;
+  _ProfileContentTab _selectedTab = _ProfileContentTab.posts;
   AppError? _error;
   PersonSummary? _person;
   Follow? _followStatus;
@@ -388,6 +392,54 @@ class _Sek04PersonProfilePageState
     );
   }
 
+  Future<void> _openProfileMenuSheet() async {
+    final colors = context.colors;
+    final typo = context.typo;
+
+    await AppBottomSheet.show<void>(
+      context,
+      title: _person?.displayName ?? AppStrings.sek04Title,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.volume_off_outlined, color: colors.text),
+            title: Text(AppStrings.sek04MenuMute, style: typo.bodyStrong),
+            onTap: () {
+              Navigator.of(context).pop();
+              _muteAccount();
+            },
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.flag_outlined, color: colors.danger),
+            title: Text(
+              AppStrings.sek04MenuReport,
+              style: typo.bodyStrong.copyWith(color: colors.danger),
+            ),
+            onTap: () {
+              Navigator.of(context).pop();
+              context.push('/report');
+            },
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.block_rounded, color: colors.danger),
+            title: Text(
+              AppStrings.sek04MenuBlock,
+              style: typo.bodyStrong.copyWith(color: colors.danger),
+            ),
+            onTap: () {
+              Navigator.of(context).pop();
+              _confirmBlock();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
@@ -399,32 +451,10 @@ class _Sek04PersonProfilePageState
         actions: _person == null
             ? null
             : <Widget>[
-                PopupMenuButton<String>(
+                IconButton(
                   tooltip: AppStrings.ber01MenuTooltip,
-                  onSelected: (value) async {
-                    switch (value) {
-                      case 'report':
-                        await context.push('/report');
-                      case 'mute':
-                        await _muteAccount();
-                      case 'block':
-                        await _confirmBlock();
-                    }
-                  },
-                  itemBuilder: (context) => const <PopupMenuEntry<String>>[
-                    PopupMenuItem<String>(
-                      value: 'report',
-                      child: Text(AppStrings.sek04MenuReport),
-                    ),
-                    PopupMenuItem<String>(
-                      value: 'mute',
-                      child: Text(AppStrings.sek04MenuMute),
-                    ),
-                    PopupMenuItem<String>(
-                      value: 'block',
-                      child: Text(AppStrings.sek04MenuBlock),
-                    ),
-                  ],
+                  onPressed: _openProfileMenuSheet,
+                  icon: const Icon(Icons.more_horiz_rounded),
                 ),
               ],
       ),
@@ -471,8 +501,11 @@ class _Sek04PersonProfilePageState
     final authRepo = ref.read(authRepositoryProvider);
     final now = authRepo.currentTime;
     final currentUid = authRepo.currentUserId;
-    final visiblePosts = _photosOnlyTab
-        ? _posts.where((p) => p.media.isNotEmpty).toList(growable: false)
+    final photoPosts = _posts
+        .where((p) => p.media.isNotEmpty)
+        .toList(growable: false);
+    final visiblePosts = _selectedTab == _ProfileContentTab.photos
+        ? photoPosts
         : _posts;
 
     return RefreshIndicator(
@@ -481,87 +514,194 @@ class _Sek04PersonProfilePageState
         padding: EdgeInsets.zero,
         children: <Widget>[
           Padding(
-            padding: const EdgeInsets.all(AppSpacing.screenMargin),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.screenMargin,
+              AppSpacing.sm,
+              AppSpacing.screenMargin,
+              AppSpacing.md,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
-                // Header Profil (nama, foto, marga, kota, rentang jarak — selalu tampil walau privat)
+                // Header Profil ala IG/Threads
                 Row(
                   children: <Widget>[
                     AppAvatar(
                       name: person.displayName,
                       seed: person.avatarSeed,
-                      size: AppSizes.avatarXl,
+                      size: 80,
+                      showBorder: true,
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        PhotoLightboxPage.show(
+                          context,
+                          seeds: <String>[person.avatarSeed],
+                          title: person.displayName,
+                          isCircular: true,
+                        );
+                      },
                     ),
                     const SizedBox(width: AppSpacing.lg),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
-                          Text(person.displayName, style: typo.h2),
-                          const SizedBox(height: AppSpacing.xxs),
                           Text(
-                            '${person.marga} · ${person.subEthnic.displayName}',
-                            style: typo.bodyStrong.copyWith(
-                              color: colors.primary,
+                            person.displayName,
+                            style: typo.h2,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: AppSpacing.xs),
+                          Wrap(
+                            spacing: AppSpacing.xs,
+                            runSpacing: AppSpacing.xs,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: <Widget>[
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.sm + 2,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: colors.primary.withValues(alpha: 0.1),
+                                  borderRadius: AppRadius.pillRadius,
+                                ),
+                                child: Text(
+                                  '${person.marga} · ${person.subEthnic.displayName}',
+                                  style: typo.micro.copyWith(
+                                    color: colors.accent,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                              if (person.isSameMarga) const SemargaLabel(),
+                            ],
+                          ),
+                          const SizedBox(height: AppSpacing.xs),
+                          Row(
+                            children: <Widget>[
+                              Icon(
+                                Icons.location_on_outlined,
+                                size: AppSizes.iconXs,
+                                color: colors.textMuted,
+                              ),
+                              const SizedBox(width: 2),
+                              Expanded(
+                                child: Text(
+                                  '${person.city} · ${person.proximity.displayLabel}',
+                                  style: typo.caption,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (person.isFollowedBy) ...<Widget>[
+                            const SizedBox(height: AppSpacing.xs),
+                            Row(
+                              children: <Widget>[
+                                Icon(
+                                  _followStatus != null &&
+                                          !_followStatus!.isPendingApproval
+                                      ? Icons.sync_alt_rounded
+                                      : Icons.person_outline_rounded,
+                                  size: AppSizes.iconXs,
+                                  color: colors.accent,
+                                ),
+                                const SizedBox(width: AppSpacing.xs),
+                                Text(
+                                  _followStatus != null &&
+                                          !_followStatus!.isPendingApproval
+                                      ? AppStrings.sek04MutualFollowNotice
+                                      : AppStrings.sek04FollowsYouNotice,
+                                  style: typo.micro.copyWith(
+                                    color: colors.accent,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                          const SizedBox(height: AppSpacing.xxs),
-                          Text(
-                            '${person.city} · ${person.proximity.displayLabel}',
-                            style: typo.caption,
-                          ),
+                          ],
                         ],
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: AppSpacing.lg),
 
-                // Badge Partuturan & Semarga (AC-03, AC-04, SEK-R6)
+                if (!hidePrivateContent &&
+                    person.bio.trim().isNotEmpty) ...<Widget>[
+                  const SizedBox(height: AppSpacing.md),
+                  Text(person.bio, style: typo.body),
+                ],
+
+                const SizedBox(height: AppSpacing.md),
+
+                // Kartu Partuturan Ringkas & Elegan (AC-03, AC-04, SEK-R6)
                 if (partuturan != null && !partuturan.modeNetral) ...<Widget>[
-                  PartuturanBadge(
-                    result: partuturan,
-                    onTap: () => context.push(
-                      '${AppPages.tar05.routePath}?userId=${person.id}',
+                  Container(
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    decoration: BoxDecoration(
+                      color: colors.chipInactive.withValues(alpha: 0.65),
+                      borderRadius: AppRadius.cardRadius,
+                      border: Border.all(
+                        color: colors.border.withValues(alpha: 0.65),
+                      ),
                     ),
-                  ),
-                  if (partuturan.penjelasanJalur.isNotEmpty) ...<Widget>[
-                    const SizedBox(height: AppSpacing.sm),
-                    Text(partuturan.penjelasanJalur, style: typo.caption),
-                  ],
-                  if (partuturan.confidence !=
-                      PartuturanConfidence.tinggi) ...<Widget>[
-                    const SizedBox(height: AppSpacing.sm),
-                    Row(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
-                        OutlinedButton(
-                          onPressed: () =>
-                              _submitKinshipConfirmation(person, partuturan),
-                          child: const Text(
-                            AppStrings.sek04KinshipAcceptQuestion,
+                        PartuturanBadge(
+                          result: partuturan,
+                          onTap: () => context.push(
+                            '${AppPages.tar05.routePath}?userId=${person.id}',
                           ),
                         ),
-                        const SizedBox(width: AppSpacing.sm),
-                        TextButton(
-                          onPressed: () =>
-                              _submitNotThisFeedback(person, partuturan),
-                          child: const Text(
-                            AppStrings.sek04KinshipRejectQuestion,
+                        if (partuturan.penjelasanJalur.isNotEmpty) ...<Widget>[
+                          const SizedBox(height: AppSpacing.xs),
+                          Text(partuturan.penjelasanJalur, style: typo.caption),
+                        ],
+                        if (partuturan.confidence !=
+                            PartuturanConfidence.tinggi) ...<Widget>[
+                          const SizedBox(height: AppSpacing.sm),
+                          Row(
+                            children: <Widget>[
+                              Expanded(
+                                child: AppButton(
+                                  label: AppStrings.sek04KinshipAcceptQuestion,
+                                  variant: AppButtonVariant.secondary,
+                                  compact: true,
+                                  onPressed: () => _submitKinshipConfirmation(
+                                    person,
+                                    partuturan,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: AppSpacing.xs),
+                              AppButton(
+                                label: AppStrings.sek04KinshipRejectQuestion,
+                                variant: AppButtonVariant.text,
+                                compact: true,
+                                onPressed: () =>
+                                    _submitNotThisFeedback(person, partuturan),
+                              ),
+                            ],
                           ),
-                        ),
+                        ],
                       ],
                     ),
-                  ],
+                  ),
                   const SizedBox(height: AppSpacing.md),
                 ] else if (partuturan != null &&
                     partuturan.modeNetral) ...<Widget>[
                   Container(
                     padding: const EdgeInsets.all(AppSpacing.md),
                     decoration: BoxDecoration(
-                      color: colors.chipInactive,
+                      color: colors.chipInactive.withValues(alpha: 0.6),
                       borderRadius: AppRadius.cardRadius,
-                      border: Border.all(color: colors.border),
+                      border: Border.all(
+                        color: colors.border.withValues(alpha: 0.6),
+                      ),
                     ),
                     child: Text(
                       AppStrings.sek04NeutralModeHint,
@@ -571,20 +711,17 @@ class _Sek04PersonProfilePageState
                   const SizedBox(height: AppSpacing.md),
                 ],
 
-                if (person.isSameMarga) ...<Widget>[
-                  const SemargaLabel(),
-                  const SizedBox(height: AppSpacing.md),
-                ],
-
                 // Banner Permintaan Kenalan Masuk (Terima / Tolak / Abaikan)
                 if (_incomingRequest != null && !_ignoredIncoming) ...<Widget>[
                   Container(
-                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    padding: const EdgeInsets.all(AppSpacing.md),
                     margin: const EdgeInsets.only(bottom: AppSpacing.md),
                     decoration: BoxDecoration(
-                      color: colors.surface,
+                      color: colors.primary.withValues(alpha: 0.06),
                       borderRadius: AppRadius.cardRadius,
-                      border: Border.all(color: colors.primary),
+                      border: Border.all(
+                        color: colors.primary.withValues(alpha: 0.45),
+                      ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -603,28 +740,34 @@ class _Sek04PersonProfilePageState
                           ),
                         ],
                         const SizedBox(height: AppSpacing.md),
-                        Wrap(
-                          spacing: AppSpacing.sm,
-                          runSpacing: AppSpacing.sm,
+                        Row(
                           children: <Widget>[
-                            ElevatedButton(
-                              onPressed: _isBusyAction
-                                  ? null
-                                  : () => _respondIncoming(true),
-                              child: const Text(AppStrings.sek04AcceptBtn),
+                            Expanded(
+                              child: AppButton(
+                                label: AppStrings.sek04AcceptBtn,
+                                compact: true,
+                                isDisabled: _isBusyAction,
+                                onPressed: () => _respondIncoming(true),
+                              ),
                             ),
-                            OutlinedButton(
-                              onPressed: _isBusyAction
-                                  ? null
-                                  : () => _respondIncoming(false),
-                              child: const Text(AppStrings.sek04RejectBtn),
+                            const SizedBox(width: AppSpacing.xs),
+                            Expanded(
+                              child: AppButton(
+                                label: AppStrings.sek04RejectBtn,
+                                variant: AppButtonVariant.secondary,
+                                compact: true,
+                                isDisabled: _isBusyAction,
+                                onPressed: () => _respondIncoming(false),
+                              ),
                             ),
-                            TextButton(
-                              onPressed: _isBusyAction
-                                  ? null
-                                  : () =>
-                                        setState(() => _ignoredIncoming = true),
-                              child: const Text(AppStrings.sek04IgnoreBtn),
+                            const SizedBox(width: AppSpacing.xs),
+                            AppButton(
+                              label: AppStrings.sek04IgnoreBtn,
+                              variant: AppButtonVariant.text,
+                              compact: true,
+                              isDisabled: _isBusyAction,
+                              onPressed: () =>
+                                  setState(() => _ignoredIncoming = true),
                             ),
                           ],
                         ),
@@ -633,65 +776,36 @@ class _Sek04PersonProfilePageState
                   ),
                 ],
 
-                // Status mengikuti gaya Instagram (Mengikutimu / Saling mengikuti)
-                if (person.isFollowedBy) ...<Widget>[
-                  Row(
-                    children: <Widget>[
-                      Icon(
-                        _followStatus != null &&
-                                !_followStatus!.isPendingApproval
-                            ? Icons.sync_alt_rounded
-                            : Icons.person_outline_rounded,
-                        size: AppSizes.iconXs,
-                        color: colors.primary,
-                      ),
-                      const SizedBox(width: AppSpacing.xs),
-                      Text(
-                        _followStatus != null &&
-                                !_followStatus!.isPendingApproval
-                            ? AppStrings.sek04MutualFollowNotice
-                            : AppStrings.sek04FollowsYouNotice,
-                        style: typo.captionStrong.copyWith(
-                          color: colors.primary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                ],
-
-                // Baris Utama Gaya IG: [Follback / Ikuti / Mengikuti] sejajar di samping [Pesan]
+                // Baris Tombol Seragam Gaya IG: [Follback / Ikuti / Mengikuti] + [Pesan]
                 Row(
                   children: <Widget>[
                     Expanded(
-                      child: _followStatus == null
-                          ? ElevatedButton.icon(
-                              onPressed: _isBusyAction ? null : _toggleFollow,
-                              icon: const Icon(Icons.person_add_alt_1_outlined),
-                              label: Text(followLabel),
-                            )
-                          : FilledButton.tonalIcon(
-                              onPressed: _isBusyAction ? null : _toggleFollow,
-                              icon: const Icon(Icons.check_rounded),
-                              label: Text(followLabel),
-                            ),
+                      child: AppButton(
+                        label: followLabel,
+                        variant: _followStatus == null
+                            ? AppButtonVariant.primary
+                            : AppButtonVariant.tonal,
+                        compact: true,
+                        isDisabled: _isBusyAction,
+                        leadingIcon: _followStatus == null
+                            ? Icons.person_add_alt_1_outlined
+                            : Icons.check_rounded,
+                        onPressed: _toggleFollow,
+                      ),
                     ),
                     // AC-06 & PSN-R1: Tombol Pesan HANYA tampil bila person.canMessage == true
                     if (person.canMessage) ...<Widget>[
                       const SizedBox(width: AppSpacing.sm),
                       Expanded(
-                        child: FilledButton.tonalIcon(
-                          onPressed: _isBusyAction
-                              ? null
-                              : _handleMessageAction,
-                          icon: const Icon(Icons.chat_bubble_outline_rounded),
-                          label: Text(
-                            canDirectChat
-                                ? AppStrings.termPesan
-                                : '${AppStrings.termPesan} (${AppStrings.sek04MessageRequestBadge})',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                        child: AppButton(
+                          label: canDirectChat
+                              ? AppStrings.termPesan
+                              : '${AppStrings.termPesan} (${AppStrings.sek04MessageRequestBadge})',
+                          variant: AppButtonVariant.tonal,
+                          compact: true,
+                          isDisabled: _isBusyAction,
+                          leadingIcon: Icons.chat_bubble_outline_rounded,
+                          onPressed: _handleMessageAction,
                         ),
                       ),
                     ],
@@ -699,43 +813,38 @@ class _Sek04PersonProfilePageState
                 ),
                 const SizedBox(height: AppSpacing.sm),
 
-                // Aksi Kenalan / Terhubung (SEK-04)
-                Wrap(
-                  spacing: AppSpacing.sm,
-                  runSpacing: AppSpacing.sm,
-                  children: <Widget>[
-                    if (person.isConnected)
-                      FilledButton.tonalIcon(
-                        onPressed: _isBusyAction
-                            ? null
-                            : _confirmRemoveConnection,
-                        icon: const Icon(Icons.handshake_outlined),
-                        label: const Text(AppStrings.termTerhubung),
-                      )
-                    else if (_outgoingRequest != null)
-                      const OutlinedButton(
-                        onPressed: null,
-                        child: Text(AppStrings.sek04ConnectionSent),
-                      )
-                    else if (_incomingRequest == null || _ignoredIncoming)
-                      OutlinedButton.icon(
-                        onPressed: _isBusyAction ? null : _openKenalanSheet,
-                        icon: const Icon(Icons.waving_hand_outlined),
-                        label: const Text(AppStrings.termKenalan),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.xl),
+                // Aksi Kenalan / Terhubung seragam
+                if (person.isConnected)
+                  AppButton(
+                    label: AppStrings.termTerhubung,
+                    variant: AppButtonVariant.secondary,
+                    compact: true,
+                    isExpanded: true,
+                    isDisabled: _isBusyAction,
+                    leadingIcon: Icons.handshake_outlined,
+                    onPressed: _confirmRemoveConnection,
+                  )
+                else if (_outgoingRequest != null)
+                  const AppButton(
+                    label: AppStrings.sek04ConnectionSent,
+                    variant: AppButtonVariant.secondary,
+                    compact: true,
+                    isExpanded: true,
+                    isDisabled: true,
+                  )
+                else if (_incomingRequest == null || _ignoredIncoming)
+                  AppButton(
+                    label: AppStrings.termKenalan,
+                    variant: AppButtonVariant.secondary,
+                    compact: true,
+                    isExpanded: true,
+                    isDisabled: _isBusyAction,
+                    leadingIcon: Icons.waving_hand_outlined,
+                    onPressed: _openKenalanSheet,
+                  ),
 
                 if (!hidePrivateContent) ...<Widget>[
-                  if (person.bio.trim().isNotEmpty) ...<Widget>[
-                    Text(AppStrings.sek04BioSectionTitle, style: typo.h3),
-                    const SizedBox(height: AppSpacing.xs),
-                    Text(person.bio, style: typo.body),
-                    const SizedBox(height: AppSpacing.lg),
-                  ],
-                  Text(AppStrings.sek04InfoSectionTitle, style: typo.h3),
-                  const SizedBox(height: AppSpacing.sm),
+                  const SizedBox(height: AppSpacing.md),
                   _InfoRowList(person: person),
                 ],
               ],
@@ -752,9 +861,11 @@ class _Sek04PersonProfilePageState
               child: Container(
                 padding: const EdgeInsets.all(AppSpacing.xl),
                 decoration: BoxDecoration(
-                  color: colors.surface,
+                  color: colors.chipInactive.withValues(alpha: 0.45),
                   borderRadius: AppRadius.cardRadius,
-                  border: Border.all(color: colors.border),
+                  border: Border.all(
+                    color: colors.border.withValues(alpha: 0.65),
+                  ),
                 ),
                 child: Column(
                   children: <Widget>[
@@ -776,31 +887,111 @@ class _Sek04PersonProfilePageState
               ),
             )
           else ...<Widget>[
-            // Tab gaya Threads: Postingan | Foto
-            Row(
-              children: <Widget>[
-                Expanded(
-                  child: _ProfileSegmentTab(
-                    label: AppStrings.sek04PostsTab,
-                    selected: !_photosOnlyTab,
-                    onTap: () => setState(() => _photosOnlyTab = false),
+            // Tab gaya Threads + Instagram: Postingan | Foto | Galeri Grid
+            DecoratedBox(
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(
+                    color: colors.border.withValues(alpha: 0.45),
+                    width: AppSizes.strokeThin,
                   ),
                 ),
-                Expanded(
-                  child: _ProfileSegmentTab(
-                    label: AppStrings.sek04PhotosTab,
-                    selected: _photosOnlyTab,
-                    onTap: () => setState(() => _photosOnlyTab = true),
+              ),
+              child: Row(
+                children: <Widget>[
+                  Expanded(
+                    child: _ProfileSegmentTab(
+                      label: AppStrings.sek04PostsTab,
+                      icon: Icons.view_agenda_outlined,
+                      selected: _selectedTab == _ProfileContentTab.posts,
+                      onTap: () => setState(
+                        () => _selectedTab = _ProfileContentTab.posts,
+                      ),
+                    ),
                   ),
-                ),
-              ],
+                  Expanded(
+                    child: _ProfileSegmentTab(
+                      label: AppStrings.sek04PhotosTab,
+                      icon: Icons.photo_library_outlined,
+                      selected: _selectedTab == _ProfileContentTab.photos,
+                      onTap: () => setState(
+                        () => _selectedTab = _ProfileContentTab.photos,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: _ProfileSegmentTab(
+                      label: AppStrings.sek04GalleryTab,
+                      icon: Icons.grid_on_rounded,
+                      selected: _selectedTab == _ProfileContentTab.gallery,
+                      onTap: () => setState(
+                        () => _selectedTab = _ProfileContentTab.gallery,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
             Divider(
               height: AppSizes.strokeThin,
               thickness: AppSizes.strokeThin,
-              color: colors.border.withValues(alpha: 0.55),
+              color: colors.border.withValues(alpha: 0.45),
             ),
-            if (visiblePosts.isEmpty)
+            if (_selectedTab == _ProfileContentTab.gallery)
+              photoPosts.isEmpty
+                  ? Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.screenMargin,
+                        vertical: AppSpacing.xxl,
+                      ),
+                      child: Center(
+                        child: Text(
+                          AppStrings.sek04NoPhotosYet,
+                          style: typo.caption,
+                        ),
+                      ),
+                    )
+                  : GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      padding: const EdgeInsets.all(2),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 3,
+                            crossAxisSpacing: 2,
+                            mainAxisSpacing: 2,
+                          ),
+                      itemCount: photoPosts.length,
+                      itemBuilder: (context, idx) {
+                        final post = photoPosts[idx];
+                        final firstMedia = post.media.first;
+                        return GestureDetector(
+                          onTap: () => context.push(
+                            '${AppPages.ber06.routePath}?id=${post.id}',
+                          ),
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: <Widget>[
+                              PlaceholderImage(
+                                seed: firstMedia.seed,
+                                borderRadius: BorderRadius.zero,
+                              ),
+                              if (post.media.length > 1)
+                                const Positioned(
+                                  top: 6,
+                                  right: 6,
+                                  child: Icon(
+                                    Icons.collections_rounded,
+                                    color: Colors.white,
+                                    size: 18,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        );
+                      },
+                    )
+            else if (visiblePosts.isEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: AppSpacing.screenMargin,
@@ -808,7 +999,7 @@ class _Sek04PersonProfilePageState
                 ),
                 child: Center(
                   child: Text(
-                    _photosOnlyTab
+                    _selectedTab == _ProfileContentTab.photos
                         ? AppStrings.sek04NoPhotosYet
                         : AppStrings.sek04NoPostsYet,
                     style: typo.caption,
@@ -829,8 +1020,9 @@ class _Sek04PersonProfilePageState
                   onLikesCountTap: () => context.push(
                     '${AppPages.ber08.routePath}?id=${visiblePosts[i].id}',
                   ),
-                  onCommentTap: () => context.push(
-                    '${AppPages.ber07.routePath}?id=${visiblePosts[i].id}',
+                  onCommentTap: () => Ber07CommentsPage.showSheet(
+                    context,
+                    postId: visiblePosts[i].id,
                   ),
                   onSaveTap: () => _toggleSavePost(visiblePosts[i].id),
                   onReportTap: () => context.push('/report'),
@@ -841,7 +1033,7 @@ class _Sek04PersonProfilePageState
                   Divider(
                     height: AppSizes.strokeThin,
                     thickness: AppSizes.strokeThin,
-                    color: colors.border.withValues(alpha: 0.55),
+                    color: colors.border.withValues(alpha: 0.45),
                   ),
               ],
           ],
@@ -854,11 +1046,13 @@ class _Sek04PersonProfilePageState
 class _ProfileSegmentTab extends StatelessWidget {
   const _ProfileSegmentTab({
     required this.label,
+    required this.icon,
     required this.selected,
     required this.onTap,
   });
 
   final String label;
+  final IconData icon;
   final bool selected;
   final VoidCallback onTap;
 
@@ -879,16 +1073,27 @@ class _ProfileSegmentTab extends StatelessWidget {
           decoration: BoxDecoration(
             border: Border(
               bottom: BorderSide(
-                color: selected ? colors.text : colors.surface,
+                color: selected ? colors.text : Colors.transparent,
                 width: 2,
               ),
             ),
           ),
-          child: Text(
-            label,
-            style: selected
-                ? typo.bodyStrong
-                : typo.body.copyWith(color: colors.textMuted),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              Icon(
+                icon,
+                size: 16,
+                color: selected ? colors.text : colors.textMuted,
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              Text(
+                label,
+                style: selected
+                    ? typo.captionStrong
+                    : typo.caption.copyWith(color: colors.textMuted),
+              ),
+            ],
           ),
         ),
       ),
@@ -933,11 +1138,11 @@ class _InfoRowList extends StatelessWidget {
     final typo = context.typo;
 
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: colors.surface,
+        color: colors.chipInactive.withValues(alpha: 0.45),
         borderRadius: AppRadius.cardRadius,
-        border: Border.all(color: colors.border),
+        border: Border.all(color: colors.border.withValues(alpha: 0.55)),
       ),
       child: Column(
         children: <Widget>[
@@ -948,11 +1153,15 @@ class _InfoRowList extends StatelessWidget {
                 Expanded(flex: 2, child: Text(rows[i].$1, style: typo.caption)),
                 Expanded(
                   flex: 3,
-                  child: Text(rows[i].$2, style: typo.bodyStrong),
+                  child: Text(rows[i].$2, style: typo.captionStrong),
                 ),
               ],
             ),
-            if (i < rows.length - 1) const Divider(height: AppSpacing.lg),
+            if (i < rows.length - 1)
+              Divider(
+                height: AppSpacing.md,
+                color: colors.border.withValues(alpha: 0.45),
+              ),
           ],
         ],
       ),

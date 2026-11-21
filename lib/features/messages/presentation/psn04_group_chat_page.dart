@@ -435,6 +435,7 @@ class _Psn04GroupChatPageState extends ConsumerState<Psn04GroupChatPage> {
           Expanded(
             child: ListView.builder(
               controller: _scrollController,
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               padding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.md,
                 vertical: AppSpacing.sm,
@@ -458,12 +459,22 @@ class _Psn04GroupChatPageState extends ConsumerState<Psn04GroupChatPage> {
                 final next = idx + 1 < _messages.length
                     ? _messages[idx + 1]
                     : null;
+                final showDateHeader =
+                    prev == null ||
+                    ChatDateSeparator.isDifferentDay(
+                      prev.createdAt,
+                      msg.createdAt,
+                    );
                 final isGroupedPrev =
-                    prev != null &&
+                    !showDateHeader &&
                     prev.sender.id == msg.sender.id &&
                     msg.createdAt.difference(prev.createdAt).inMinutes < 5;
                 final isGroupedNext =
                     next != null &&
+                    !ChatDateSeparator.isDifferentDay(
+                      msg.createdAt,
+                      next.createdAt,
+                    ) &&
                     next.sender.id == msg.sender.id &&
                     next.createdAt.difference(msg.createdAt).inMinutes < 5;
                 final replied = msg.replyToMessageId == null
@@ -471,7 +482,7 @@ class _Psn04GroupChatPageState extends ConsumerState<Psn04GroupChatPage> {
                     : _messages
                           .where((m) => m.id == msg.replyToMessageId)
                           .firstOrNull;
-                return ChatMessageBubble(
+                final bubble = ChatMessageBubble(
                   message: msg,
                   isMine: msg.sender.id == uid,
                   isGroup: true,
@@ -481,9 +492,21 @@ class _Psn04GroupChatPageState extends ConsumerState<Psn04GroupChatPage> {
                   isGroupedWithNext: isGroupedNext,
                   repliedMessage: replied,
                   onLongPress: () => _showGroupMessageActions(msg),
+                  onSwipeReply: !conv.isReadOnly && !msg.isDeletedForEveryone
+                      ? () => setState(() => _replyTo = msg)
+                      : null,
                   onPhotoTap: (seed) => context
                       .push('${AppPages.psn06.routePath}?seed=$seed')
                       .ignore(),
+                );
+                if (!showDateHeader) return bubble;
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    ChatDateSeparator(date: msg.createdAt, now: now),
+                    bubble,
+                  ],
                 );
               },
             ),

@@ -1,43 +1,155 @@
+import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:horas/core/config/feature_flags.dart';
 import 'package:horas/core/config/repository_providers.dart';
+import 'package:horas/core/errors/result.dart';
 import 'package:horas/core/l10n/app_strings.dart';
 import 'package:horas/core/router/app_pages.dart';
 import 'package:horas/core/router/shell_navigation_controller.dart';
 import 'package:horas/core/theme/app_theme.dart';
 import 'package:horas/core/theme/app_tokens.dart';
 import 'package:horas/core/widgets/widgets.dart';
+import 'package:horas/domain/models/models.dart';
 import 'package:horas/features/nearby/presentation/nearby_controller.dart';
 import 'package:horas/features/nearby/presentation/nearby_models.dart';
 import 'package:horas/features/nearby/presentation/nearby_widgets.dart';
 import 'package:material_ui/material_ui.dart';
 
-/// SEK-01 Sekitar Utama (PRD 5.1, 6.3, 8 A2/A5).
+/// SEK-01 Sekitar Utama bergaya modern ringkas (PRD 5.1, 6.3, 8 A2/A5).
 ///
-/// Menampilkan segmen Orang dan Komunitas saja; Gereja dan Kegiatan adalah Fase 2
-/// (`FeatureFlags.church == false`, `FeatureFlags.events == false`) dan disembunyikan.
-class Sek01NearbyPage extends ConsumerWidget {
+/// Menampilkan segmen Orang dan Komunitas saja pada MVP; Gereja adalah Fase 2
+/// (`FeatureFlags.church == false`) dan disembunyikan saat flag nonaktif.
+class Sek01NearbyPage extends ConsumerStatefulWidget {
   const Sek01NearbyPage({super.key, this.tabIndex = 1});
 
   final int tabIndex;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<Sek01NearbyPage> createState() => _Sek01NearbyPageState();
+}
+
+class _Sek01NearbyPageState extends ConsumerState<Sek01NearbyPage> {
+  final Set<String> _busyFollowUserIds = <String>{};
+  final Map<String, bool> _localFollowOverride = <String, bool>{};
+
+  Future<void> _toggleQuickFollow(PersonSummary person) async {
+    if (_busyFollowUserIds.contains(person.id)) return;
+    HapticFeedback.lightImpact().ignore();
+    final currentlyFollowing =
+        _localFollowOverride[person.id] ?? person.isFollowing;
+    setState(() {
+      _busyFollowUserIds.add(person.id);
+      _localFollowOverride[person.id] = !currentlyFollowing;
+    });
+
+    final followRepo = ref.read(followRepositoryProvider);
+    final bool ok;
+    String? errMsg;
+    if (currentlyFollowing) {
+      final res = await followRepo.unfollowUser(person.id);
+      ok = res.isOk;
+      if (res is Err<void>) errMsg = res.failure.message;
+    } else {
+      final res = await followRepo.followUser(person.id);
+      ok = res.isOk;
+      if (res is Err<Follow>) errMsg = res.failure.message;
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _busyFollowUserIds.remove(person.id);
+      if (!ok) {
+        _localFollowOverride[person.id] = currentlyFollowing;
+      }
+    });
+    if (!ok && errMsg != null) {
+      AppToast.show(context, message: errMsg, variant: AppToastVariant.error);
+    }
+  }
+
+  Future<void> _openAreaPicker(
+    NearbyState state,
+    NearbyController controller,
+  ) async {
+    final picked = await showManualAreaPickerSheet(
+      context: context,
+      cities: state.availableCities,
+      selectedCity: state.selectedCity,
+    );
+    if (picked != null && picked.isNotEmpty) {
+      await controller.setSelectedCity(picked);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(nearbyControllerProvider);
     final controller = ref.read(nearbyControllerProvider.notifier);
+    final flags = ref.watch(featureFlagsProvider);
     final unreadCounts =
         ref.watch(unreadCountsProvider).value ??
         ref.read(navigationBadgeRepositoryProvider).currentUnreadCounts();
     final scrollController = ref
         .read(shellNavigationProvider.notifier)
-        .scrollControllerForTab(tabIndex);
+        .scrollControllerForTab(widget.tabIndex);
     final colors = context.colors;
     final typo = context.typo;
 
     return Scaffold(
+      backgroundColor: colors.surface,
       appBar: AppBar(
-        title: const Text(AppStrings.sek01Title),
+        backgroundColor: colors.surface,
+        title: Row(
+          children: <Widget>[
+            const Text(AppStrings.sek01Title),
+            const SizedBox(width: AppSpacing.sm),
+            Flexible(
+              child: InkWell(
+                onTap: () => _openAreaPicker(state, controller),
+                borderRadius: AppRadius.pillRadius,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sm + 2,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: colors.chipInactive,
+                    borderRadius: AppRadius.pillRadius,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Icon(
+                        Icons.location_on_rounded,
+                        size: 14,
+                        color: colors.accent,
+                      ),
+                      const SizedBox(width: 3),
+                      Flexible(
+                        child: Text(
+                          state.selectedCity,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: typo.micro.copyWith(
+                            color: colors.text,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 2),
+                      Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        size: 15,
+                        color: colors.textMuted,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
         actions: <Widget>[
           IconButton(
             tooltip: AppStrings.sek01OpenSearchTooltip,
@@ -75,127 +187,49 @@ class Sek01NearbyPage extends ConsumerWidget {
       ),
       body: Column(
         children: <Widget>[
+          // Baris Segmen Pill Ringkas (Orang | Komunitas | Gereja jika Fase 2 aktif)
           Padding(
             padding: const EdgeInsets.fromLTRB(
               AppSpacing.screenMargin,
-              AppSpacing.sm,
+              AppSpacing.xs,
               AppSpacing.screenMargin,
               AppSpacing.sm,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
-                // Baris Area tanpa GPS (SEK-R1)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.md,
-                    vertical: AppSpacing.sm,
-                  ),
-                  decoration: BoxDecoration(
-                    color: colors.surface,
-                    borderRadius: AppRadius.cardRadius,
-                    border: Border.all(color: colors.border),
-                  ),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
                   child: Row(
                     children: <Widget>[
-                      Icon(
-                        Icons.location_on_outlined,
-                        color: colors.primary,
-                        size: AppSizes.iconMd,
+                      _SegmentPill(
+                        label: AppStrings.sek01SegmentOrang,
+                        icon: Icons.people_outline_rounded,
+                        selected: state.segment == NearbyMainSegment.orang,
+                        onTap: () =>
+                            controller.selectSegment(NearbyMainSegment.orang),
                       ),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: <Widget>[
-                            Text(AppStrings.sek01AreaLabel, style: typo.micro),
-                            Text(
-                              state.selectedCity,
-                              style: typo.bodyStrong,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
+                      const SizedBox(width: AppSpacing.xs),
+                      _SegmentPill(
+                        label: AppStrings.sek01SegmentKomunitas,
+                        icon: Icons.groups_outlined,
+                        selected: state.segment == NearbyMainSegment.komunitas,
+                        onTap: () => controller.selectSegment(
+                          NearbyMainSegment.komunitas,
                         ),
                       ),
-                      TextButton(
-                        onPressed: () async {
-                          final picked = await showManualAreaPickerSheet(
-                            context: context,
-                            cities: state.availableCities,
-                            selectedCity: state.selectedCity,
-                          );
-                          if (picked != null && picked.isNotEmpty) {
-                            await controller.setSelectedCity(picked);
-                          }
-                        },
-                        child: const Text(AppStrings.sek02ChangeAreaBtn),
-                      ),
+                      if (flags.church) ...<Widget>[
+                        const SizedBox(width: AppSpacing.xs),
+                        _SegmentPill(
+                          label: AppStrings.sek10Title,
+                          icon: Icons.church_outlined,
+                          selected: false,
+                          onTap: () => context.push(AppPages.sek10.routePath),
+                        ),
+                      ],
                     ],
                   ),
                 ),
-                const SizedBox(height: AppSpacing.md),
-                // Segmen Orang dan Komunitas (Gereja disembunyikan karena Fase 2 off)
-                SegmentedButton<NearbyMainSegment>(
-                  segments: const <ButtonSegment<NearbyMainSegment>>[
-                    ButtonSegment<NearbyMainSegment>(
-                      value: NearbyMainSegment.orang,
-                      label: Text(AppStrings.sek01SegmentOrang),
-                      icon: Icon(Icons.people_outline_rounded),
-                    ),
-                    ButtonSegment<NearbyMainSegment>(
-                      value: NearbyMainSegment.komunitas,
-                      label: Text(AppStrings.sek01SegmentKomunitas),
-                      icon: Icon(Icons.groups_outlined),
-                    ),
-                  ],
-                  selected: <NearbyMainSegment>{state.segment},
-                  onSelectionChanged: (selected) {
-                    if (selected.isNotEmpty) {
-                      controller.selectSegment(selected.first);
-                    }
-                  },
-                ),
-                if (ref.watch(featureFlagsProvider).church) ...<Widget>[
-                  const SizedBox(height: AppSpacing.sm),
-                  InkWell(
-                    onTap: () => context.push(AppPages.sek10.routePath),
-                    borderRadius: BorderRadius.circular(AppRadius.card),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.md,
-                        vertical: AppSpacing.sm,
-                      ),
-                      decoration: BoxDecoration(
-                        color: colors.chipInactive,
-                        borderRadius: BorderRadius.circular(AppRadius.card),
-                        border: Border.all(
-                          color: colors.border.withValues(alpha: 0.5),
-                        ),
-                      ),
-                      child: Row(
-                        children: <Widget>[
-                          Icon(
-                            Icons.church_outlined,
-                            color: colors.primary,
-                            size: AppSizes.iconMd,
-                          ),
-                          const SizedBox(width: AppSpacing.sm),
-                          Expanded(
-                            child: Text(
-                              '${AppStrings.sek10Title} · Temukan gereja & jadwal ibadah',
-                              style: typo.captionStrong,
-                            ),
-                          ),
-                          const Icon(
-                            Icons.chevron_right,
-                            size: AppSizes.iconSm,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
                 if (state.filter.hasActiveFilters &&
                     state.segment == NearbyMainSegment.orang) ...<Widget>[
                   const SizedBox(height: AppSpacing.sm),
@@ -214,6 +248,10 @@ class Sek01NearbyPage extends ConsumerWidget {
                 ],
               ],
             ),
+          ),
+          Divider(
+            height: AppSizes.strokeThin,
+            color: colors.border.withValues(alpha: 0.45),
           ),
           Expanded(
             child: _buildBody(
@@ -245,16 +283,7 @@ class Sek01NearbyPage extends ConsumerWidget {
     if (state.locationPermissionDenied) {
       return StateView.permissionDenied(
         benefitMessage: AppStrings.sek01LocationPermissionBenefit,
-        onOpenSettings: () async {
-          final picked = await showManualAreaPickerSheet(
-            context: context,
-            cities: state.availableCities,
-            selectedCity: state.selectedCity,
-          );
-          if (picked != null && picked.isNotEmpty) {
-            await controller.setSelectedCity(picked);
-          }
-        },
+        onOpenSettings: () => _openAreaPicker(state, controller),
         onContinueWithoutPermission: controller.continueWithManualArea,
       );
     }
@@ -275,27 +304,23 @@ class Sek01NearbyPage extends ConsumerWidget {
             if (state.filter.hasActiveFilters) {
               await controller.resetFilter();
             } else {
-              final picked = await showManualAreaPickerSheet(
-                context: context,
-                cities: state.availableCities,
-                selectedCity: state.selectedCity,
-              );
-              if (picked != null && picked.isNotEmpty) {
-                await controller.setSelectedCity(picked);
-              }
+              await _openAreaPicker(state, controller);
             }
           },
         );
       }
 
       return RefreshIndicator(
-        onRefresh: controller.loadInitial,
+        onRefresh: () async {
+          _localFollowOverride.clear();
+          await controller.loadInitial();
+        },
         child: ListView(
           controller: scrollController,
           scrollCacheExtent: const ScrollCacheExtent.viewport(1.0),
           padding: const EdgeInsets.fromLTRB(
             AppSpacing.screenMargin,
-            AppSpacing.sm,
+            AppSpacing.md,
             AppSpacing.screenMargin,
             AppSpacing.xxl,
           ),
@@ -307,10 +332,32 @@ class Sek01NearbyPage extends ConsumerWidget {
             ),
             const SizedBox(height: AppSpacing.md),
             for (final person in state.people.take(8))
-              PersonNearbyCard(
-                person: person,
-                onTap: () =>
-                    context.push('${AppPages.sek04.routePath}?id=${person.id}'),
+              Builder(
+                builder: (ctx) {
+                  final isFollowing =
+                      _localFollowOverride[person.id] ?? person.isFollowing;
+                  final isBusy = _busyFollowUserIds.contains(person.id);
+                  final actionLabel = isFollowing
+                      ? AppStrings.termMengikuti
+                      : (person.isFollowedBy
+                            ? AppStrings.termFollback
+                            : AppStrings.termIkuti);
+                  return PersonNearbyCard(
+                    person: person,
+                    onTap: () => context.push(
+                      '${AppPages.sek04.routePath}?id=${person.id}',
+                    ),
+                    trailing: AppButton(
+                      label: actionLabel,
+                      variant: isFollowing
+                          ? AppButtonVariant.tonal
+                          : AppButtonVariant.primary,
+                      compact: true,
+                      isDisabled: isBusy,
+                      onPressed: () => _toggleQuickFollow(person),
+                    ),
+                  );
+                },
               ),
           ],
         ),
@@ -333,7 +380,7 @@ class Sek01NearbyPage extends ConsumerWidget {
         scrollCacheExtent: const ScrollCacheExtent.viewport(1.0),
         padding: const EdgeInsets.fromLTRB(
           AppSpacing.screenMargin,
-          AppSpacing.sm,
+          AppSpacing.md,
           AppSpacing.screenMargin,
           AppSpacing.xxl,
         ),
@@ -343,7 +390,8 @@ class Sek01NearbyPage extends ConsumerWidget {
               Expanded(
                 child: AppButton(
                   label: AppStrings.sek01ViewAllCommunities,
-                  variant: AppButtonVariant.secondary,
+                  variant: AppButtonVariant.tonal,
+                  compact: true,
                   leadingIcon: Icons.explore_outlined,
                   onPressed: () => context.push(AppPages.sek05.routePath),
                 ),
@@ -352,13 +400,14 @@ class Sek01NearbyPage extends ConsumerWidget {
               Expanded(
                 child: AppButton(
                   label: AppStrings.sek01CreateCommunityBtn,
+                  compact: true,
                   leadingIcon: Icons.add_rounded,
                   onPressed: () => context.push(AppPages.sek07.routePath),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.md),
           for (final comm in state.communities)
             CommunityCard(
               community: comm,
@@ -366,6 +415,68 @@ class Sek01NearbyPage extends ConsumerWidget {
                   context.push('${AppPages.sek06.routePath}?id=${comm.id}'),
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _SegmentPill extends StatelessWidget {
+  const _SegmentPill({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final typo = context.typo;
+
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: label,
+      child: InkWell(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+        },
+        borderRadius: AppRadius.pillRadius,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          constraints: const BoxConstraints(minHeight: 38),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md + 2,
+            vertical: 7,
+          ),
+          decoration: BoxDecoration(
+            color: selected ? colors.text : colors.chipInactive,
+            borderRadius: AppRadius.pillRadius,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Icon(
+                icon,
+                size: 16,
+                color: selected ? colors.surface : colors.text,
+              ),
+              const SizedBox(width: AppSpacing.xs + 2),
+              Text(
+                label,
+                style: typo.captionStrong.copyWith(
+                  color: selected ? colors.surface : colors.text,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

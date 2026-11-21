@@ -7,11 +7,10 @@ import 'package:horas/core/widgets/widgets.dart';
 import 'package:horas/domain/models/models.dart';
 import 'package:material_ui/material_ui.dart';
 
-/// Kartu profil orang di Sekitar dan Pencarian (`SEK-R2`, `SEK-R6`, `AC-07`).
+/// Kartu profil orang di Sekitar dan Pencarian bergaya IG (`SEK-R2`, `SEK-R6`, `AC-07`).
 ///
-/// Hanya menampilkan foto, nama, marga, kota, rentang jarak (`Di kotamu` /
-/// `Di kecamatanmu`), badge partuturan (bila ada), label Semarga ringkas, dan
-/// jumlah komunitas sama. Tidak pernah memuat nomor HP, usia pasti, atau koordinat.
+/// Hanya menampilkan foto, nama, marga, badge partuturan (bila ada), atau label Semarga ringkas.
+/// Tidak pernah memuat nomor HP, usia pasti, jarak presisi (km), atau koordinat.
 class PersonNearbyCard extends StatelessWidget {
   const PersonNearbyCard({
     required this.person,
@@ -32,18 +31,19 @@ class PersonNearbyCard extends StatelessWidget {
     final showPartuturan = partuturan != null && !partuturan.modeNetral;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: AppSpacing.xs + 2),
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
       decoration: BoxDecoration(
         color: colors.surface,
-        borderRadius: AppRadius.buttonRadius,
-        border: Border.all(color: colors.border.withValues(alpha: 0.6)),
+        borderRadius: AppRadius.cardRadius,
+        border: Border.all(color: colors.border.withValues(alpha: 0.55)),
       ),
       child: Material(
         color: colors.surface,
-        borderRadius: AppRadius.buttonRadius,
+        borderRadius: AppRadius.cardRadius,
+        clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
-          borderRadius: AppRadius.buttonRadius,
+          borderRadius: AppRadius.cardRadius,
           child: Padding(
             padding: const EdgeInsets.symmetric(
               horizontal: AppSpacing.md,
@@ -54,7 +54,7 @@ class PersonNearbyCard extends StatelessWidget {
                 AppAvatar(
                   name: person.displayName,
                   seed: person.avatarSeed,
-                  size: AppSizes.avatarMd,
+                  size: 48,
                 ),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
@@ -68,7 +68,7 @@ class PersonNearbyCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: AppSpacing.xxs),
+                      const SizedBox(height: AppSpacing.xxs + 1),
                       if (showPartuturan)
                         PartuturanBadge(
                           result: partuturan,
@@ -130,78 +130,81 @@ class CommunityCard extends StatelessWidget {
       CommunityAccessType.closed => AppStrings.sek05AccessClosed,
     };
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: AppSpacing.md),
-      child: InkWell(
-        onTap: onTap,
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm + 2),
+      decoration: BoxDecoration(
+        color: colors.surface,
         borderRadius: AppRadius.cardRadius,
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              AppAvatar(
-                name: community.name,
-                seed: community.avatarSeed,
-                size: AppSizes.avatarLg,
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Row(
-                      children: <Widget>[
-                        Expanded(
-                          child: Text(
-                            community.name,
-                            style: typo.h3,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.xxs),
-                    Text(
-                      '${community.type.label} · ${community.city} · ${AppStrings.sek05MemberCount(community.memberCount)}',
-                      style: typo.caption,
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    Wrap(
-                      spacing: AppSpacing.xs,
-                      runSpacing: AppSpacing.xs,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: <Widget>[
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.sm,
-                            vertical: AppSpacing.xxs,
-                          ),
-                          decoration: BoxDecoration(
-                            color: colors.chipInactive,
-                            borderRadius: AppRadius.pillRadius,
-                            border: Border.all(color: colors.border),
-                          ),
-                          child: Text(accessLabel, style: typo.micro),
-                        ),
-                        // SEK-R9: Punguan marga berlencana Belum diverifikasi sampai SIS-06 disetujui
-                        if (community.type == CommunityType.punguanMarga ||
-                            community.isVerified)
-                          VerifiedBadge(
-                            isVerified: community.isVerified,
-                            showLabel: community.isVerified,
-                            showUnverifiedLabel:
-                                community.type == CommunityType.punguanMarga,
-                          ),
-                      ],
-                    ),
-                  ],
+        border: Border.all(color: colors.border.withValues(alpha: 0.55)),
+      ),
+      child: Material(
+        color: colors.surface,
+        borderRadius: AppRadius.cardRadius,
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: AppRadius.cardRadius,
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.md + 2),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                AppAvatar(
+                  name: community.name,
+                  seed: community.avatarSeed,
+                  size: 56,
                 ),
-              ),
-              const SizedBox(width: AppSpacing.xs),
-              Icon(Icons.chevron_right_rounded, color: colors.textMuted),
-            ],
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        community.name,
+                        style: typo.bodyStrong,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: AppSpacing.xxs),
+                      Text(
+                        '${community.type.label} · ${community.city} · ${AppStrings.sek05MemberCount(community.memberCount)}',
+                        style: typo.caption,
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      Wrap(
+                        spacing: AppSpacing.xs,
+                        runSpacing: AppSpacing.xs,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: <Widget>[
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.sm,
+                              vertical: AppSpacing.xxs,
+                            ),
+                            decoration: BoxDecoration(
+                              color: colors.chipInactive,
+                              borderRadius: AppRadius.pillRadius,
+                            ),
+                            child: Text(accessLabel, style: typo.micro),
+                          ),
+                          // SEK-R9: Punguan marga berlencana Belum diverifikasi sampai SIS-06 disetujui
+                          if (community.type == CommunityType.punguanMarga ||
+                              community.isVerified)
+                            VerifiedBadge(
+                              isVerified: community.isVerified,
+                              showLabel: community.isVerified,
+                              showUnverifiedLabel:
+                                  community.type == CommunityType.punguanMarga,
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.xs),
+                Icon(Icons.chevron_right_rounded, color: colors.textMuted),
+              ],
+            ),
           ),
         ),
       ),
@@ -274,6 +277,7 @@ class _AreaPickerSheetBodyState extends State<_AreaPickerSheetBody> {
           const SizedBox(height: AppSpacing.md),
           Expanded(
             child: ListView.separated(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               itemCount: filtered.length,
               separatorBuilder: (_, _) => const Divider(height: 1),
               itemBuilder: (context, index) {
@@ -286,7 +290,7 @@ class _AreaPickerSheetBodyState extends State<_AreaPickerSheetBody> {
                   title: Text(city.name, style: typo.body),
                   subtitle: Text(city.province, style: typo.caption),
                   trailing: isSelected
-                      ? Icon(Icons.check_circle_rounded, color: colors.primary)
+                      ? Icon(Icons.check_circle_rounded, color: colors.accent)
                       : null,
                   onTap: () => Navigator.of(context).pop(city.name),
                 );

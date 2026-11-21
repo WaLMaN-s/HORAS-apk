@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:horas/core/config/feature_flags.dart';
@@ -10,10 +11,11 @@ import 'package:horas/core/theme/app_theme.dart';
 import 'package:horas/core/theme/app_tokens.dart';
 import 'package:horas/core/widgets/widgets.dart';
 import 'package:horas/domain/models/models.dart';
+import 'package:horas/features/home/presentation/ber07_comments_page.dart';
 import 'package:horas/features/home/presentation/home_feed_controller.dart';
 import 'package:material_ui/material_ui.dart';
 
-/// BER-01 Feed Beranda (PRD 4, 5.1, 6.2, AC-15).
+/// BER-01 Feed Beranda bergaya Threads + Instagram (PRD 4, 5.1, 6.2, AC-15).
 ///
 /// Story dan video adalah Fase 2 (`FeatureFlags.stories == false`) sehingga
 /// baris story tidak ditampilkan dan tombol `+` langsung membuka Buat Postingan (`BER-04`).
@@ -26,42 +28,67 @@ class Ber01FeedPage extends ConsumerWidget {
     final colors = context.colors;
     final typo = context.typo;
 
-    showModalBottomSheet<void>(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(AppRadius.sheet),
-        ),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              ListTile(
-                leading: Icon(Icons.post_add, color: colors.primary),
-                title: Text('Postingan', style: typo.bodyStrong),
-                subtitle: const Text('Bagikan kabar atau pemikiran Anda'),
-                onTap: () {
-                  Navigator.of(ctx).pop();
-                  context.push(AppPages.ber04.routePath);
-                },
+    AppBottomSheet.show<void>(
+      context,
+      title: AppStrings.ber01ChooseCreateType,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: colors.primary.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
               ),
-              ListTile(
-                leading: Icon(Icons.history_toggle_off, color: colors.primary),
-                title: Text('Story (Cerita)', style: typo.bodyStrong),
-                subtitle: const Text(
-                  'Foto/video 15 detik yang tayang selama 24 jam',
-                ),
-                onTap: () {
-                  Navigator.of(ctx).pop();
-                  context.push(AppPages.ber03.routePath);
-                },
-              ),
-            ],
+              child: Icon(Icons.edit_note_rounded, color: colors.accent),
+            ),
+            title: Text(
+              AppStrings.ber01CreatePostOption,
+              style: typo.bodyStrong,
+            ),
+            subtitle: Text(AppStrings.ber01ComposerPrompt, style: typo.caption),
+            trailing: Icon(
+              Icons.chevron_right_rounded,
+              color: colors.textMuted,
+            ),
+            onTap: () {
+              Navigator.of(context).pop();
+              context.push(AppPages.ber04.routePath);
+            },
           ),
-        ),
+          const SizedBox(height: AppSpacing.xs),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: colors.ratingGold.withValues(alpha: 0.16),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.auto_stories_outlined,
+                color: colors.ratingGold,
+              ),
+            ),
+            title: Text(
+              AppStrings.ber01CreateStoryOption,
+              style: typo.bodyStrong,
+            ),
+            subtitle: Text(AppStrings.ber03DurationNotice, style: typo.caption),
+            trailing: Icon(
+              Icons.chevron_right_rounded,
+              color: colors.textMuted,
+            ),
+            onTap: () {
+              Navigator.of(context).pop();
+              context.push(AppPages.ber03.routePath);
+            },
+          ),
+        ],
       ),
     );
   }
@@ -106,6 +133,7 @@ class Ber01FeedPage extends ConsumerWidget {
             icon: Icons.add_box_outlined,
             semanticsLabel: AppStrings.semanticsCreatePost,
             onTap: () {
+              HapticFeedback.lightImpact();
               final flags = ref.read(featureFlagsProvider);
               if (flags.stories) {
                 _showCreateChoiceModal(context);
@@ -239,6 +267,7 @@ class Ber01FeedPage extends ConsumerWidget {
       onRefresh: controller.refresh,
       child: ListView.separated(
         controller: scrollController,
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         physics: const AlwaysScrollableScrollPhysics(),
         padding: EdgeInsets.zero,
         scrollCacheExtent: const ScrollCacheExtent.viewport(1.0),
@@ -246,7 +275,7 @@ class Ber01FeedPage extends ConsumerWidget {
         separatorBuilder: (context, index) => Divider(
           height: AppSizes.strokeThin,
           thickness: AppSizes.strokeThin,
-          color: colors.border.withValues(alpha: 0.55),
+          color: colors.border.withValues(alpha: 0.45),
         ),
         itemBuilder: (context, index) {
           if (index == 0) {
@@ -273,7 +302,7 @@ class Ber01FeedPage extends ConsumerWidget {
               ),
               child: AppButton(
                 label: AppStrings.ber01LoadMoreBtn,
-                variant: AppButtonVariant.secondary,
+                variant: AppButtonVariant.tonal,
                 isLoading: feedState.isLoadingMore,
                 isExpanded: true,
                 onPressed: controller.loadMore,
@@ -305,7 +334,7 @@ class Ber01FeedPage extends ConsumerWidget {
               onLikesCountTap: () =>
                   context.push('${AppPages.ber08.routePath}?id=${post.id}'),
               onCommentTap: () =>
-                  context.push('${AppPages.ber07.routePath}?id=${post.id}'),
+                  Ber07CommentsPage.showSheet(context, postId: post.id),
               onSaveTap: () => controller.toggleSave(post.id),
               onReportTap: () => context.push('/report'),
               onMuteTap: () => _confirmMute(context, controller, post),
@@ -473,7 +502,7 @@ class _FeedTopBarIcon extends StatelessWidget {
         icon: Stack(
           clipBehavior: Clip.none,
           children: <Widget>[
-            Icon(icon, size: AppSizes.iconMd, color: colors.text),
+            Icon(icon, size: AppSizes.iconMd + 1, color: colors.text),
             if (badgeCount > 0)
               Positioned(
                 right: -6,
@@ -558,19 +587,28 @@ class _ThreadsQuickComposer extends StatelessWidget {
                 child: Semantics(
                   button: true,
                   label: AppStrings.ber01ComposerSemantics,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      if (profile != null)
-                        Text(displayName, style: typo.bodyStrong),
-                      Text(
-                        AppStrings.ber01ComposerPrompt,
-                        style: typo.body.copyWith(color: colors.textMuted),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md,
+                      vertical: AppSpacing.sm + 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: colors.chipInactive.withValues(alpha: 0.65),
+                      borderRadius: AppRadius.pillRadius,
+                      border: Border.all(
+                        color: colors.border.withValues(alpha: 0.5),
                       ),
-                    ],
+                    ),
+                    child: Text(
+                      AppStrings.ber01ComposerPrompt,
+                      style: typo.body.copyWith(color: colors.textMuted),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ),
               ),
+              const SizedBox(width: AppSpacing.xs),
               Semantics(
                 button: true,
                 label: AppStrings.ber01ComposerPhotoTooltip,
@@ -606,6 +644,7 @@ class _StoriesTray extends ConsumerStatefulWidget {
 class _StoriesTrayState extends ConsumerState<_StoriesTray>
     with AutomaticKeepAliveClientMixin {
   List<Story> _stories = const <Story>[];
+  final Set<String> _viewedLocally = <String>{};
 
   @override
   bool get wantKeepAlive => true;
@@ -637,12 +676,13 @@ class _StoriesTrayState extends ConsumerState<_StoriesTray>
     final typo = context.typo;
 
     return Container(
-      height: 104,
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+      height: 112,
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm + 2),
       decoration: BoxDecoration(
+        color: colors.surface,
         border: Border(
           bottom: BorderSide(
-            color: colors.border.withValues(alpha: 0.35),
+            color: colors.border.withValues(alpha: 0.4),
             width: AppSizes.strokeThin,
           ),
         ),
@@ -657,21 +697,22 @@ class _StoriesTrayState extends ConsumerState<_StoriesTray>
         itemBuilder: (context, idx) {
           if (idx == 0) {
             return Padding(
-              padding: const EdgeInsets.only(right: AppSpacing.md),
+              padding: const EdgeInsets.only(right: AppSpacing.md + 2),
               child: InkWell(
                 onTap: () async {
+                  HapticFeedback.lightImpact().ignore();
                   await context.push(AppPages.ber03.routePath);
                   await _loadStories();
                 },
-                borderRadius: BorderRadius.circular(AppRadius.pill),
+                borderRadius: AppRadius.cardRadius,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
                     Stack(
                       children: <Widget>[
                         Container(
-                          width: 56,
-                          height: 56,
+                          width: 64,
+                          height: 64,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             border: Border.all(
@@ -689,31 +730,31 @@ class _StoriesTrayState extends ConsumerState<_StoriesTray>
                               ? AppAvatar(
                                   name: myProfile.displayName,
                                   seed: myProfile.avatarSeed,
-                                  size: 52,
+                                  size: 58,
                                 )
                               : Icon(
-                                  Icons.person_outline,
+                                  Icons.person_outline_rounded,
                                   color: colors.textMuted,
-                                  size: AppSizes.iconMd,
+                                  size: AppSizes.iconMd + 4,
                                 ),
                         ),
                         Positioned(
                           right: 0,
                           bottom: 0,
                           child: Container(
-                            width: 20,
-                            height: 20,
+                            width: 22,
+                            height: 22,
                             decoration: BoxDecoration(
-                              color: colors.primary,
+                              color: colors.buttonPrimary,
                               shape: BoxShape.circle,
                               border: Border.all(
                                 color: colors.surface,
-                                width: 2,
+                                width: 2.2,
                               ),
                             ),
                             alignment: Alignment.center,
                             child: Icon(
-                              Icons.add,
+                              Icons.add_rounded,
                               color: colors.onPrimary,
                               size: 14,
                             ),
@@ -721,12 +762,16 @@ class _StoriesTrayState extends ConsumerState<_StoriesTray>
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Cerita Anda',
-                      style: typo.micro,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    const SizedBox(height: 5),
+                    SizedBox(
+                      width: 68,
+                      child: Text(
+                        AppStrings.ber01YourStory,
+                        style: typo.micro.copyWith(color: colors.textMuted),
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ],
                 ),
@@ -735,51 +780,73 @@ class _StoriesTrayState extends ConsumerState<_StoriesTray>
           }
 
           final story = _stories[idx - 1];
+          final isSeen =
+              story.isViewedByMe || _viewedLocally.contains(story.id);
+
           return Padding(
-            padding: const EdgeInsets.only(right: AppSpacing.md),
+            padding: const EdgeInsets.only(right: AppSpacing.md + 2),
             child: InkWell(
-              onTap: () =>
-                  context.push('${AppPages.ber02.routePath}?id=${story.id}'),
-              borderRadius: BorderRadius.circular(AppRadius.pill),
+              onTap: () async {
+                HapticFeedback.lightImpact().ignore();
+                await context.push(
+                  '${AppPages.ber02.routePath}?id=${story.id}',
+                );
+                if (mounted) {
+                  setState(() => _viewedLocally.add(story.id));
+                }
+              },
+              borderRadius: AppRadius.cardRadius,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
                   Container(
-                    width: 56,
-                    height: 56,
-                    padding: const EdgeInsets.all(2.5),
+                    width: 64,
+                    height: 64,
+                    padding: const EdgeInsets.all(2.6),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        colors: <Color>[colors.primary, colors.accent],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
+                      gradient: isSeen
+                          ? null
+                          : LinearGradient(
+                              colors: <Color>[
+                                colors.primary,
+                                colors.accent,
+                                colors.ratingGold,
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                      border: isSeen
+                          ? Border.all(color: colors.border, width: 1.6)
+                          : null,
                     ),
                     child: Container(
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: colors.surface,
                       ),
-                      padding: const EdgeInsets.all(2),
+                      padding: const EdgeInsets.all(2.2),
                       child: ClipOval(
                         child: PlaceholderImage(
                           seed:
                               PlaceholderImage.isRealImageSeed(story.mediaSeed)
                               ? story.mediaSeed
                               : story.author.avatarSeed,
-                          width: 48,
-                          height: 48,
+                          width: 54,
+                          height: 54,
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 5),
                   SizedBox(
-                    width: 60,
+                    width: 68,
                     child: Text(
                       story.author.displayName.split(' ').first,
-                      style: typo.micro,
+                      style: typo.micro.copyWith(
+                        color: isSeen ? colors.textMuted : colors.text,
+                        fontWeight: isSeen ? FontWeight.w500 : FontWeight.w600,
+                      ),
                       textAlign: TextAlign.center,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,

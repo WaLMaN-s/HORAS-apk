@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:horas/core/config/feature_flags.dart';
@@ -13,17 +14,36 @@ import 'package:horas/domain/models/models.dart';
 import 'package:horas/features/messages/presentation/messages_controller.dart';
 import 'package:material_ui/material_ui.dart';
 
-/// PSN-01 Daftar Pesan ala Instagram DM (`PSN-R1`..`PSN-R6`, `PSN-R9`).
+enum _ConversationsFilter { all, unread, groups }
+
+/// PSN-01 Daftar Pesan ala Instagram DM dengan pencarian instan & filter cepat (`PSN-R1`..`PSN-R6`, `PSN-R9`).
 ///
 /// Grup buatan pengguna adalah Fase 2 (`FeatureFlags.userGroups == false`) dan
 /// disembunyikan dari layar ini pada MVP.
-class Psn01ConversationsPage extends ConsumerWidget {
+class Psn01ConversationsPage extends ConsumerStatefulWidget {
   const Psn01ConversationsPage({super.key, this.tabIndex});
 
   final int? tabIndex;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<Psn01ConversationsPage> createState() =>
+      _Psn01ConversationsPageState();
+}
+
+class _Psn01ConversationsPageState
+    extends ConsumerState<Psn01ConversationsPage> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  _ConversationsFilter _filter = _ConversationsFilter.all;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(conversationsListProvider);
     final controller = ref.read(conversationsListProvider.notifier);
     final flags = ref.watch(featureFlagsProvider);
@@ -33,13 +53,30 @@ class Psn01ConversationsPage extends ConsumerWidget {
     final unreadCounts =
         ref.watch(unreadCountsProvider).value ??
         ref.read(navigationBadgeRepositoryProvider).currentUnreadCounts();
-    final scrollController = tabIndex != null
+    final scrollController = widget.tabIndex != null
         ? ref
               .read(shellNavigationProvider.notifier)
-              .scrollControllerForTab(tabIndex!)
+              .scrollControllerForTab(widget.tabIndex!)
         : null;
     final colors = context.colors;
     final typo = context.typo;
+
+    final query = _searchQuery.trim().toLowerCase();
+    final filteredConversations = state.conversations
+        .where((conv) {
+          if (_filter == _ConversationsFilter.unread && conv.unreadCount <= 0) {
+            return false;
+          }
+          if (_filter == _ConversationsFilter.groups &&
+              conv.type == ConversationType.direct) {
+            return false;
+          }
+          if (query.isEmpty) return true;
+          final lastText = conv.lastMessage?.text.toLowerCase() ?? '';
+          return conv.title.toLowerCase().contains(query) ||
+              lastText.contains(query);
+        })
+        .toList(growable: false);
 
     Widget body;
     if (state.isLoading) {
@@ -59,24 +96,119 @@ class Psn01ConversationsPage extends ConsumerWidget {
         onRefresh: controller.loadInitial,
         child: ListView(
           controller: scrollController,
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           scrollCacheExtent: const ScrollCacheExtent.viewport(1.0),
           padding: const EdgeInsets.only(bottom: AppSpacing.lg),
           children: <Widget>[
-            // Baris header Pesan | Permintaan (gaya DM Instagram)
+            // Pencarian instan gaya Instagram DM
             Padding(
               padding: const EdgeInsets.fromLTRB(
-                AppSpacing.lg,
+                AppSpacing.screenMargin,
                 AppSpacing.xs,
-                AppSpacing.lg,
-                AppSpacing.xs,
+                AppSpacing.screenMargin,
+                AppSpacing.sm,
+              ),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+                decoration: BoxDecoration(
+                  color: colors.chipInactive,
+                  borderRadius: AppRadius.pillRadius,
+                ),
+                child: Row(
+                  children: <Widget>[
+                    Icon(
+                      Icons.search_rounded,
+                      size: AppSizes.iconMd - 2,
+                      color: colors.textMuted,
+                    ),
+                    const SizedBox(width: AppSpacing.xs),
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        style: typo.body,
+                        onChanged: (v) => setState(() => _searchQuery = v),
+                        decoration: InputDecoration(
+                          isDense: true,
+                          hintText: AppStrings.psn01SearchHint,
+                          hintStyle: typo.body.copyWith(
+                            color: colors.textMuted,
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: AppSpacing.sm + 2,
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (_searchQuery.isNotEmpty)
+                      IconButton(
+                        constraints: const BoxConstraints(
+                          minWidth: AppSizes.minTouchTarget,
+                          minHeight: AppSizes.minTouchTarget,
+                        ),
+                        tooltip: AppStrings.semanticsClearInput,
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _searchQuery = '');
+                        },
+                        icon: Icon(
+                          Icons.close_rounded,
+                          size: AppSizes.iconSm,
+                          color: colors.textMuted,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Baris Filter Cepat + Permintaan Pesan ala Instagram DM
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.screenMargin,
+                0,
+                AppSpacing.screenMargin,
+                AppSpacing.sm,
               ),
               child: Row(
                 children: <Widget>[
-                  Text(AppStrings.psn01Title, style: typo.bodyStrong),
-                  const Spacer(),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: <Widget>[
+                          _FilterPill(
+                            label: AppStrings.psn01FilterAll,
+                            selected: _filter == _ConversationsFilter.all,
+                            onTap: () => setState(
+                              () => _filter = _ConversationsFilter.all,
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.xs),
+                          _FilterPill(
+                            label: AppStrings.psn01FilterUnread,
+                            selected: _filter == _ConversationsFilter.unread,
+                            onTap: () => setState(
+                              () => _filter = _ConversationsFilter.unread,
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.xs),
+                          _FilterPill(
+                            label: AppStrings.psn01FilterGroups,
+                            selected: _filter == _ConversationsFilter.groups,
+                            onTap: () => setState(
+                              () => _filter = _ConversationsFilter.groups,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.xs),
                   InkWell(
                     borderRadius: AppRadius.pillRadius,
                     onTap: () async {
+                      HapticFeedback.lightImpact().ignore();
                       await context.push(AppPages.psn02.routePath);
                       await controller.loadInitial();
                     },
@@ -86,7 +218,7 @@ class Psn01ConversationsPage extends ConsumerWidget {
                       ),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.sm,
+                          horizontal: AppSpacing.xs,
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -95,7 +227,7 @@ class Psn01ConversationsPage extends ConsumerWidget {
                               AppStrings.psn01RequestsBannerTitle,
                               style: typo.captionStrong.copyWith(
                                 color: state.pendingRequestsCount > 0
-                                    ? colors.primary
+                                    ? colors.accent
                                     : colors.textMuted,
                               ),
                             ),
@@ -103,11 +235,11 @@ class Psn01ConversationsPage extends ConsumerWidget {
                               const SizedBox(width: AppSpacing.xs),
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: AppSpacing.sm,
+                                  horizontal: 7,
                                   vertical: 2,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: colors.primary,
+                                  color: colors.buttonPrimary,
                                   borderRadius: AppRadius.pillRadius,
                                 ),
                                 child: Text(
@@ -131,179 +263,228 @@ class Psn01ConversationsPage extends ConsumerWidget {
             // Fase 2 guard: grup buatan pengguna disembunyikan saat flag off.
             if (flags.userGroups) const SizedBox.shrink(),
 
-            ...state.conversations.map((conv) {
-              final isMuted =
-                  conv.mutedUntil != null && conv.mutedUntil!.isAfter(now);
-              final isUnread = conv.unreadCount > 0;
-              final lastMsg = conv.lastMessage;
-              final preview = lastMsg == null
-                  ? ''
-                  : lastMsg.isDeletedForEveryone
-                  ? AppStrings.psn01DeletedPreview
-                  : lastMsg.text.isNotEmpty
-                  ? lastMsg.text
-                  : AppStrings.psn01PhotoPreview;
-              final shortTime = ChatFormatters.formatShortTime(
-                conv.updatedAt,
-                now,
-              );
-
-              final targetRoute = conv.type == ConversationType.direct
-                  ? '${AppPages.psn03.routePath}?conversationId=${conv.id}'
-                  : '${AppPages.psn04.routePath}?conversationId=${conv.id}';
-              final otherParticipant = conv.type == ConversationType.direct
-                  ? (conv.participants
-                            .where((p) => p.id != currentUid)
-                            .firstOrNull ??
-                        conv.participants.firstOrNull)
-                  : null;
-              final avatarName =
-                  (otherParticipant != null &&
-                      otherParticipant.displayName.isNotEmpty)
-                  ? otherParticipant.displayName
-                  : conv.title;
-              final avatarSeed =
-                  (otherParticipant != null &&
-                      otherParticipant.avatarSeed.isNotEmpty)
-                  ? otherParticipant.avatarSeed
-                  : conv.id;
-
-              return InkWell(
-                onTap: () async {
-                  await context.push(targetRoute);
-                  await controller.loadInitial();
-                },
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.lg,
-                    vertical: AppSpacing.sm,
+            if (filteredConversations.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.screenMargin,
+                  vertical: AppSpacing.xxl,
+                ),
+                child: Center(
+                  child: Text(
+                    AppStrings.psn01EmptyFilterMessage,
+                    style: typo.caption,
+                    textAlign: TextAlign.center,
                   ),
-                  child: Row(
-                    children: <Widget>[
-                      conv.type == ConversationType.direct
-                          ? InkWell(
-                              borderRadius: AppRadius.pillRadius,
-                              onTap: otherParticipant != null
-                                  ? () => context.push(
-                                      '${AppPages.sek04.routePath}?userId=${otherParticipant.id}',
-                                    )
-                                  : null,
-                              child: AppAvatar(
-                                name: avatarName,
-                                seed: avatarSeed,
-                                size: AppSizes.avatarLg,
-                              ),
-                            )
-                          : Container(
-                              width: AppSizes.avatarLg,
-                              height: AppSizes.avatarLg,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: colors.chipInactive,
-                              ),
-                              alignment: Alignment.center,
-                              child: Icon(
-                                conv.type == ConversationType.sessionGroup
-                                    ? Icons.sports_tennis_outlined
-                                    : Icons.groups_outlined,
-                                color: colors.primary,
-                              ),
-                            ),
-                      const SizedBox(width: AppSpacing.md),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: <Widget>[
-                            Row(
-                              children: <Widget>[
-                                Expanded(
-                                  child: Text(
-                                    conv.title,
-                                    style: isUnread
-                                        ? typo.bodyStrong
-                                        : typo.bodyStrong.copyWith(
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
+                ),
+              )
+            else
+              ...filteredConversations.map((conv) {
+                final isMuted =
+                    conv.mutedUntil != null && conv.mutedUntil!.isAfter(now);
+                final isUnread = conv.unreadCount > 0;
+                final lastMsg = conv.lastMessage;
+                final preview = lastMsg == null
+                    ? ''
+                    : lastMsg.isDeletedForEveryone
+                    ? AppStrings.psn01DeletedPreview
+                    : lastMsg.text.isNotEmpty
+                    ? lastMsg.text
+                    : AppStrings.psn01PhotoPreview;
+                final shortTime = ChatFormatters.formatShortTime(
+                  conv.updatedAt,
+                  now,
+                );
+
+                final targetRoute = conv.type == ConversationType.direct
+                    ? '${AppPages.psn03.routePath}?conversationId=${conv.id}'
+                    : '${AppPages.psn04.routePath}?conversationId=${conv.id}';
+                final otherParticipant = conv.type == ConversationType.direct
+                    ? (conv.participants
+                              .where((p) => p.id != currentUid)
+                              .firstOrNull ??
+                          conv.participants.firstOrNull)
+                    : null;
+                final avatarName =
+                    (otherParticipant != null &&
+                        otherParticipant.displayName.isNotEmpty)
+                    ? otherParticipant.displayName
+                    : conv.title;
+                final avatarSeed =
+                    (otherParticipant != null &&
+                        otherParticipant.avatarSeed.isNotEmpty)
+                    ? otherParticipant.avatarSeed
+                    : conv.id;
+
+                return InkWell(
+                  onTap: () async {
+                    await context.push(targetRoute);
+                    await controller.loadInitial();
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.screenMargin,
+                      vertical: AppSpacing.sm + 2,
+                    ),
+                    child: Row(
+                      children: <Widget>[
+                        conv.type == ConversationType.direct
+                            ? InkWell(
+                                borderRadius: AppRadius.pillRadius,
+                                onTap: otherParticipant != null
+                                    ? () => context.push(
+                                        '${AppPages.sek04.routePath}?id=${otherParticipant.id}',
+                                      )
+                                    : null,
+                                child: AppAvatar(
+                                  name: avatarName,
+                                  seed: avatarSeed,
+                                  size: 56,
                                 ),
-                                if (isMuted)
-                                  Padding(
-                                    padding: const EdgeInsets.only(
-                                      left: AppSpacing.xs,
-                                    ),
-                                    child: Tooltip(
-                                      message: AppStrings.psn01MutedTooltip,
-                                      child: Icon(
-                                        Icons.volume_off_rounded,
-                                        size: 14,
-                                        color: colors.textMuted,
-                                      ),
-                                    ),
-                                  ),
-                                if (conv.isReadOnly)
-                                  Padding(
-                                    padding: const EdgeInsets.only(
-                                      left: AppSpacing.xs,
-                                    ),
+                              )
+                            : Container(
+                                width: 56,
+                                height: 56,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: colors.primary.withValues(alpha: 0.12),
+                                ),
+                                alignment: Alignment.center,
+                                child: Icon(
+                                  conv.type == ConversationType.sessionGroup
+                                      ? Icons.sports_tennis_outlined
+                                      : Icons.groups_outlined,
+                                  color: colors.accent,
+                                ),
+                              ),
+                        const SizedBox(width: AppSpacing.md),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              Row(
+                                children: <Widget>[
+                                  Expanded(
                                     child: Text(
-                                      AppStrings.psn01ReadOnlyBadge,
-                                      style: typo.micro.copyWith(
-                                        color: colors.textMuted,
-                                      ),
+                                      conv.title,
+                                      style: isUnread
+                                          ? typo.bodyStrong
+                                          : typo.bodyStrong.copyWith(
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
-                              ],
-                            ),
-                            const SizedBox(height: 2),
-                            Row(
-                              children: <Widget>[
-                                Expanded(
-                                  child: Text(
-                                    preview.isNotEmpty
-                                        ? '$preview · $shortTime'
-                                        : shortTime,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: typo.caption.copyWith(
+                                  if (isMuted)
+                                    Padding(
+                                      padding: const EdgeInsets.only(
+                                        left: AppSpacing.xs,
+                                      ),
+                                      child: Tooltip(
+                                        message: AppStrings.psn01MutedTooltip,
+                                        child: Icon(
+                                          Icons.volume_off_rounded,
+                                          size: 14,
+                                          color: colors.textMuted,
+                                        ),
+                                      ),
+                                    ),
+                                  const SizedBox(width: AppSpacing.xs),
+                                  Text(
+                                    shortTime,
+                                    style: typo.micro.copyWith(
                                       color: isUnread
-                                          ? colors.text
+                                          ? colors.accent
                                           : colors.textMuted,
                                       fontWeight: isUnread
-                                          ? FontWeight.w600
-                                          : FontWeight.w400,
+                                          ? FontWeight.w700
+                                          : FontWeight.w500,
                                     ),
                                   ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (isUnread) ...<Widget>[
-                        const SizedBox(width: AppSpacing.sm),
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: colors.primary,
+                                ],
+                              ),
+                              const SizedBox(height: 3),
+                              Row(
+                                children: <Widget>[
+                                  Expanded(
+                                    child: Text(
+                                      preview.isNotEmpty
+                                          ? preview
+                                          : AppStrings.psn01PhotoPreview,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: typo.caption.copyWith(
+                                        color: isUnread
+                                            ? colors.text
+                                            : colors.textMuted,
+                                        fontWeight: isUnread
+                                            ? FontWeight.w600
+                                            : FontWeight.w400,
+                                      ),
+                                    ),
+                                  ),
+                                  if (conv.isReadOnly)
+                                    Padding(
+                                      padding: const EdgeInsets.only(
+                                        left: AppSpacing.xs,
+                                      ),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                          vertical: 1,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: colors.chipInactive,
+                                          borderRadius: AppRadius.pillRadius,
+                                        ),
+                                        child: Text(
+                                          AppStrings.psn01ReadOnlyBadge,
+                                          style: typo.micro,
+                                        ),
+                                      ),
+                                    ),
+                                  if (isUnread) ...<Widget>[
+                                    const SizedBox(width: AppSpacing.sm),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 7,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: colors.buttonPrimary,
+                                        borderRadius: AppRadius.pillRadius,
+                                      ),
+                                      child: Text(
+                                        conv.unreadCount > 99
+                                            ? '99+'
+                                            : '${conv.unreadCount}',
+                                        style: typo.micro.copyWith(
+                                          color: colors.onPrimary,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ],
                           ),
                         ),
                       ],
-                    ],
+                    ),
                   ),
-                ),
-              );
-            }),
+                );
+              }),
           ],
         ),
       );
     }
 
     return Scaffold(
+      backgroundColor: colors.surface,
       appBar: AppBar(
+        backgroundColor: colors.surface,
         title: const Text(AppStrings.psn01Title),
         actions: <Widget>[
           if (flags.userGroups)
@@ -335,7 +516,6 @@ class Psn01ConversationsPage extends ConsumerWidget {
     WidgetRef ref,
   ) async {
     final titleController = TextEditingController();
-    final colors = context.colors;
     final typo = context.typo;
 
     final created = await showDialog<bool>(
@@ -348,36 +528,23 @@ class Psn01ConversationsPage extends ConsumerWidget {
           children: <Widget>[
             Text(AppStrings.psn01GroupNameLabel, style: typo.captionStrong),
             const SizedBox(height: AppSpacing.xs),
-            TextField(
+            AppTextField(
               controller: titleController,
-              decoration: InputDecoration(
-                hintText: 'Contoh: Arisan Marga Simanjuntak',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.button),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.md,
-                  vertical: AppSpacing.sm,
-                ),
-              ),
+              hintText: 'Contoh: Arisan Marga Simanjuntak',
             ),
           ],
         ),
         actions: <Widget>[
-          TextButton(
+          AppButton(
+            label: AppStrings.actionCancel,
+            variant: AppButtonVariant.text,
+            compact: true,
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(AppStrings.actionCancel, style: typo.body),
           ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: colors.primary,
-              foregroundColor: colors.onPrimary,
-            ),
+          AppButton(
+            label: AppStrings.psn01CreateGroupSubmit,
+            compact: true,
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(
-              AppStrings.psn01CreateGroupSubmit,
-              style: typo.bodyStrong,
-            ),
           ),
         ],
       ),
@@ -385,6 +552,7 @@ class Psn01ConversationsPage extends ConsumerWidget {
 
     if (created != true || !context.mounted) return;
     final title = titleController.text.trim();
+    titleController.dispose();
     if (title.isEmpty) return;
 
     final chatRepo = ref.read(chatRepositoryProvider);
@@ -405,5 +573,56 @@ class Psn01ConversationsPage extends ConsumerWidget {
         variant: AppToastVariant.error,
       );
     }
+  }
+}
+
+class _FilterPill extends StatelessWidget {
+  const _FilterPill({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final typo = context.typo;
+
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: label,
+      child: InkWell(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+        },
+        borderRadius: AppRadius.pillRadius,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          constraints: const BoxConstraints(minHeight: 34),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: 6,
+          ),
+          decoration: BoxDecoration(
+            color: selected ? colors.text : colors.chipInactive,
+            borderRadius: AppRadius.pillRadius,
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: typo.micro.copyWith(
+              color: selected ? colors.surface : colors.text,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

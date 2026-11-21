@@ -361,5 +361,52 @@ void main() {
       await tester.pump();
       expect(actionCount, 4);
     });
+
+    testWidgets(
+      'AppButton tonal/compact & PhotoLightboxPage merender dan menutup dengan benar',
+      (tester) async {
+        var tonalTapped = 0;
+
+        await pumpHorasWidget(
+          tester,
+          Builder(
+            builder: (context) => Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                AppButton(
+                  label: AppStrings.akn02Title,
+                  variant: AppButtonVariant.tonal,
+                  compact: true,
+                  onPressed: () => tonalTapped++,
+                ),
+                AppButton(
+                  label: 'Buka Lightbox',
+                  onPressed: () {
+                    PhotoLightboxPage.show(
+                      context,
+                      seeds: const <String>['toba-1', 'toba-2'],
+                      title: 'Danau Toba',
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+
+        await tester.tap(find.text(AppStrings.akn02Title));
+        await tester.pump();
+        expect(tonalTapped, 1);
+
+        await tester.tap(find.text('Buka Lightbox'));
+        await tester.pumpAndSettle();
+        expect(find.byType(PhotoLightboxPage), findsOneWidget);
+        expect(find.text('Danau Toba'), findsOneWidget);
+
+        await tester.tap(find.byTooltip(AppStrings.ber01PhotoViewerClose));
+        await tester.pumpAndSettle();
+        expect(find.byType(PhotoLightboxPage), findsNothing);
+      },
+    );
   });
 }

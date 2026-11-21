@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart' hide Block;
 import 'package:horas/core/config/repository_providers.dart';
@@ -49,11 +50,32 @@ class _Psn03PrivateChatPageState extends ConsumerState<Psn03PrivateChatPage> {
 
   Message? _replyTo;
   String? _pendingPhotoSeed;
+  bool _showScrollToBottom = false;
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScrollChanged);
     Future<void>.microtask(_initChat);
+  }
+
+  void _onScrollChanged() {
+    if (!_scrollController.hasClients) return;
+    final distFromBottom =
+        _scrollController.position.maxScrollExtent - _scrollController.offset;
+    final shouldShow = distFromBottom > 240;
+    if (shouldShow != _showScrollToBottom && mounted) {
+      setState(() => _showScrollToBottom = shouldShow);
+    }
+  }
+
+  void _scrollToBottom() {
+    if (!_scrollController.hasClients) return;
+    _scrollController.animateTo(
+      _scrollController.position.maxScrollExtent,
+      duration: const Duration(milliseconds: 240),
+      curve: Curves.easeOutCubic,
+    );
   }
 
   @override
@@ -61,6 +83,7 @@ class _Psn03PrivateChatPageState extends ConsumerState<Psn03PrivateChatPage> {
     _msgSub?.cancel();
     _convSub?.cancel();
     _textController.dispose();
+    _scrollController.removeListener(_onScrollChanged);
     _scrollController.dispose();
     super.dispose();
   }
@@ -259,6 +282,22 @@ class _Psn03PrivateChatPageState extends ConsumerState<Psn03PrivateChatPage> {
                 setState(() => _replyTo = msg);
               },
             ),
+          if (!msg.isDeletedForEveryone && msg.text.trim().isNotEmpty)
+            ListTile(
+              leading: const Icon(Icons.copy_rounded),
+              title: const Text(AppStrings.psn03CopyMessageAction),
+              onTap: () async {
+                Navigator.of(context).pop();
+                await Clipboard.setData(ClipboardData(text: msg.text));
+                if (mounted) {
+                  AppToast.show(
+                    context,
+                    message: AppStrings.psn03CopiedMessageToast,
+                    variant: AppToastVariant.info,
+                  );
+                }
+              },
+            ),
           if (!isMine && !msg.isDeletedForEveryone)
             ListTile(
               leading: const Icon(Icons.flag_outlined),
@@ -454,59 +493,111 @@ class _Psn03PrivateChatPageState extends ConsumerState<Psn03PrivateChatPage> {
               ),
             ),
           Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.md,
-                vertical: AppSpacing.sm,
-              ),
-              itemCount: _messages.length + _failedMessages.length,
-              itemBuilder: (context, idx) {
-                if (idx >= _messages.length) {
-                  final failed = _failedMessages[idx - _messages.length];
-                  return FailedMessageTile(
-                    item: failed,
-                    onRetry: () => _sendMessage(
-                      overrideText: failed.text,
-                      overridePhoto: failed.photoSeed,
-                      overrideReplyId: failed.replyToMessageId,
-                      retryTempId: failed.tempId,
+            child: Stack(
+              children: <Widget>[
+                ListView.builder(
+                  controller: _scrollController,
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.sm,
+                  ),
+                  itemCount: _messages.length + _failedMessages.length,
+                  itemBuilder: (context, idx) {
+                    if (idx >= _messages.length) {
+                      final failed = _failedMessages[idx - _messages.length];
+                      return FailedMessageTile(
+                        item: failed,
+                        onRetry: () => _sendMessage(
+                          overrideText: failed.text,
+                          overridePhoto: failed.photoSeed,
+                          overrideReplyId: failed.replyToMessageId,
+                          retryTempId: failed.tempId,
+                        ),
+                      );
+                    }
+                    final msg = _messages[idx];
+                    final prev = idx > 0 ? _messages[idx - 1] : null;
+                    final next = idx + 1 < _messages.length
+                        ? _messages[idx + 1]
+                        : null;
+                    final showDateHeader =
+                        prev == null ||
+                        ChatDateSeparator.isDifferentDay(
+                          prev.createdAt,
+                          msg.createdAt,
+                        );
+                    final isGroupedPrev =
+                        !showDateHeader &&
+                        prev.sender.id == msg.sender.id &&
+                        msg.createdAt.difference(prev.createdAt).inMinutes < 5;
+                    final isGroupedNext =
+                        next != null &&
+                        !ChatDateSeparator.isDifferentDay(
+                          msg.createdAt,
+                          next.createdAt,
+                        ) &&
+                        next.sender.id == msg.sender.id &&
+                        next.createdAt.difference(msg.createdAt).inMinutes < 5;
+                    final replied = msg.replyToMessageId == null
+                        ? null
+                        : _messages
+                              .where((m) => m.id == msg.replyToMessageId)
+                              .firstOrNull;
+                    final bubble = ChatMessageBubble(
+                      message: msg,
+                      isMine: msg.sender.id == uid,
+                      isGroup: false,
+                      now: now,
+                      showReadStatus: _sendReadReceipts,
+                      isGroupedWithPrevious: isGroupedPrev,
+                      isGroupedWithNext: isGroupedNext,
+                      repliedMessage: replied,
+                      onLongPress: () => _showMessageActions(msg),
+                      onSwipeReply: composerEnabled && !msg.isDeletedForEveryone
+                          ? () => setState(() => _replyTo = msg)
+                          : null,
+                      onPhotoTap: (seed) => context
+                          .push('${AppPages.psn06.routePath}?seed=$seed')
+                          .ignore(),
+                    );
+                    if (!showDateHeader) return bubble;
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: <Widget>[
+                        ChatDateSeparator(date: msg.createdAt, now: now),
+                        bubble,
+                      ],
+                    );
+                  },
+                ),
+                if (_showScrollToBottom)
+                  Positioned(
+                    right: AppSpacing.md,
+                    bottom: AppSpacing.md,
+                    child: Semantics(
+                      button: true,
+                      label: AppStrings.psn03ScrollToBottomTooltip,
+                      child: Material(
+                        color: colors.surface,
+                        elevation: 3,
+                        shape: CircleBorder(
+                          side: BorderSide(color: colors.border),
+                        ),
+                        child: IconButton(
+                          tooltip: AppStrings.psn03ScrollToBottomTooltip,
+                          onPressed: _scrollToBottom,
+                          icon: Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            color: colors.text,
+                          ),
+                        ),
+                      ),
                     ),
-                  );
-                }
-                final msg = _messages[idx];
-                final prev = idx > 0 ? _messages[idx - 1] : null;
-                final next = idx + 1 < _messages.length
-                    ? _messages[idx + 1]
-                    : null;
-                final isGroupedPrev =
-                    prev != null &&
-                    prev.sender.id == msg.sender.id &&
-                    msg.createdAt.difference(prev.createdAt).inMinutes < 5;
-                final isGroupedNext =
-                    next != null &&
-                    next.sender.id == msg.sender.id &&
-                    next.createdAt.difference(msg.createdAt).inMinutes < 5;
-                final replied = msg.replyToMessageId == null
-                    ? null
-                    : _messages
-                          .where((m) => m.id == msg.replyToMessageId)
-                          .firstOrNull;
-                return ChatMessageBubble(
-                  message: msg,
-                  isMine: msg.sender.id == uid,
-                  isGroup: false,
-                  now: now,
-                  showReadStatus: _sendReadReceipts,
-                  isGroupedWithPrevious: isGroupedPrev,
-                  isGroupedWithNext: isGroupedNext,
-                  repliedMessage: replied,
-                  onLongPress: () => _showMessageActions(msg),
-                  onPhotoTap: (seed) => context
-                      .push('${AppPages.psn06.routePath}?seed=$seed')
-                      .ignore(),
-                );
-              },
+                  ),
+              ],
             ),
           ),
           ChatComposerBar(

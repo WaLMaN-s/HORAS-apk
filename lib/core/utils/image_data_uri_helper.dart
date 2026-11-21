@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image_picker/image_picker.dart';
@@ -56,6 +57,24 @@ abstract final class ImageDataUriHelper {
     }
   }
 
+  /// Membaca rasio asli (`width / height`) dari bytes gambar (JPEG/PNG/WebP).
+  static Future<double> detectAspectRatio(Uint8List bytes) async {
+    try {
+      final codec = await ui.instantiateImageCodec(bytes);
+      final frame = await codec.getNextFrame();
+      final w = frame.image.width;
+      final h = frame.image.height;
+      frame.image.dispose();
+      codec.dispose();
+      if (w > 0 && h > 0) {
+        return (w / h).clamp(0.4, 2.5);
+      }
+    } on Object {
+      // Abaikan bila codec native tidak tersedia pada unit test headless.
+    }
+    return 1.0;
+  }
+
   /// Mengompres [rawBytes] (menghapus EXIF/GPS) dan mengubahnya menjadi [EncodedImageResult].
   static Future<EncodedImageResult> encodeBytes(
     Uint8List rawBytes, {
@@ -63,7 +82,7 @@ abstract final class ImageDataUriHelper {
     int maxDimension = 720,
     int quality = 78,
     int? maxRawBytes,
-    double aspectRatio = 1.0,
+    double? aspectRatio,
   }) async {
     Uint8List compressed = rawBytes;
     try {
@@ -84,13 +103,14 @@ abstract final class ImageDataUriHelper {
       throw FormatException('FILE_TOO_LARGE:${compressed.length}');
     }
 
+    final resolvedRatio = aspectRatio ?? await detectAspectRatio(compressed);
     final base64Str = base64Encode(compressed);
     return EncodedImageResult(
       name: name,
       originalBytesCount: rawBytes.length,
       compressedBytes: compressed,
       dataUri: 'data:image/jpeg;base64,$base64Str',
-      aspectRatio: aspectRatio,
+      aspectRatio: resolvedRatio,
     );
   }
 

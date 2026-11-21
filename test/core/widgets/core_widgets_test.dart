@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:horas/core/l10n/app_strings.dart';
 import 'package:horas/core/widgets/widgets.dart';
+import 'package:horas/domain/models/models.dart';
+import 'package:horas/domain/partuturan/partuturan_confidence.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../helpers/pump_app.dart';
@@ -406,6 +408,66 @@ void main() {
         await tester.tap(find.byTooltip(AppStrings.ber01PhotoViewerClose));
         await tester.pumpAndSettle();
         expect(find.byType(PhotoLightboxPage), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'PostCard & PhotoLightboxPage mempertahankan rasio 9:18 (0.5) tanpa dipaksa 1:1',
+      (tester) async {
+        const tinyDataUri =
+            'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+        final now = DateTime(2026, 11, 21, 14, 0);
+        final post = Post(
+          id: 'post-ratio-9x18',
+          author: const PersonSummary(
+            id: 'u-99',
+            displayName: 'Bona Sinaga',
+            gender: UserGender.male,
+            marga: 'Sinaga',
+            subEthnic: SubEthnic.toba,
+            city: 'Medan',
+            proximity: AreaProximity.diKotamu,
+            avatarSeed: 'u-99',
+          ),
+          text: 'Foto potret 9:18 dari Danau Toba',
+          media: const <PostMedia>[
+            PostMedia(
+              id: 'm-9x18',
+              postId: 'post-ratio-9x18',
+              seed: tinyDataUri,
+              orderIndex: 0,
+              aspectRatio: 0.5,
+            ),
+          ],
+          visibility: PostVisibility.publicPost,
+          createdAt: now,
+        );
+
+        await pumpHorasWidget(
+          tester,
+          SingleChildScrollView(
+            child: PostCard(post: post, now: now, isOwnPost: false),
+          ),
+        );
+
+        final aspectWidget = tester.widget<AspectRatio>(
+          find.byType(AspectRatio),
+        );
+        expect(aspectWidget.aspectRatio, closeTo(0.5, 0.001));
+
+        // Ketuk foto -> buka PhotoLightboxPage dengan BoxFit.contain (tanpa AspectRatio 1:1)
+        await tester.tap(find.byType(AspectRatio));
+        await tester.pump(const Duration(milliseconds: 400));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(PhotoLightboxPage), findsOneWidget);
+        final lightboxImage = tester.widget<PlaceholderImage>(
+          find.descendant(
+            of: find.byType(PhotoLightboxPage),
+            matching: find.byType(PlaceholderImage),
+          ),
+        );
+        expect(lightboxImage.fit, BoxFit.contain);
       },
     );
   });

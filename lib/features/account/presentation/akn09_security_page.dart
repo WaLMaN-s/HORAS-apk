@@ -4,10 +4,12 @@ import 'package:horas/core/config/repository_providers.dart';
 import 'package:horas/core/errors/result.dart';
 import 'package:horas/core/l10n/app_strings.dart';
 import 'package:horas/core/router/app_pages.dart';
+import 'package:horas/core/router/shell_navigation_controller.dart';
 import 'package:horas/core/theme/app_theme.dart';
 import 'package:horas/core/theme/app_tokens.dart';
 import 'package:horas/core/widgets/widgets.dart';
 import 'package:horas/domain/models/models.dart';
+import 'package:horas/features/auth/presentation/auth_flow_controller.dart';
 import 'package:horas/features/play/presentation/play_models.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -106,6 +108,9 @@ class _Akn09SecurityPageState extends ConsumerState<Akn09SecurityPage> {
     );
     if (ok != true || !mounted) return;
     await ref.read(authRepositoryProvider).logout();
+    ref.read(authSessionEpochProvider.notifier).bump();
+    ref.read(shellNavigationProvider.notifier).selectTab(0);
+    ref.invalidate(authFlowControllerProvider);
     if (!mounted) return;
     context.go(AppPages.aut02.routePath);
   }

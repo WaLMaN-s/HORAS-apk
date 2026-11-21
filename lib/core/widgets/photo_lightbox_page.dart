@@ -5,18 +5,20 @@ import 'package:horas/core/theme/app_tokens.dart';
 import 'package:horas/core/widgets/placeholder_image.dart';
 import 'package:material_ui/material_ui.dart';
 
-/// Penampil foto layar penuh bergaya Instagram dengan pinch-to-zoom,
-/// geser antar foto, dan geser ke bawah untuk menutup.
+/// Penampil foto layar penuh bergaya Instagram dengan rasio asli (*uncropped* `BoxFit.contain`),
+/// pinch-to-zoom, geser antar foto, dan geser ke bawah untuk menutup.
 class PhotoLightboxPage extends StatefulWidget {
   const PhotoLightboxPage({
     required this.seeds,
     super.key,
+    this.aspectRatios,
     this.initialIndex = 0,
     this.title,
     this.isCircular = false,
   });
 
   final List<String> seeds;
+  final List<double>? aspectRatios;
   final int initialIndex;
   final String? title;
   final bool isCircular;
@@ -24,6 +26,7 @@ class PhotoLightboxPage extends StatefulWidget {
   static Future<void> show(
     BuildContext context, {
     required List<String> seeds,
+    List<double>? aspectRatios,
     int initialIndex = 0,
     String? title,
     bool isCircular = false,
@@ -40,6 +43,7 @@ class PhotoLightboxPage extends StatefulWidget {
             opacity: animation,
             child: PhotoLightboxPage(
               seeds: seeds,
+              aspectRatios: aspectRatios,
               initialIndex: initialIndex.clamp(0, seeds.length - 1),
               title: title,
               isCircular: isCircular,
@@ -84,7 +88,7 @@ class _PhotoLightboxPageState extends State<PhotoLightboxPage> {
   void _onVerticalDragEnd(DragEndDetails details) {
     final velocity = details.primaryVelocity ?? 0;
     if (_verticalDragOffset.abs() > 100 || velocity.abs() > 700) {
-      HapticFeedback.lightImpact();
+      HapticFeedback.lightImpact().ignore();
       Navigator.of(context).pop();
     } else {
       setState(() => _verticalDragOffset = 0);
@@ -115,31 +119,54 @@ class _PhotoLightboxPageState extends State<PhotoLightboxPage> {
                     onPageChanged: (idx) => setState(() => _currentIndex = idx),
                     itemBuilder: (context, index) {
                       final seed = widget.seeds[index];
-                      return Center(
-                        child: InteractiveViewer(
-                          minScale: 1.0,
-                          maxScale: 4.0,
+                      final isReal = PlaceholderImage.isRealImageSeed(seed);
+                      final ratio =
+                          (widget.aspectRatios != null &&
+                              index < widget.aspectRatios!.length)
+                          ? widget.aspectRatios![index].clamp(0.45, 2.0)
+                          : 1.0;
+
+                      Widget mediaChild;
+                      if (widget.isCircular) {
+                        mediaChild = Center(
+                          child: ClipOval(
+                            child: PlaceholderImage(
+                              seed: seed,
+                              width: 280,
+                              height: 280,
+                              borderRadius: BorderRadius.zero,
+                              showMountainSilhouette: false,
+                            ),
+                          ),
+                        );
+                      } else if (isReal) {
+                        // Tampilkan foto nyata 100% sesuai rasio asli hasil crop (9:18, 9:16, 4:5, 16:9, dll.)
+                        mediaChild = SizedBox.expand(
+                          child: PlaceholderImage(
+                            seed: seed,
+                            fit: BoxFit.contain,
+                            borderRadius: BorderRadius.zero,
+                          ),
+                        );
+                      } else {
+                        mediaChild = Center(
                           child: Padding(
                             padding: const EdgeInsets.all(AppSpacing.md),
-                            child: widget.isCircular
-                                ? ClipOval(
-                                    child: PlaceholderImage(
-                                      seed: seed,
-                                      width: 280,
-                                      height: 280,
-                                      borderRadius: BorderRadius.zero,
-                                      showMountainSilhouette: false,
-                                    ),
-                                  )
-                                : AspectRatio(
-                                    aspectRatio: 1.0,
-                                    child: PlaceholderImage(
-                                      seed: seed,
-                                      borderRadius: AppRadius.photoRadius,
-                                    ),
-                                  ),
+                            child: AspectRatio(
+                              aspectRatio: ratio,
+                              child: PlaceholderImage(
+                                seed: seed,
+                                borderRadius: AppRadius.photoRadius,
+                              ),
+                            ),
                           ),
-                        ),
+                        );
+                      }
+
+                      return InteractiveViewer(
+                        minScale: 1.0,
+                        maxScale: 4.5,
+                        child: mediaChild,
                       );
                     },
                   ),

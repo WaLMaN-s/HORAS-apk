@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:horas/core/config/feature_flags.dart';
@@ -14,11 +17,12 @@ import 'package:horas/features/home/presentation/home_feed_controller.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:material_ui/material_ui.dart';
 
-/// BER-03 Buat Story (BER-R12).
+/// BER-03 Buat Story bergaya Instagram Story Studio (`BER-R12`).
 ///
+/// - Otomatis membuka kamera saat halaman dibuka di perangkat nyata (ala Instagram).
 /// - Foto atau video maks 15 detik, tayang 24 jam, hanya untuk pengikut.
-/// - Mendukung pilih foto nyata dari Galeri atau Kamera (bebas EXIF/GPS).
-/// - Memiliki status memuat, offline, error.
+/// - Rasio 9:16 / 9:18 dipertahankan penuh tanpa distorsi (bebas EXIF/GPS).
+/// - Tanpa tombol bagikan ulang (`BER-R12`).
 class Ber03CreateStoryPage extends ConsumerStatefulWidget {
   const Ber03CreateStoryPage({super.key});
 
@@ -28,11 +32,28 @@ class Ber03CreateStoryPage extends ConsumerStatefulWidget {
 }
 
 class _Ber03CreateStoryPageState extends ConsumerState<Ber03CreateStoryPage> {
+  static bool get _isFlutterTest =>
+      Platform.environment.containsKey('FLUTTER_TEST');
+
   final _captionController = TextEditingController();
   bool _isVideo = false;
   int _durationSeconds = 5;
   String _mediaSeed = 'sample-story-photo';
+  bool _hasCapturedOrPickedMedia = false;
+  bool _isLaunchingCamera = false;
+  bool _autoCameraTriggered = false;
   bool _isPublishing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _autoCameraTriggered || _isFlutterTest) return;
+      if (!ref.read(featureFlagsProvider).stories) return;
+      _autoCameraTriggered = true;
+      _selectPhoto(ImageSource.camera, isAutoLaunch: true);
+    });
+  }
 
   @override
   void dispose() {
@@ -40,40 +61,57 @@ class _Ber03CreateStoryPageState extends ConsumerState<Ber03CreateStoryPage> {
     super.dispose();
   }
 
-  Future<void> _selectPhoto([ImageSource source = ImageSource.gallery]) async {
+  Future<void> _selectPhoto(
+    ImageSource source, {
+    bool isAutoLaunch = false,
+  }) async {
+    if (_isLaunchingCamera) return;
+    if (source == ImageSource.camera) {
+      setState(() => _isLaunchingCamera = true);
+    }
     try {
       final raw = await ImageDataUriHelper.pickRawImage(
         source,
         maxDimension: 1440,
-        quality: 88,
+        quality: 90,
       );
       if (!mounted) return;
-      if (raw != null) {
-        final cropped = await PhotoCropPage.show(
-          context,
-          imageBytes: raw.bytes,
-          fileName: raw.name,
-          initialAspectRatio: 9 / 16,
-          outputMaxDimension: 960,
-          quality: 78,
-        );
-        if (!mounted || cropped == null) return;
-        setState(() {
-          _isVideo = false;
-          _durationSeconds = 5;
-          _mediaSeed = cropped.dataUri;
-        });
+      if (source == ImageSource.camera) {
+        setState(() => _isLaunchingCamera = false);
+      }
+      if (raw == null) {
+        // Pengguna menekan kembali dari kamera/galeri: tetap di studio Story siap potret/pilih galeri.
         return;
       }
+      final cropped = await PhotoCropPage.show(
+        context,
+        imageBytes: raw.bytes,
+        fileName: raw.name,
+        initialAspectRatio: 9 / 16,
+        outputMaxDimension: 1080,
+        quality: 80,
+      );
+      if (!mounted || cropped == null) return;
+      setState(() {
+        _isVideo = false;
+        _durationSeconds = 5;
+        _mediaSeed = cropped.dataUri;
+        _hasCapturedOrPickedMedia = true;
+      });
       return;
     } on Object {
-      // Fallback deterministik pada simulator/pengujian tanpa galeri fisik.
+      if (mounted && source == ImageSource.camera) {
+        setState(() => _isLaunchingCamera = false);
+      }
+      // Pada peluncuran kamera otomatis di emulator tanpa kamera, tampilkan studio siap pakai.
+      if (isAutoLaunch) return;
     }
     if (!mounted) return;
     setState(() {
       _isVideo = false;
       _durationSeconds = 5;
       _mediaSeed = 'story-photo-${DateTime.now().microsecondsSinceEpoch}';
+      _hasCapturedOrPickedMedia = true;
     });
   }
 
@@ -84,27 +122,31 @@ class _Ber03CreateStoryPageState extends ConsumerState<Ber03CreateStoryPage> {
       context,
       imageBytes: bytes,
       initialAspectRatio: 9 / 16,
-      outputMaxDimension: 960,
-      quality: 78,
+      outputMaxDimension: 1080,
+      quality: 80,
     );
     if (!mounted || cropped == null) return;
     setState(() {
       _isVideo = false;
       _mediaSeed = cropped.dataUri;
+      _hasCapturedOrPickedMedia = true;
     });
   }
 
   void _selectVideo() {
+    HapticFeedback.lightImpact().ignore();
     // BER-R12: Video maksimal 15 detik
     setState(() {
       _isVideo = true;
       _durationSeconds = 15;
       _mediaSeed = 'story-video-${DateTime.now().microsecondsSinceEpoch}';
+      _hasCapturedOrPickedMedia = true;
     });
   }
 
   Future<void> _publish() async {
     FocusScope.of(context).unfocus();
+    HapticFeedback.mediumImpact().ignore();
     setState(() => _isPublishing = true);
 
     final repo = ref.read(storyRepositoryProvider);
@@ -154,156 +196,350 @@ class _Ber03CreateStoryPageState extends ConsumerState<Ber03CreateStoryPage> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(AppStrings.ber03Title),
-        actions: <Widget>[
-          Padding(
-            padding: const EdgeInsets.only(right: AppSpacing.md),
-            child: AppButton(
-              label: AppStrings.ber03PublishBtn,
-              variant: AppButtonVariant.primary,
-              isLoading: _isPublishing,
-              onPressed: _publish,
-            ),
-          ),
-        ],
-      ),
+      backgroundColor: Colors.black,
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(AppSpacing.lg),
+        child: Column(
           children: <Widget>[
-            // Kotak Pratinjau Media
-            AspectRatio(
-              aspectRatio: 9 / 12,
-              child: hasRealPhoto
-                  ? PlaceholderImage(
-                      seed: _mediaSeed,
-                      borderRadius: BorderRadius.circular(AppRadius.photo),
-                    )
-                  : Container(
-                      decoration: BoxDecoration(
-                        color: colors.primaryDark,
-                        borderRadius: BorderRadius.circular(AppRadius.photo),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: <Widget>[
-                          Icon(
-                            _isVideo
-                                ? Icons.videocam_rounded
-                                : Icons.photo_library_outlined,
-                            size: 64,
-                            color: colors.onPrimary,
-                          ),
-                          const SizedBox(height: AppSpacing.md),
-                          Text(
-                            _isVideo
-                                ? '${AppStrings.ber03VideoLabel} (${_durationSeconds}d)'
-                                : AppStrings.ber03PhotoLabel,
-                            style: typo.h3.copyWith(color: colors.onPrimary),
-                          ),
-                          const SizedBox(height: AppSpacing.sm),
-                          Text(
-                            AppStrings.ber03DurationNotice,
-                            style: typo.caption.copyWith(
-                              color: colors.onPrimary.withValues(alpha: 0.8),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-
-            // Pilihan Foto (Galeri / Kamera) atau Video
-            Wrap(
-              spacing: AppSpacing.sm,
-              runSpacing: AppSpacing.sm,
-              children: <Widget>[
-                OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: !_isVideo ? colors.primary : colors.text,
-                    side: BorderSide(
-                      color: !_isVideo ? colors.primary : colors.border,
-                      width: !_isVideo ? 2 : 1,
-                    ),
-                    minimumSize: const Size(0, AppSizes.minTouchTarget),
-                  ),
-                  onPressed: () => _selectPhoto(ImageSource.gallery),
-                  icon: const Icon(Icons.photo_library_outlined),
-                  label: const Text(AppStrings.aut06PickPhotoGallery),
-                ),
-                OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: colors.text,
-                    side: BorderSide(color: colors.border),
-                    minimumSize: const Size(0, AppSizes.minTouchTarget),
-                  ),
-                  onPressed: () => _selectPhoto(ImageSource.camera),
-                  icon: const Icon(Icons.camera_alt_outlined),
-                  label: const Text(AppStrings.aut06PickPhotoCamera),
-                ),
-                if (hasRealPhoto)
-                  OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: colors.primary,
-                      side: BorderSide(color: colors.primary),
-                      minimumSize: const Size(0, AppSizes.minTouchTarget),
-                    ),
-                    onPressed: _cropCurrentPhoto,
-                    icon: const Icon(Icons.crop_rounded),
-                    label: const Text(AppStrings.ber03CropPhotoBtn),
-                  ),
-                OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: _isVideo ? colors.primary : colors.text,
-                    side: BorderSide(
-                      color: _isVideo ? colors.primary : colors.border,
-                      width: _isVideo ? 2 : 1,
-                    ),
-                    minimumSize: const Size(0, AppSizes.minTouchTarget),
-                  ),
-                  onPressed: _selectVideo,
-                  icon: const Icon(Icons.videocam_outlined),
-                  label: const Text(AppStrings.ber03VideoLabel),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.lg),
-
-            // Bidang Keterangan
-            AppTextField(
-              controller: _captionController,
-              label: AppStrings.ber03CaptionHint,
-              maxLines: 2,
-            ),
-            const SizedBox(height: AppSpacing.md),
-
-            // Catatan Privasi Story
-            Container(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              decoration: BoxDecoration(
-                color: colors.chipInactive,
-                borderRadius: BorderRadius.circular(AppRadius.card),
+            // Bilah Atas Story Studio (Tutup · Judul · Ambil Ulang / Potong · Bagikan)
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.sm,
+                vertical: AppSpacing.xs,
               ),
               child: Row(
                 children: <Widget>[
-                  Icon(
-                    Icons.lock_clock_outlined,
-                    color: colors.primary,
-                    size: AppSizes.iconMd,
+                  Semantics(
+                    button: true,
+                    label: AppStrings.actionClose,
+                    child: IconButton(
+                      constraints: const BoxConstraints(
+                        minWidth: AppSizes.minTouchTarget,
+                        minHeight: AppSizes.minTouchTarget,
+                      ),
+                      tooltip: AppStrings.actionClose,
+                      onPressed: () => context.pop(),
+                      icon: const Icon(
+                        Icons.close_rounded,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
-                  const SizedBox(width: AppSpacing.md),
                   Expanded(
                     child: Text(
-                      'Tayang selama 24 jam dan hanya dapat dilihat oleh pengikutmu. Tanpa tombol bagikan ulang untuk menjaga privasi (BER-R12).',
-                      style: typo.caption,
+                      AppStrings.ber03Title,
+                      style: typo.h3.copyWith(color: Colors.white),
+                    ),
+                  ),
+                  if (hasRealPhoto)
+                    Semantics(
+                      button: true,
+                      label: AppStrings.ber03CropPhotoBtn,
+                      child: IconButton(
+                        constraints: const BoxConstraints(
+                          minWidth: AppSizes.minTouchTarget,
+                          minHeight: AppSizes.minTouchTarget,
+                        ),
+                        tooltip: AppStrings.ber03CropPhotoBtn,
+                        onPressed: _cropCurrentPhoto,
+                        icon: const Icon(
+                          Icons.crop_rounded,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  AppButton(
+                    label: AppStrings.ber03PublishBtn,
+                    variant: AppButtonVariant.primary,
+                    compact: true,
+                    isLoading: _isPublishing,
+                    onPressed: _isPublishing ? null : _publish,
+                  ),
+                ],
+              ),
+            ),
+
+            // Kanvas Pratinjau Story 9:16 Layar Penuh
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md,
+                  vertical: AppSpacing.xs,
+                ),
+                child: ClipRRect(
+                  borderRadius: AppRadius.cardRadius,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: <Widget>[
+                      if (hasRealPhoto)
+                        ColoredBox(
+                          color: Colors.black,
+                          child: PlaceholderImage(
+                            seed: _mediaSeed,
+                            fit: BoxFit.contain,
+                            borderRadius: BorderRadius.zero,
+                          ),
+                        )
+                      else
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: <Color>[colors.primaryDark, Colors.black],
+                            ),
+                          ),
+                          child: Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(AppSpacing.xl),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: <Widget>[
+                                  if (_isLaunchingCamera)
+                                    const CircularProgressIndicator(
+                                      color: Colors.white,
+                                    )
+                                  else
+                                    Semantics(
+                                      button: true,
+                                      label: AppStrings.aut06PickPhotoCamera,
+                                      child: InkWell(
+                                        onTap: () =>
+                                            _selectPhoto(ImageSource.camera),
+                                        borderRadius: AppRadius.pillRadius,
+                                        child: Container(
+                                          width: 84,
+                                          height: 84,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: Colors.white.withValues(
+                                              alpha: 0.14,
+                                            ),
+                                            border: Border.all(
+                                              color: Colors.white,
+                                              width: 3,
+                                            ),
+                                          ),
+                                          child: Icon(
+                                            _isVideo
+                                                ? Icons.videocam_rounded
+                                                : Icons.camera_alt_rounded,
+                                            size: 38,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  const SizedBox(height: AppSpacing.lg),
+                                  Text(
+                                    _isVideo
+                                        ? '${AppStrings.ber03VideoLabel} (${_durationSeconds}d)'
+                                        : (_hasCapturedOrPickedMedia
+                                              ? AppStrings.ber03PhotoLabel
+                                              : AppStrings
+                                                    .ber03CameraReadyHint),
+                                    textAlign: TextAlign.center,
+                                    style: typo.bodyStrong.copyWith(
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  const SizedBox(height: AppSpacing.xs),
+                                  Text(
+                                    AppStrings.ber03DurationNotice,
+                                    textAlign: TextAlign.center,
+                                    style: typo.caption.copyWith(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.72,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      // Lencana pengingat privasi 24 jam (BER-R12)
+                      Positioned(
+                        top: AppSpacing.sm,
+                        left: AppSpacing.sm,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.sm,
+                            vertical: AppSpacing.xs,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.56),
+                            borderRadius: AppRadius.pillRadius,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                              const Icon(
+                                Icons.lock_clock_outlined,
+                                color: Colors.white,
+                                size: AppSizes.iconXs,
+                              ),
+                              const SizedBox(width: AppSpacing.xs),
+                              Text(
+                                AppStrings.ber02FollowersOnlyNotice,
+                                style: typo.micro.copyWith(color: Colors.white),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // Kontrol Bawah ala Instagram Story: Kamera / Galeri / Potong / Video + Caption
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.xs,
+                AppSpacing.md,
+                AppSpacing.sm,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: <Widget>[
+                        _StoryActionPill(
+                          icon: Icons.camera_alt_rounded,
+                          label: hasRealPhoto
+                              ? AppStrings.ber03RetakeCameraBtn
+                              : AppStrings.aut06PickPhotoCamera,
+                          highlighted: !hasRealPhoto && !_isVideo,
+                          onTap: () => _selectPhoto(ImageSource.camera),
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        _StoryActionPill(
+                          icon: Icons.photo_library_outlined,
+                          label: AppStrings.aut06PickPhotoGallery,
+                          highlighted: hasRealPhoto,
+                          onTap: () => _selectPhoto(ImageSource.gallery),
+                        ),
+                        if (hasRealPhoto) ...<Widget>[
+                          const SizedBox(width: AppSpacing.sm),
+                          _StoryActionPill(
+                            icon: Icons.crop_rounded,
+                            label: AppStrings.ber03CropPhotoBtn,
+                            onTap: _cropCurrentPhoto,
+                          ),
+                        ],
+                        const SizedBox(width: AppSpacing.sm),
+                        _StoryActionPill(
+                          icon: Icons.videocam_outlined,
+                          label: AppStrings.ber03VideoLabel,
+                          highlighted: _isVideo,
+                          onTap: _selectVideo,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  TextField(
+                    controller: _captionController,
+                    maxLines: 2,
+                    minLines: 1,
+                    style: typo.body.copyWith(color: Colors.white),
+                    decoration: InputDecoration(
+                      hintText: AppStrings.ber03CaptionHint,
+                      hintStyle: typo.body.copyWith(
+                        color: Colors.white.withValues(alpha: 0.65),
+                      ),
+                      filled: true,
+                      fillColor: Colors.white.withValues(alpha: 0.12),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
+                        vertical: AppSpacing.sm,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: AppRadius.pillRadius,
+                        borderSide: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.25),
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: AppRadius.pillRadius,
+                        borderSide: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.25),
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: AppRadius.pillRadius,
+                        borderSide: BorderSide(color: colors.primary),
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StoryActionPill extends StatelessWidget {
+  const _StoryActionPill({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.highlighted = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool highlighted;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final typo = context.typo;
+
+    return Semantics(
+      button: true,
+      label: label,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: AppRadius.pillRadius,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: AppSizes.minTouchTarget),
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.sm,
+            ),
+            decoration: BoxDecoration(
+              color: highlighted
+                  ? colors.primary
+                  : Colors.white.withValues(alpha: 0.14),
+              borderRadius: AppRadius.pillRadius,
+              border: Border.all(
+                color: highlighted
+                    ? colors.primary
+                    : Colors.white.withValues(alpha: 0.24),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Icon(icon, size: AppSizes.iconSm, color: Colors.white),
+                const SizedBox(width: AppSpacing.xs),
+                Text(
+                  label,
+                  style: typo.captionStrong.copyWith(color: Colors.white),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

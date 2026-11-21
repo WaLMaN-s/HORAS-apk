@@ -3,10 +3,12 @@ import 'package:go_router/go_router.dart';
 import 'package:horas/core/config/repository_providers.dart';
 import 'package:horas/core/l10n/app_strings.dart';
 import 'package:horas/core/router/app_pages.dart';
+import 'package:horas/core/router/shell_navigation_controller.dart';
 import 'package:horas/core/theme/app_theme.dart';
 import 'package:horas/core/theme/app_tokens.dart';
 import 'package:horas/core/theme/theme_mode_controller.dart';
 import 'package:horas/core/widgets/widgets.dart';
+import 'package:horas/features/auth/presentation/auth_flow_controller.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// AKN-07 Pengaturan Utama, Mode Gelap, & Bahasa.
@@ -23,6 +25,9 @@ class Akn07SettingsPage extends ConsumerWidget {
     );
     if (!ok || !context.mounted) return;
     await ref.read(authRepositoryProvider).logout();
+    ref.read(authSessionEpochProvider.notifier).bump();
+    ref.read(shellNavigationProvider.notifier).selectTab(0);
+    ref.invalidate(authFlowControllerProvider);
     if (context.mounted) {
       context.go(AppPages.aut03.routePath);
     }

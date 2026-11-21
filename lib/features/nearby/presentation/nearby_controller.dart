@@ -81,6 +81,7 @@ final class NearbyState {
 class NearbyController extends Notifier<NearbyState> {
   @override
   NearbyState build() {
+    ref.watch(authSessionEpochProvider);
     final nearbyRepo = ref.read(nearbyRepositoryProvider);
     Future<void>.microtask(loadInitial);
     return NearbyState(

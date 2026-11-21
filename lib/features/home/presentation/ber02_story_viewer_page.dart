@@ -454,9 +454,13 @@ class _Ber02StoryViewerPageState extends ConsumerState<Ber02StoryViewerPage> {
                                 PlaceholderImage.isRealImageSeed(
                                   story.mediaSeed,
                                 ))
-                              PlaceholderImage(
-                                seed: story.mediaSeed,
-                                borderRadius: BorderRadius.zero,
+                              ColoredBox(
+                                color: Colors.black,
+                                child: PlaceholderImage(
+                                  seed: story.mediaSeed,
+                                  fit: BoxFit.contain,
+                                  borderRadius: BorderRadius.zero,
+                                ),
                               )
                             else
                               Container(

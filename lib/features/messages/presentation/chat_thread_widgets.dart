@@ -515,12 +515,32 @@ class _ChatMessageBubbleState extends State<ChatMessageBubble> {
                                     onTap: () => widget.onPhotoTap?.call(
                                       message.photoSeed!,
                                     ),
-                                    child: PlaceholderImage(
-                                      seed: message.photoSeed!,
-                                      width: 220,
-                                      height: 150,
-                                      borderRadius: BorderRadius.circular(14),
-                                    ),
+                                    child:
+                                        PlaceholderImage.isRealImageSeed(
+                                          message.photoSeed!,
+                                        )
+                                        ? ConstrainedBox(
+                                            constraints: const BoxConstraints(
+                                              minWidth: 140,
+                                              minHeight: 120,
+                                              maxWidth: 236,
+                                              maxHeight: 300,
+                                            ),
+                                            child: PlaceholderImage(
+                                              seed: message.photoSeed!,
+                                              fit: BoxFit.contain,
+                                              borderRadius:
+                                                  BorderRadius.circular(14),
+                                            ),
+                                          )
+                                        : PlaceholderImage(
+                                            seed: message.photoSeed!,
+                                            width: 220,
+                                            height: 150,
+                                            borderRadius: BorderRadius.circular(
+                                              14,
+                                            ),
+                                          ),
                                   ),
                                   if (message.text.isNotEmpty)
                                     const SizedBox(height: AppSpacing.xs),
@@ -753,12 +773,24 @@ class ChatComposerBar extends ConsumerWidget {
           if (pendingPhotoSeed != null) ...<Widget>[
             Stack(
               children: <Widget>[
-                PlaceholderImage(
-                  seed: pendingPhotoSeed!,
-                  width: 84,
-                  height: 62,
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                PlaceholderImage.isRealImageSeed(pendingPhotoSeed!)
+                    ? ConstrainedBox(
+                        constraints: const BoxConstraints(
+                          maxWidth: 112,
+                          maxHeight: 112,
+                        ),
+                        child: PlaceholderImage(
+                          seed: pendingPhotoSeed!,
+                          fit: BoxFit.contain,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      )
+                    : PlaceholderImage(
+                        seed: pendingPhotoSeed!,
+                        width: 84,
+                        height: 62,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                 Positioned(
                   right: 0,
                   top: 0,

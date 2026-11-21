@@ -95,6 +95,8 @@ class PlayController extends Notifier<PlayState> {
 
   @override
   PlayState build() {
+    ref.watch(authSessionEpochProvider);
+    _triedAutoDeviceLocation = false;
     final nearbyRepo = ref.read(nearbyRepositoryProvider);
     final initialCity = nearbyRepo.currentSelectedCity;
     Future<void>.microtask(loadInitial);

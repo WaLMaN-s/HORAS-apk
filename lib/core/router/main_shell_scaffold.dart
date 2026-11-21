@@ -84,6 +84,7 @@ class MainShellScaffold extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(authSessionEpochProvider);
     final colors = context.colors;
     final typo = context.typo;
     final currentIndex = navigationShell.currentIndex;

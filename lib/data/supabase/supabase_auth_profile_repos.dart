@@ -74,9 +74,11 @@ final class SupabaseAuthRepository implements AuthRepository {
       final cachedJson = _gw.cache.readMyProfileJson();
       if (cachedJson != null) {
         final cachedProfile = Profil.fromJson(cachedJson);
-        _gw.currentSessionProfile = cachedProfile;
-        _gw.cache.markServingCache();
-        return cachedProfile;
+        if (cachedProfile.id == user.id) {
+          _gw.currentSessionProfile = cachedProfile;
+          _gw.cache.markServingCache();
+          return cachedProfile;
+        }
       }
       return null;
     }
@@ -240,6 +242,7 @@ final class SupabaseAuthRepository implements AuthRepository {
         );
       }
 
+      await _gw.resetSessionState();
       final sessionMap = data['session'] as Map?;
       final refreshToken = sessionMap?['refresh_token'] as String?;
       if (refreshToken != null && refreshToken.isNotEmpty) {
@@ -305,6 +308,7 @@ final class SupabaseAuthRepository implements AuthRepository {
         );
       }
 
+      await _gw.resetSessionState();
       final sessionMap = data['session'] as Map?;
       final refreshToken = sessionMap?['refresh_token'] as String?;
       if (refreshToken != null && refreshToken.isNotEmpty) {
@@ -576,10 +580,15 @@ final class SupabaseAuthRepository implements AuthRepository {
 
   @override
   Future<Result<void>> logout() => _gw.guard(() async {
-    await _gw.client.auth.signOut();
-    _gw.currentSessionProfile = null;
-    _gw.invalidatePersonCache();
-    await _gw.cache.clearAllUserCaches();
+    try {
+      await _gw.client.auth.signOut();
+    } on Object {
+      // Tetap bersihkan sesi lokal perangkat meskipun jaringan sedang terputus.
+      await _gw.client.auth.signOut(scope: SignOutScope.local);
+    }
+    await clearOnboardingDraft();
+    await _gw.prefs?.remove('horas_sb_post_draft_v1');
+    await _gw.resetSessionState();
   });
 }
 
@@ -621,8 +630,11 @@ final class SupabaseProfileRepository implements ProfileRepository {
       if (SupabaseErrorMapper.isOfflineFailure(e)) {
         final cached = _gw.cache.readMyProfileJson();
         if (cached != null) {
-          _gw.cache.markServingCache();
-          return Ok<Profil>(Profil.fromJson(cached));
+          final cachedProfile = Profil.fromJson(cached);
+          if (cachedProfile.id == uid) {
+            _gw.cache.markServingCache();
+            return Ok<Profil>(cachedProfile);
+          }
         }
       }
       return Err<Profil>(SupabaseErrorMapper.map(e, st));

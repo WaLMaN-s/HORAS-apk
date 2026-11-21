@@ -142,6 +142,19 @@ class _Ber04CreatePostPageState extends ConsumerState<Ber04CreatePostPage> {
     }
   }
 
+  double _closestCropPresetRatio(double naturalRatio) {
+    var best = kDefaultCropPresets.first.ratio;
+    var bestDiff = (naturalRatio - best).abs();
+    for (final preset in kDefaultCropPresets) {
+      final diff = (naturalRatio - preset.ratio).abs();
+      if (diff < bestDiff) {
+        best = preset.ratio;
+        bestDiff = diff;
+      }
+    }
+    return best;
+  }
+
   Future<void> _pickDirectFromGallery() async {
     if (_selectedMedia.length >= AppLimits.postMaxPhotos) return;
     final remaining = AppLimits.postMaxPhotos - _selectedMedia.length;
@@ -152,8 +165,8 @@ class _Ber04CreatePostPageState extends ConsumerState<Ber04CreatePostPage> {
       }
       final pickedList = await ImageDataUriHelper.pickMultipleAndEncodeImages(
         limit: remaining,
-        maxDimension: 960,
-        quality: 78,
+        maxDimension: 1080,
+        quality: 80,
         maxRawBytes: AppLimits.postPhotoMaxBytes,
       );
       if (!mounted || pickedList.isEmpty) return;
@@ -163,9 +176,9 @@ class _Ber04CreatePostPageState extends ConsumerState<Ber04CreatePostPage> {
           context,
           imageBytes: item.compressedBytes,
           fileName: item.name,
-          initialAspectRatio: 1.0,
-          outputMaxDimension: 800,
-          quality: 78,
+          initialAspectRatio: _closestCropPresetRatio(item.aspectRatio),
+          outputMaxDimension: 1080,
+          quality: 80,
           maxRawBytes: AppLimits.postPhotoMaxBytes,
         );
         if (!mounted) return;
@@ -193,7 +206,7 @@ class _Ber04CreatePostPageState extends ConsumerState<Ber04CreatePostPage> {
               seed: item.dataUri,
               originalBytesCount: item.originalBytesCount,
               compressedBytes: item.compressedBytes,
-              aspectRatio: 1.0,
+              aspectRatio: item.aspectRatio,
             ),
           );
         }
@@ -239,13 +252,15 @@ class _Ber04CreatePostPageState extends ConsumerState<Ber04CreatePostPage> {
       quality: 88,
     );
     if (!mounted || raw == null) return;
+    final naturalRatio = await ImageDataUriHelper.detectAspectRatio(raw.bytes);
+    if (!mounted) return;
     final cropped = await PhotoCropPage.show(
       context,
       imageBytes: raw.bytes,
       fileName: raw.name,
-      initialAspectRatio: 1.0,
-      outputMaxDimension: 800,
-      quality: 78,
+      initialAspectRatio: _closestCropPresetRatio(naturalRatio),
+      outputMaxDimension: 1080,
+      quality: 80,
       maxRawBytes: AppLimits.postPhotoMaxBytes,
     );
     if (!mounted || cropped == null) return;
@@ -272,8 +287,8 @@ class _Ber04CreatePostPageState extends ConsumerState<Ber04CreatePostPage> {
       context,
       imageBytes: bytes,
       initialAspectRatio: item.aspectRatio,
-      outputMaxDimension: 800,
-      quality: 78,
+      outputMaxDimension: 1080,
+      quality: 80,
       maxRawBytes: AppLimits.postPhotoMaxBytes,
     );
     if (!mounted || cropped == null) return;
@@ -602,7 +617,7 @@ class _Ber04CreatePostPageState extends ConsumerState<Ber04CreatePostPage> {
                                 if (_selectedMedia.isNotEmpty) ...<Widget>[
                                   const SizedBox(height: AppSpacing.sm),
                                   SizedBox(
-                                    height: 116,
+                                    height: 156,
                                     child: ListView.separated(
                                       scrollDirection: Axis.horizontal,
                                       itemCount: _selectedMedia.length,
@@ -610,6 +625,14 @@ class _Ber04CreatePostPageState extends ConsumerState<Ber04CreatePostPage> {
                                           const SizedBox(width: AppSpacing.sm),
                                       itemBuilder: (context, index) {
                                         final item = _selectedMedia[index];
+                                        const previewHeight = 156.0;
+                                        final previewWidth =
+                                            (previewHeight *
+                                                    item.aspectRatio.clamp(
+                                                      0.48,
+                                                      1.85,
+                                                    ))
+                                                .clamp(76.0, 224.0);
                                         final canCrop =
                                             item.compressedBytes != null ||
                                             item.seed.startsWith('data:image/');
@@ -632,8 +655,8 @@ class _Ber04CreatePostPageState extends ConsumerState<Ber04CreatePostPage> {
                                                 ),
                                                 child: PlaceholderImage(
                                                   seed: item.seed,
-                                                  width: 116,
-                                                  height: 116,
+                                                  width: previewWidth,
+                                                  height: previewHeight,
                                                   borderRadius:
                                                       AppRadius.photoRadius,
                                                 ),

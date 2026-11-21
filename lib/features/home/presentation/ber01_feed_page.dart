@@ -666,6 +666,10 @@ class _StoriesTrayState extends ConsumerState<_StoriesTray>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    ref.listen<int>(authSessionEpochProvider, (_, _) {
+      _viewedLocally.clear();
+      _loadStories();
+    });
     ref.listen<int>(storiesRefreshTickProvider, (_, _) {
       _loadStories();
     });

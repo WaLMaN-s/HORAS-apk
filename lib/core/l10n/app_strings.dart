@@ -1626,4 +1626,10 @@ abstract final class AppStrings {
   static const String man01TabChurches = 'Gereja';
   static String man01SlotsRemaining(int left) =>
       left <= 0 ? 'Slot penuh' : 'Sisa $left slot';
+
+  static const String ber05Crop9x16 = '9:16';
+  static const String ber05Crop9x18 = '9:18';
+  static const String ber03CameraReadyHint =
+      'Ketuk tombol kamera untuk memotret atau pilih dari galeri';
+  static const String ber03RetakeCameraBtn = 'Ambil Ulang';
 }

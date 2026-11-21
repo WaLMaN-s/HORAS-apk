@@ -42,14 +42,27 @@ class _Ber05MediaPickerPageState extends ConsumerState<Ber05MediaPickerPage> {
     _items = List<SelectedMediaItem>.of(widget.initialMedia);
   }
 
+  double _closestCropPresetRatio(double naturalRatio) {
+    var best = kDefaultCropPresets.first.ratio;
+    var bestDiff = (naturalRatio - best).abs();
+    for (final preset in kDefaultCropPresets) {
+      final diff = (naturalRatio - preset.ratio).abs();
+      if (diff < bestDiff) {
+        best = preset.ratio;
+        bestDiff = diff;
+      }
+    }
+    return best;
+  }
+
   Future<void> _pickFromGallery() async {
     if (_items.length >= AppLimits.postMaxPhotos) return;
 
     try {
       final pickedList = await ImageDataUriHelper.pickMultipleAndEncodeImages(
         limit: AppLimits.postMaxPhotos - _items.length,
-        maxDimension: 720,
-        quality: 75,
+        maxDimension: 1080,
+        quality: 80,
         maxRawBytes: AppLimits.postPhotoMaxBytes,
       );
       if (!mounted) return;
@@ -63,7 +76,7 @@ class _Ber05MediaPickerPageState extends ConsumerState<Ber05MediaPickerPage> {
               seed: item.dataUri,
               originalBytesCount: item.originalBytesCount,
               compressedBytes: item.compressedBytes,
-              aspectRatio: 1.0,
+              aspectRatio: item.aspectRatio,
             ),
           );
         }
@@ -90,13 +103,17 @@ class _Ber05MediaPickerPageState extends ConsumerState<Ber05MediaPickerPage> {
         quality: 88,
       );
       if (!mounted || raw == null) return;
+      final naturalRatio = await ImageDataUriHelper.detectAspectRatio(
+        raw.bytes,
+      );
+      if (!mounted) return;
       final cropped = await PhotoCropPage.show(
         context,
         imageBytes: raw.bytes,
         fileName: raw.name,
-        initialAspectRatio: 1.0,
-        outputMaxDimension: 800,
-        quality: 78,
+        initialAspectRatio: _closestCropPresetRatio(naturalRatio),
+        outputMaxDimension: 1080,
+        quality: 80,
         maxRawBytes: AppLimits.postPhotoMaxBytes,
       );
       if (!mounted || cropped == null) return;
@@ -133,8 +150,8 @@ class _Ber05MediaPickerPageState extends ConsumerState<Ber05MediaPickerPage> {
       context,
       imageBytes: bytes,
       initialAspectRatio: item.aspectRatio,
-      outputMaxDimension: 800,
-      quality: 78,
+      outputMaxDimension: 1080,
+      quality: 80,
       maxRawBytes: AppLimits.postPhotoMaxBytes,
     );
     if (!mounted || cropped == null) return;
@@ -334,8 +351,10 @@ class _Ber05MediaPickerPageState extends ConsumerState<Ber05MediaPickerPage> {
                               children: <Widget>[
                                 PlaceholderImage(
                                   seed: item.seed,
-                                  width: 64,
-                                  height: 64,
+                                  width:
+                                      (78 * item.aspectRatio.clamp(0.48, 1.85))
+                                          .clamp(40.0, 108.0),
+                                  height: 78,
                                   borderRadius: AppRadius.photoRadius,
                                   caption: '${index + 1}',
                                 ),
@@ -352,12 +371,13 @@ class _Ber05MediaPickerPageState extends ConsumerState<Ber05MediaPickerPage> {
                                       const SizedBox(height: AppSpacing.xs),
                                       Wrap(
                                         spacing: AppSpacing.xs,
+                                        runSpacing: AppSpacing.xs,
                                         children: <Widget>[
                                           AppChip(
                                             label: AppStrings.ber05CropSquare,
                                             isSelected:
                                                 (item.aspectRatio - 1.0).abs() <
-                                                0.05,
+                                                0.025,
                                             onTap: () =>
                                                 _setCropRatio(index, 1),
                                           ),
@@ -366,7 +386,7 @@ class _Ber05MediaPickerPageState extends ConsumerState<Ber05MediaPickerPage> {
                                             isSelected:
                                                 (item.aspectRatio - 4 / 3)
                                                     .abs() <
-                                                0.05,
+                                                0.025,
                                             onTap: () =>
                                                 _setCropRatio(index, 4 / 3),
                                           ),
@@ -375,9 +395,27 @@ class _Ber05MediaPickerPageState extends ConsumerState<Ber05MediaPickerPage> {
                                             isSelected:
                                                 (item.aspectRatio - 16 / 9)
                                                     .abs() <
-                                                0.05,
+                                                0.025,
                                             onTap: () =>
                                                 _setCropRatio(index, 16 / 9),
+                                          ),
+                                          AppChip(
+                                            label: AppStrings.ber05Crop9x16,
+                                            isSelected:
+                                                (item.aspectRatio - 9 / 16)
+                                                    .abs() <
+                                                0.025,
+                                            onTap: () =>
+                                                _setCropRatio(index, 9 / 16),
+                                          ),
+                                          AppChip(
+                                            label: AppStrings.ber05Crop9x18,
+                                            isSelected:
+                                                (item.aspectRatio - 9 / 18)
+                                                    .abs() <
+                                                0.025,
+                                            onTap: () =>
+                                                _setCropRatio(index, 9 / 18),
                                           ),
                                           if (!item.isVideo &&
                                               (item.compressedBytes != null ||

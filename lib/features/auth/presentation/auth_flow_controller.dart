@@ -244,6 +244,7 @@ class AuthFlowController extends Notifier<AuthFlowState> {
 
     return res.fold(
       onOk: (profil) {
+        ref.read(authSessionEpochProvider.notifier).bump();
         final savedDraft = authRepo.getOnboardingDraft();
         state = state.copyWith(isLoading: false, onboardingDraft: savedDraft);
         return profil;
@@ -311,6 +312,7 @@ class AuthFlowController extends Notifier<AuthFlowState> {
 
     return res.fold(
       onOk: (profil) {
+        ref.read(authSessionEpochProvider.notifier).bump();
         final savedDraft = authRepo.getOnboardingDraft();
         state = state.copyWith(isLoading: false, onboardingDraft: savedDraft);
         return profil;
@@ -499,6 +501,7 @@ class AuthFlowController extends Notifier<AuthFlowState> {
 
     return res.fold(
       onOk: (_) async {
+        ref.read(authSessionEpochProvider.notifier).bump();
         await updateOnboardingDraft(
           (d) => draft.copyWith(showPermissionExplainer: true),
         );

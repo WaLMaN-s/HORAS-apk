@@ -112,6 +112,17 @@ final class SupabaseGateway {
     }
   }
 
+  /// Membersihkan seluruh cache & status in-memory saat logout atau pindah akun.
+  Future<void> resetSessionState() async {
+    currentSessionProfile = null;
+    hadDeletionRecentlyCancelled = false;
+    cachedUnreadMessages = 0;
+    cachedUnreadNotifications = 0;
+    _personCache.clear();
+    _signedUrlCache.clear();
+    await cache.clearAllUserCaches();
+  }
+
   Future<String> resolveStorageUrl(String bucket, String pathOrSeed) async {
     if (pathOrSeed.isEmpty ||
         pathOrSeed.startsWith('data:image/') ||

@@ -28,6 +28,7 @@ class _Akn01MyProfilePageState extends ConsumerState<Akn01MyProfilePage> {
   Profil? _profile;
   List<Post> _myPosts = const <Post>[];
   List<SavedPost> _savedPosts = const <SavedPost>[];
+  String? _loadedForUserId;
   bool _isLoading = true;
   AppError? _error;
 
@@ -39,9 +40,14 @@ class _Akn01MyProfilePageState extends ConsumerState<Akn01MyProfilePage> {
 
   Future<void> _load() async {
     if (!mounted) return;
+    final currentUid = ref.read(authRepositoryProvider).currentUserId;
     setState(() {
+      _loadedForUserId = currentUid;
       _isLoading = true;
       _error = null;
+      _profile = null;
+      _myPosts = const <Post>[];
+      _savedPosts = const <SavedPost>[];
     });
 
     final profileRes = await ref.read(profileRepositoryProvider).getMyProfile();
@@ -119,6 +125,13 @@ class _Akn01MyProfilePageState extends ConsumerState<Akn01MyProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<int>(authSessionEpochProvider, (_, _) {
+      _load();
+    });
+    final activeUid = ref.watch(authRepositoryProvider).currentUserId;
+    if (activeUid != _loadedForUserId && !_isLoading) {
+      Future<void>.microtask(_load);
+    }
     final unreadCounts =
         ref.watch(unreadCountsProvider).value ??
         ref.read(navigationBadgeRepositoryProvider).currentUnreadCounts();

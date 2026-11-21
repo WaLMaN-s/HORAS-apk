@@ -4,7 +4,7 @@ import 'package:horas/core/widgets/widgets.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:share_plus/share_plus.dart';
 
-/// PSN-06 Penampil Media dalam Chat (zoom & bagikan).
+/// PSN-06 Penampil Media dalam Chat (rasio asli tanpa terpotong 1:1, zoom & bagikan).
 class Psn06MediaViewerPage extends StatelessWidget {
   const Psn06MediaViewerPage({required this.photoSeed, super.key});
 
@@ -28,8 +28,14 @@ class Psn06MediaViewerPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final effectiveSeed = photoSeed.isEmpty ? 'horas-chat-media' : photoSeed;
+    final isReal = PlaceholderImage.isRealImageSeed(effectiveSeed);
+
     return Scaffold(
+      backgroundColor: Colors.black,
       appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
         title: const Text(AppStrings.psn06Title),
         actions: <Widget>[
           IconButton(
@@ -43,19 +49,27 @@ class Psn06MediaViewerPage extends StatelessWidget {
         ],
       ),
       body: SafeArea(
-        child: Center(
-          child: InteractiveViewer(
-            minScale: 0.8,
-            maxScale: 4.0,
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              child: PlaceholderImage(
-                seed: photoSeed.isEmpty ? 'horas-chat-media' : photoSeed,
-                width: 340,
-                height: 340,
-              ),
-            ),
-          ),
+        child: InteractiveViewer(
+          minScale: 0.8,
+          maxScale: 4.5,
+          child: isReal
+              ? SizedBox.expand(
+                  child: PlaceholderImage(
+                    seed: effectiveSeed,
+                    fit: BoxFit.contain,
+                    borderRadius: BorderRadius.zero,
+                  ),
+                )
+              : Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    child: PlaceholderImage(
+                      seed: effectiveSeed,
+                      width: 340,
+                      height: 340,
+                    ),
+                  ),
+                ),
         ),
       ),
     );

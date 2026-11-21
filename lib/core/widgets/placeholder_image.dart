@@ -19,6 +19,7 @@ class PlaceholderImage extends StatelessWidget {
     this.caption,
     this.semanticsLabel,
     this.showMountainSilhouette = true,
+    this.fit = BoxFit.cover,
   });
 
   final String seed;
@@ -28,6 +29,7 @@ class PlaceholderImage extends StatelessWidget {
   final String? caption;
   final String? semanticsLabel;
   final bool showMountainSilhouette;
+  final BoxFit fit;
 
   static const List<(Color, Color, Color)> _tobaUlosPalettes =
       <(Color, Color, Color)>[
@@ -123,7 +125,7 @@ class PlaceholderImage extends StatelessWidget {
         dataUriBytes,
         width: width,
         height: height,
-        fit: BoxFit.cover,
+        fit: fit,
         gaplessPlayback: true,
         errorBuilder: (_, _, _) => gradientFallback,
       );
@@ -132,7 +134,7 @@ class PlaceholderImage extends StatelessWidget {
         imageUrl: seed,
         width: width,
         height: height,
-        fit: BoxFit.cover,
+        fit: fit,
         placeholder: (context, url) => gradientFallback,
         errorWidget: (context, url, error) => gradientFallback,
       );

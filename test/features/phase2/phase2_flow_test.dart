@@ -19,6 +19,7 @@ import 'package:horas/data/mock/mock_store.dart';
 import 'package:horas/domain/models/models.dart';
 import 'package:horas/domain/partuturan/partuturan_confidence.dart';
 import 'package:horas/features/home/presentation/ber02_story_viewer_page.dart';
+import 'package:horas/features/home/presentation/ber03_create_story_page.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -533,9 +534,57 @@ void main() {
         expect(find.text(AppStrings.cropRotateTooltip), findsOneWidget);
         expect(find.text(AppStrings.cropResetTooltip), findsOneWidget);
         expect(find.text('1:1'), findsOneWidget);
+        expect(find.text('4:5'), findsOneWidget);
         expect(find.text('4:3'), findsOneWidget);
         expect(find.text('16:9'), findsOneWidget);
         expect(find.text('9:16'), findsOneWidget);
+        expect(find.text('9:18'), findsOneWidget);
+
+        await tester.tap(find.text('9:18'));
+        await tester.pumpAndSettle();
+        final aspectWidget = tester.widget<AspectRatio>(
+          find.byType(AspectRatio),
+        );
+        expect(aspectWidget.aspectRatio, closeTo(0.5, 0.001));
+      },
+    );
+
+    testWidgets(
+      'BER-03 Buat Story tampil gaya IG Story Studio gelap siap kamera & galeri',
+      (tester) async {
+        final mockStore = MockStore(
+          appConfig: const AppConfig(
+            env: AppEnvironment.dev,
+            useMockBackend: true,
+            allowDraftRules: true,
+          ),
+          enableNetworkLatency: false,
+        );
+        final container = ProviderContainer(
+          overrides: [
+            enableMockNetworkLatencyProvider.overrideWithValue(false),
+            mockStoreProvider.overrideWithValue(mockStore),
+            featureFlagsProvider.overrideWithValue(FeatureFlags.phase2),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: MaterialApp(
+              theme: AppTheme.light(),
+              home: const Ber03CreateStoryPage(),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text(AppStrings.ber03Title), findsOneWidget);
+        expect(find.text(AppStrings.ber03PublishBtn), findsOneWidget);
+        expect(find.text(AppStrings.aut06PickPhotoCamera), findsOneWidget);
+        expect(find.text(AppStrings.aut06PickPhotoGallery), findsOneWidget);
+        expect(find.text(AppStrings.ber03CameraReadyHint), findsOneWidget);
       },
     );
   });

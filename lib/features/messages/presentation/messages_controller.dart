@@ -44,6 +44,7 @@ class ConversationsListController extends Notifier<ConversationsListState> {
 
   @override
   ConversationsListState build() {
+    ref.watch(authSessionEpochProvider);
     final chatRepo = ref.watch(chatRepositoryProvider);
     _convSub?.cancel();
     _convSub = chatRepo.watchConversations().listen((updated) {

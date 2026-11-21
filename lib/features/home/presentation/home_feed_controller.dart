@@ -60,6 +60,7 @@ class HomeFeedController extends Notifier<HomeFeedState> {
 
   @override
   HomeFeedState build() {
+    ref.watch(authSessionEpochProvider);
     Future<void>.microtask(loadInitial);
     return HomeFeedState(
       currentUserId: ref.read(authRepositoryProvider).currentUserId,

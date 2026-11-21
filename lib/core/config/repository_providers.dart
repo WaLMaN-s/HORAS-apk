@@ -11,6 +11,20 @@ import 'package:horas/data/supabase/supabase_repositories.dart';
 import 'package:horas/domain/repositories/repositories.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+/// Penanda epoch sesi login/logout agar seluruh controller & halaman tab otomatis
+/// menyegarkan data saat pengguna keluar atau berpindah akun tanpa perlu refresh manual.
+class AuthSessionEpochNotifier extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  void bump() => state = state + 1;
+}
+
+final authSessionEpochProvider =
+    NotifierProvider<AuthSessionEpochNotifier, int>(
+      AuthSessionEpochNotifier.new,
+    );
+
 /// Sakelar latensi jaringan tiruan (300–800 ms di aplikasi; dapat di-override `false` di tes).
 final enableMockNetworkLatencyProvider = Provider<bool>((ref) => true);
 
@@ -102,6 +116,7 @@ final connectionRepositoryProvider = Provider<ConnectionRepository>((ref) {
 final blockRepositoryProvider = Provider<BlockRepository>((ref) {
   final config = ref.watch(appConfigProvider);
   if (!config.useMockBackend) {
+    ref.watch(authSessionEpochProvider);
     return SupabaseBlockRepository(ref.watch(supabaseGatewayProvider));
   }
   return MockBlockRepository(ref.watch(mockStoreProvider));
@@ -141,6 +156,7 @@ final searchRepositoryProvider = Provider<SearchRepository>((ref) {
 final nearbyRepositoryProvider = Provider<NearbyRepository>((ref) {
   final config = ref.watch(appConfigProvider);
   if (!config.useMockBackend) {
+    ref.watch(authSessionEpochProvider);
     return SupabaseNearbyRepository(ref.watch(supabaseGatewayProvider));
   }
   return MockNearbyRepository(ref.watch(mockStoreProvider));
@@ -188,6 +204,7 @@ final courtRepositoryProvider = Provider<CourtRepository>((ref) {
 final chatRepositoryProvider = Provider<ChatRepository>((ref) {
   final config = ref.watch(appConfigProvider);
   if (!config.useMockBackend) {
+    ref.watch(authSessionEpochProvider);
     final repo = SupabaseChatRepository(ref.watch(supabaseGatewayProvider));
     ref.onDispose(repo.dispose);
     return repo;
@@ -199,6 +216,7 @@ final chatRepositoryProvider = Provider<ChatRepository>((ref) {
 final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
   final config = ref.watch(appConfigProvider);
   if (!config.useMockBackend) {
+    ref.watch(authSessionEpochProvider);
     final repo = SupabaseNotificationRepository(
       ref.watch(supabaseGatewayProvider),
     );
@@ -230,6 +248,7 @@ final verificationRepositoryProvider = Provider<VerificationRepository>((ref) {
 final taromboRepositoryProvider = Provider<TaromboRepository>((ref) {
   final config = ref.watch(appConfigProvider);
   if (!config.useMockBackend) {
+    ref.watch(authSessionEpochProvider);
     return SupabaseTaromboRepository(ref.watch(supabaseGatewayProvider));
   }
   return MockTaromboRepository(ref.watch(mockStoreProvider));
@@ -333,6 +352,7 @@ final partuturanDictionaryRepositoryProvider =
 
 /// Stream live jumlah lencana belum dibaca (Pesan & Notifikasi) untuk bilah atas.
 final unreadCountsProvider = StreamProvider<UnreadCounts>((ref) {
+  ref.watch(authSessionEpochProvider);
   final badges = ref.watch(navigationBadgeRepositoryProvider);
   final chatRepo = ref.watch(chatRepositoryProvider);
   final notifRepo = ref.watch(notificationRepositoryProvider);

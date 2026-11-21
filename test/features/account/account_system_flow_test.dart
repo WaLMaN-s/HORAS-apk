@@ -19,6 +19,8 @@ import 'package:horas/features/account/presentation/akn07_settings_page.dart';
 import 'package:horas/features/account/presentation/akn09_security_page.dart';
 import 'package:horas/features/account/presentation/akn10_notification_prefs_page.dart';
 import 'package:horas/features/account/presentation/akn14_delete_account_page.dart';
+import 'package:horas/features/auth/presentation/auth_flow_controller.dart';
+import 'package:horas/features/home/presentation/home_feed_controller.dart';
 import 'package:horas/features/system/presentation/sis02_report_page.dart';
 import 'package:horas/features/system/presentation/sis03_report_status_page.dart';
 import 'package:horas/features/system/presentation/sis08_guidelines_page.dart';
@@ -409,6 +411,53 @@ void main() {
           await tester.pumpAndSettle();
           expect(find.byType(Sis08GuidelinesPage), findsOneWidget);
           expect(find.text(AppStrings.sis08PublicReadNotice), findsOneWidget);
+        },
+      );
+
+      testWidgets(
+        'Pindah akun setelah logout otomatis menyegarkan profil & Beranda tanpa refresh manual',
+        (tester) async {
+          final store = _makeStore();
+          final container = ProviderContainer(
+            overrides: [
+              enableMockNetworkLatencyProvider.overrideWithValue(false),
+              mockStoreProvider.overrideWithValue(store),
+            ],
+          );
+          addTearDown(container.dispose);
+
+          await tester.pumpWidget(
+            UncontrolledProviderScope(
+              container: container,
+              child: const HorasApp(),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          // Buka tab Akun saat masih login sebagai u-01
+          final u01Name = store.usersById['u-01']!.displayName;
+          final u02Profile = store.usersById['u-02']!;
+          await tester.tap(find.text(AppStrings.tabAkun));
+          await tester.pumpAndSettle();
+          expect(find.byType(Akn01MyProfilePage), findsOneWidget);
+          expect(find.text(u01Name), findsWidgets);
+
+          // Keluar akun u-01 dan langsung masuk sebagai akun lain (u-02)
+          await container.read(authRepositoryProvider).logout();
+          container.read(authSessionEpochProvider.notifier).bump();
+          final authCtrl = container.read(authFlowControllerProvider.notifier);
+          await authCtrl.sendOtpForLogin(u02Profile.phoneE164);
+          final switched = await authCtrl.verifyOtpCode('123456');
+          expect(switched?.id, 'u-02');
+
+          await tester.pumpAndSettle();
+
+          // Pastikan HomeFeedController & Akn01MyProfilePage otomatis memuat akun u-02
+          expect(
+            container.read(homeFeedControllerProvider).currentUserId,
+            'u-02',
+          );
+          expect(find.text(u02Profile.displayName), findsWidgets);
         },
       );
     },

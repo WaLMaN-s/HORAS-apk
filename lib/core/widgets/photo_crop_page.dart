@@ -15,9 +15,11 @@ typedef CropAspectPreset = ({String label, double ratio});
 
 const List<CropAspectPreset> kDefaultCropPresets = <CropAspectPreset>[
   (label: '1:1', ratio: 1.0),
+  (label: '4:5', ratio: 4 / 5),
   (label: '4:3', ratio: 4 / 3),
   (label: '16:9', ratio: 16 / 9),
   (label: '9:16', ratio: 9 / 16),
+  (label: '9:18', ratio: 9 / 18),
 ];
 
 /// Layar interaktif untuk menggeser, zoom, memutar, dan memotong foto
@@ -171,6 +173,9 @@ class _PhotoCropPageState extends State<PhotoCropPage> {
           : 2.0;
 
       final image = await renderObj.toImage(pixelRatio: pixelRatio);
+      final actualAspectRatio = image.height > 0
+          ? image.width / image.height
+          : _aspectRatio;
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       image.dispose();
 
@@ -181,7 +186,7 @@ class _PhotoCropPageState extends State<PhotoCropPage> {
         maxDimension: widget.outputMaxDimension,
         quality: widget.quality,
         maxRawBytes: widget.maxRawBytes,
-        aspectRatio: _aspectRatio,
+        aspectRatio: actualAspectRatio,
       );
       if (mounted) {
         Navigator.of(context).pop(encoded);
@@ -252,47 +257,50 @@ class _PhotoCropPageState extends State<PhotoCropPage> {
               child: Center(
                 child: Padding(
                   padding: const EdgeInsets.all(AppSpacing.lg),
-                  child: AspectRatio(
-                    aspectRatio: _aspectRatio,
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: <Widget>[
-                        // Area gambar yang dipotong & direkam RepaintBoundary
-                        RepaintBoundary(
-                          key: _cropBoundaryKey,
-                          child: ClipRect(
-                            child: ColoredBox(
-                              color: Colors.black,
-                              child: InteractiveViewer(
-                                transformationController: _transformCtrl,
-                                minScale: 1.0,
-                                maxScale: 4.5,
-                                boundaryMargin: const EdgeInsets.all(160),
-                                child: Center(
-                                  child: RotatedBox(
-                                    quarterTurns: _quarterTurns,
-                                    child: Image.memory(
-                                      widget.imageBytes,
-                                      fit: BoxFit.cover,
-                                      width: double.infinity,
-                                      height: double.infinity,
+                  child: KeyedSubtree(
+                    key: ValueKey<double>(_aspectRatio),
+                    child: AspectRatio(
+                      aspectRatio: _aspectRatio,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: <Widget>[
+                          // Area gambar yang dipotong & direkam RepaintBoundary
+                          RepaintBoundary(
+                            key: _cropBoundaryKey,
+                            child: ClipRect(
+                              child: ColoredBox(
+                                color: Colors.black,
+                                child: InteractiveViewer(
+                                  transformationController: _transformCtrl,
+                                  minScale: 1.0,
+                                  maxScale: 4.5,
+                                  boundaryMargin: const EdgeInsets.all(240),
+                                  child: Center(
+                                    child: RotatedBox(
+                                      quarterTurns: _quarterTurns,
+                                      child: Image.memory(
+                                        widget.imageBytes,
+                                        fit: BoxFit.cover,
+                                        width: double.infinity,
+                                        height: double.infinity,
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                        // Garis kisi bantu 3x3 + bingkai pemotong (tidak ikut terekam)
-                        IgnorePointer(
-                          child: CustomPaint(
-                            painter: _CropGridPainter(
-                              borderColor: colors.primary,
-                              isCircular: widget.isCircularPreview,
+                          // Garis kisi bantu 3x3 + bingkai pemotong (tidak ikut terekam)
+                          IgnorePointer(
+                            child: CustomPaint(
+                              painter: _CropGridPainter(
+                                borderColor: colors.primary,
+                                isCircular: widget.isCircularPreview,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -317,7 +325,7 @@ class _PhotoCropPageState extends State<PhotoCropPage> {
                       alignment: WrapAlignment.center,
                       children: widget.aspectPresets.map((preset) {
                         final selected =
-                            (_aspectRatio - preset.ratio).abs() < 0.05;
+                            (_aspectRatio - preset.ratio).abs() < 0.025;
                         return ChoiceChip(
                           label: Text(preset.label),
                           selected: selected,

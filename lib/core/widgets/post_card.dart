@@ -494,6 +494,9 @@ class _PostCardState extends State<PostCard> {
                                   seeds: post.media
                                       .map((m) => m.seed)
                                       .toList(growable: false),
+                                  aspectRatios: post.media
+                                      .map((m) => m.aspectRatio)
+                                      .toList(growable: false),
                                   initialIndex: index,
                                   title: author.displayName,
                                 );
@@ -781,10 +784,24 @@ class _PostMediaGalleryState extends State<_PostMediaGallery> {
   }
 
   void _onScroll() {
-    if (!_scrollController.hasClients) return;
-    final idx = (_scrollController.offset / (_multiItemWidth + AppSpacing.sm))
-        .round()
-        .clamp(0, widget.media.length - 1);
+    if (!_scrollController.hasClients || widget.media.isEmpty) return;
+    const galleryHeight = 280.0;
+    final avgWidth =
+        widget.media.fold<double>(
+          0,
+          (sum, m) =>
+              sum +
+              (galleryHeight * m.aspectRatio.clamp(0.48, 1.78)).clamp(
+                144.0,
+                320.0,
+              ),
+        ) /
+        widget.media.length;
+    final stride = (avgWidth > 0 ? avgWidth : _multiItemWidth) + AppSpacing.sm;
+    final idx = (_scrollController.offset / stride).round().clamp(
+      0,
+      widget.media.length - 1,
+    );
     if (idx != _activeIndex && mounted) {
       setState(() => _activeIndex = idx);
     }
@@ -851,27 +868,39 @@ class _PostMediaGalleryState extends State<_PostMediaGallery> {
 
     if (widget.media.length == 1) {
       final item = widget.media.first;
+      // Pertahankan proporsi asli termasuk rasio vertikal 9:18 (0.5) & 9:16 (0.5625)
+      final ratio = item.aspectRatio.clamp(0.48, 1.85);
       return GestureDetector(
         onTap: () => widget.onOpenLightbox(0),
         onDoubleTap: widget.onDoubleTapLike,
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: AppRadius.photoRadius,
-            border: Border.all(color: borderColor, width: AppSizes.strokeThin),
-          ),
-          child: AspectRatio(
-            aspectRatio: item.aspectRatio.clamp(0.8, 1.65),
-            child: _buildMediaItem(context, item),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 540),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: AspectRatio(
+              aspectRatio: ratio,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: AppRadius.photoRadius,
+                  border: Border.all(
+                    color: borderColor,
+                    width: AppSizes.strokeThin,
+                  ),
+                ),
+                child: _buildMediaItem(context, item),
+              ),
+            ),
           ),
         ),
       );
     }
 
+    const galleryHeight = 280.0;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         SizedBox(
-          height: 244,
+          height: galleryHeight,
           child: ListView.separated(
             controller: _scrollController,
             scrollDirection: Axis.horizontal,
@@ -881,6 +910,11 @@ class _PostMediaGalleryState extends State<_PostMediaGallery> {
                 const SizedBox(width: AppSpacing.sm),
             itemBuilder: (context, index) {
               final item = widget.media[index];
+              final itemWidth =
+                  (galleryHeight * item.aspectRatio.clamp(0.48, 1.78)).clamp(
+                    144.0,
+                    320.0,
+                  );
               return GestureDetector(
                 onTap: () => widget.onOpenLightbox(index),
                 onDoubleTap: widget.onDoubleTapLike,
@@ -895,8 +929,8 @@ class _PostMediaGalleryState extends State<_PostMediaGallery> {
                   child: _buildMediaItem(
                     context,
                     item,
-                    width: _multiItemWidth,
-                    height: 244,
+                    width: itemWidth,
+                    height: galleryHeight,
                   ),
                 ),
               );

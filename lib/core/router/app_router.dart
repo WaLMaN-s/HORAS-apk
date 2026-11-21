@@ -43,7 +43,11 @@ GoRouter createAppRouter({
   String initialLocation = AppPages.berandaPath,
   AuthRepository? authRepository,
 }) {
+  final rootNavigatorKey = GlobalKey<NavigatorState>(
+    debugLabel: 'horasRootNavigator',
+  );
   return GoRouter(
+    navigatorKey: rootNavigatorKey,
     initialLocation: initialLocation,
     redirect: (context, state) {
       final uri = state.uri;
@@ -103,6 +107,11 @@ GoRouter createAppRouter({
               _buildTabBranchRouteWithState(
                 rootSpec: AppPages.ber01,
                 childSpecs: AppPages.homePages.skip(1).toList(),
+                rootNavigatorKey: rootNavigatorKey,
+                fullScreenChildIds: <String>{
+                  AppPages.ber02.id,
+                  AppPages.ber03.id,
+                },
                 rootBuilder: (spec, state) => HomeModulePageRouter(
                   pageSpec: spec,
                   routerState: state,
@@ -229,6 +238,8 @@ GoRoute _buildTabBranchRouteWithState({
   required List<PageSpec> childSpecs,
   required Widget Function(PageSpec spec, GoRouterState state) rootBuilder,
   required Widget Function(PageSpec spec, GoRouterState state) childBuilder,
+  GlobalKey<NavigatorState>? rootNavigatorKey,
+  Set<String> fullScreenChildIds = const <String>{},
 }) {
   final prefix = '${rootSpec.routePath}/';
   return GoRoute(
@@ -238,6 +249,9 @@ GoRoute _buildTabBranchRouteWithState({
     routes: <RouteBase>[
       for (final child in childSpecs)
         GoRoute(
+          parentNavigatorKey: fullScreenChildIds.contains(child.id)
+              ? rootNavigatorKey
+              : null,
           path: child.routePath.startsWith(prefix)
               ? child.routePath.substring(prefix.length)
               : child.routePath,

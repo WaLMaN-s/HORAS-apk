@@ -84,21 +84,30 @@ class _Ber05MediaPickerPageState extends ConsumerState<Ber05MediaPickerPage> {
   Future<void> _pickFromCamera() async {
     if (_items.length >= AppLimits.postMaxPhotos) return;
     try {
-      final encoded = await ImageDataUriHelper.pickAndEncodeImage(
+      final raw = await ImageDataUriHelper.pickRawImage(
         ImageSource.camera,
-        maxDimension: 720,
-        quality: 75,
+        maxDimension: 1440,
+        quality: 88,
+      );
+      if (!mounted || raw == null) return;
+      final cropped = await PhotoCropPage.show(
+        context,
+        imageBytes: raw.bytes,
+        fileName: raw.name,
+        initialAspectRatio: 1.0,
+        outputMaxDimension: 800,
+        quality: 78,
         maxRawBytes: AppLimits.postPhotoMaxBytes,
       );
-      if (!mounted || encoded == null) return;
+      if (!mounted || cropped == null) return;
       setState(() {
         _items.add(
           SelectedMediaItem(
             id: 'cam-${DateTime.now().microsecondsSinceEpoch}-${_items.length}',
-            seed: encoded.dataUri,
-            originalBytesCount: encoded.originalBytesCount,
-            compressedBytes: encoded.compressedBytes,
-            aspectRatio: 1.0,
+            seed: cropped.dataUri,
+            originalBytesCount: cropped.originalBytesCount,
+            compressedBytes: cropped.compressedBytes,
+            aspectRatio: cropped.aspectRatio,
           ),
         );
       });
@@ -113,6 +122,30 @@ class _Ber05MediaPickerPageState extends ConsumerState<Ber05MediaPickerPage> {
     } on Object {
       _addSamplePhoto();
     }
+  }
+
+  Future<void> _cropItem(int index) async {
+    final item = _items[index];
+    final bytes =
+        item.compressedBytes ?? ImageDataUriHelper.decodeDataUri(item.seed);
+    if (bytes == null) return;
+    final cropped = await PhotoCropPage.show(
+      context,
+      imageBytes: bytes,
+      initialAspectRatio: item.aspectRatio,
+      outputMaxDimension: 800,
+      quality: 78,
+      maxRawBytes: AppLimits.postPhotoMaxBytes,
+    );
+    if (!mounted || cropped == null) return;
+    setState(() {
+      _items[index] = item.copyWith(
+        seed: cropped.dataUri,
+        originalBytesCount: cropped.originalBytesCount,
+        compressedBytes: cropped.compressedBytes,
+        aspectRatio: cropped.aspectRatio,
+      );
+    });
   }
 
   void _addSamplePhoto() {
@@ -346,6 +379,21 @@ class _Ber05MediaPickerPageState extends ConsumerState<Ber05MediaPickerPage> {
                                             onTap: () =>
                                                 _setCropRatio(index, 16 / 9),
                                           ),
+                                          if (!item.isVideo &&
+                                              (item.compressedBytes != null ||
+                                                  item.seed.startsWith(
+                                                    'data:image/',
+                                                  )))
+                                            ActionChip(
+                                              avatar: const Icon(
+                                                Icons.crop_rounded,
+                                                size: 16,
+                                              ),
+                                              label: const Text(
+                                                AppStrings.cropPageTitle,
+                                              ),
+                                              onPressed: () => _cropItem(index),
+                                            ),
                                         ],
                                       ),
                                     ],

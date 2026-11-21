@@ -1,15 +1,24 @@
+import 'dart:convert';
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:horas/app.dart';
 import 'package:horas/core/config/app_config.dart';
 import 'package:horas/core/config/feature_flags.dart';
+import 'package:horas/core/config/repository_providers.dart';
 import 'package:horas/core/errors/result.dart';
 import 'package:horas/core/l10n/app_strings.dart';
+import 'package:horas/core/router/app_pages.dart';
+import 'package:horas/core/router/app_router.dart';
 import 'package:horas/core/theme/app_theme.dart';
 import 'package:horas/core/utils/place_geo_helper.dart';
+import 'package:horas/core/widgets/photo_crop_page.dart';
 import 'package:horas/core/widgets/place_location_picker.dart';
 import 'package:horas/data/mock/mock_repositories.dart';
 import 'package:horas/data/mock/mock_store.dart';
 import 'package:horas/domain/models/models.dart';
 import 'package:horas/domain/partuturan/partuturan_confidence.dart';
+import 'package:horas/features/home/presentation/ber02_story_viewer_page.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -428,6 +437,105 @@ void main() {
         expect(result, isNotNull);
         expect(result!.latitude, closeTo(3.5952, 0.001));
         expect(result!.longitude, closeTo(98.6722, 0.001));
+      },
+    );
+
+    testWidgets(
+      'BER-02 Story Viewer tampil layar penuh tanpa NavigationBar bawah dan dapat mengirim komentar/balasan ke pesan',
+      (tester) async {
+        final mockStore = MockStore(
+          appConfig: const AppConfig(
+            env: AppEnvironment.dev,
+            useMockBackend: true,
+            allowDraftRules: true,
+          ),
+          enableNetworkLatency: false,
+        );
+        final container = ProviderContainer(
+          overrides: [
+            enableMockNetworkLatencyProvider.overrideWithValue(false),
+            mockStoreProvider.overrideWithValue(mockStore),
+            featureFlagsProvider.overrideWithValue(FeatureFlags.phase2),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: const HorasApp(),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Buka Story milik pengguna lain (u-02)
+        final router = container.read(appRouterProvider);
+        final otherStory = mockStore.stories.firstWhere(
+          (s) => s.author.id != 'u-01',
+        );
+        router.push('${AppPages.ber02.routePath}?id=${otherStory.id}').ignore();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+
+        expect(find.byType(Ber02StoryViewerPage), findsOneWidget);
+        // Pastikan tidak ada NavigationBar (menu bawah) di layar Story
+        expect(find.byType(NavigationBar), findsNothing);
+
+        // Pastikan kotak komentar/balasan Story tampil dan mengirim ke DM
+        final replyField = find.widgetWithText(
+          TextField,
+          AppStrings.ber02ReplyHint,
+        );
+        expect(replyField, findsOneWidget);
+        await tester.enterText(replyField, 'Keren fotonya!');
+        await tester.tap(find.byTooltip(AppStrings.ber02ReplySendTooltip));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+
+        final dm = mockStore.conversations.firstWhere(
+          (c) =>
+              c.type == ConversationType.direct &&
+              c.participants.any((p) => p.id == otherStory.author.id),
+        );
+        final msgs = mockStore.messagesByConversationId[dm.id] ?? <Message>[];
+        expect(
+          msgs.any(
+            (m) =>
+                m.text.contains('Membalas story') &&
+                m.text.contains('Keren fotonya!'),
+          ),
+          isTrue,
+        );
+      },
+    );
+
+    testWidgets(
+      'PhotoCropPage menampilkan pratinjau crop interaktif, kontrol rotasi, dan opsi rasio',
+      (tester) async {
+        // PNG 1x1 transparan valid
+        final tinyPng = base64Decode(
+          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+        );
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.light(),
+            home: PhotoCropPage(
+              imageBytes: tinyPng,
+              initialAspectRatio: 1.0,
+              isCircularPreview: true,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text(AppStrings.cropPageTitle), findsOneWidget);
+        expect(find.text(AppStrings.cropApplyBtn), findsOneWidget);
+        expect(find.text(AppStrings.cropRotateTooltip), findsOneWidget);
+        expect(find.text(AppStrings.cropResetTooltip), findsOneWidget);
+        expect(find.text('1:1'), findsOneWidget);
+        expect(find.text('4:3'), findsOneWidget);
+        expect(find.text('16:9'), findsOneWidget);
+        expect(find.text('9:16'), findsOneWidget);
       },
     );
   });

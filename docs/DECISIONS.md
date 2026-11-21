@@ -256,3 +256,14 @@ Dokumen ini mencatat seluruh keputusan teknis, asumsi produk saat PRD ambigu, da
   1. **Follback + Pesan Gaya IG (`PersonSummary.isFollowedBy`, `0011_follback_and_place_discovery.sql`, `SEK-04`):** Menambahkan `isFollowedBy` di `PersonSummary` dan `_build_person_summary`, mengizinkan DM bila sudah terhubung/mengikuti/diikuti, serta menampilkan baris 2 tombol sejajar (`Follback`/`Ikuti`/`Mengikuti` di samping `Pesan`).
   2. **Foto Profil di Daftar Pesan (`PSN-01` & `SupabaseChatRepository`):** Memperbaiki `Psn01ConversationsPage` agar memakai `otherParticipant.avatarSeed` (sebelumnya keliru memakai `conv.id`), dan menyegarkan cache ringkasan pengguna saat memuat daftar percakapan.
   3. **Lokasi Sekitar & Lacak Lokasi Tujuan (`MainActivity.kt`, `PlaceDiscoveryService`, `PlayController`, `MAN-01`):** Meningkatkan pembacaan lokasi perkiraan Android (`FUSED_PROVIDER` + `getCurrentLocation` tetap berizin `ACCESS_COARSE_LOCATION` tanpa GPS presisi `AUT-R10`), menambahkan layanan geocoding/Overpass `PlaceDiscoveryService` untuk melacak lokasi tujuan (seperti `Cilandak, Jakarta Selatan`) beserta lapangan & gereja terdekat, serta tetap menampilkan daftar lapangan & gereja pada `MAN-01` walaupun belum ada sesi main aktif di area tersebut.
+
+## D-031 — Story Layar Penuh Tanpa Menu Bawah, Komentar/Balas Story Gaya IG (`BER-02`), & Fitur Crop Foto (`PhotoCropPage`)
+- **Tanggal:** 2026-11-21
+- **Konteks:** Pengguna meminta:
+  1. Saat melihat Story orang lain (`BER-02`), pengguna dapat langsung berkomentar/membalas seperti Instagram.
+  2. Saat masuk ke layar Story (`BER-02` & `BER-03`), bilah menu navigasi bawah tidak tampil lagi (layar penuh).
+  3. Menambahkan fitur potong foto (*crop*) interaktif saat mengunggah foto profil, story, maupun postingan.
+- **Keputusan & Implementasi:**
+  1. **Layar Penuh Tanpa Menu Bawah (`app_router.dart`):** Menambahkan `rootNavigatorKey` dan `parentNavigatorKey: rootNavigatorKey` pada rute `BER-02` dan `BER-03` agar `NavigationBar` utama tidak tampil saat menonton atau membuat Story.
+  2. **Balas / Komentar Story Gaya IG (`BER-02`):** Ketika `!isMine`, `Ber02StoryViewerPage` menampilkan bilah input `Komentar / balas story...` yang otomatis menjeda timer putar story saat mengetik dan mengirim balasan ke DM pembuat story melalui `ChatRepository.openDirectConversationWithUser` + `sendMessage` (tetap tanpa tombol bagikan ulang sesuai `BER-R12`).
+  3. **Fitur Crop Foto (`PhotoCropPage`, `ImageDataUriHelper`):** Membuat halaman pemotong foto interaktif (`InteractiveViewer` cubit-zoom/geser, putar 90°, preset rasio `1:1`/`4:3`/`16:9`/`9:16`, pratinjau lingkaran untuk avatar, serta kompresi bebas EXIF `AC-10`) yang terintegrasi di `AKN-02`, `AUT-06`, `BER-03`, `BER-04`, dan `BER-05`.

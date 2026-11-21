@@ -42,20 +42,30 @@ class _Ber03CreateStoryPageState extends ConsumerState<Ber03CreateStoryPage> {
 
   Future<void> _selectPhoto([ImageSource source = ImageSource.gallery]) async {
     try {
-      final encoded = await ImageDataUriHelper.pickAndEncodeImage(
+      final raw = await ImageDataUriHelper.pickRawImage(
         source,
-        maxDimension: 720,
-        quality: 75,
+        maxDimension: 1440,
+        quality: 88,
       );
       if (!mounted) return;
-      if (encoded != null) {
+      if (raw != null) {
+        final cropped = await PhotoCropPage.show(
+          context,
+          imageBytes: raw.bytes,
+          fileName: raw.name,
+          initialAspectRatio: 9 / 16,
+          outputMaxDimension: 960,
+          quality: 78,
+        );
+        if (!mounted || cropped == null) return;
         setState(() {
           _isVideo = false;
           _durationSeconds = 5;
-          _mediaSeed = encoded.dataUri;
+          _mediaSeed = cropped.dataUri;
         });
         return;
       }
+      return;
     } on Object {
       // Fallback deterministik pada simulator/pengujian tanpa galeri fisik.
     }
@@ -64,6 +74,23 @@ class _Ber03CreateStoryPageState extends ConsumerState<Ber03CreateStoryPage> {
       _isVideo = false;
       _durationSeconds = 5;
       _mediaSeed = 'story-photo-${DateTime.now().microsecondsSinceEpoch}';
+    });
+  }
+
+  Future<void> _cropCurrentPhoto() async {
+    final bytes = ImageDataUriHelper.decodeDataUri(_mediaSeed);
+    if (bytes == null) return;
+    final cropped = await PhotoCropPage.show(
+      context,
+      imageBytes: bytes,
+      initialAspectRatio: 9 / 16,
+      outputMaxDimension: 960,
+      quality: 78,
+    );
+    if (!mounted || cropped == null) return;
+    setState(() {
+      _isVideo = false;
+      _mediaSeed = cropped.dataUri;
     });
   }
 
@@ -216,6 +243,17 @@ class _Ber03CreateStoryPageState extends ConsumerState<Ber03CreateStoryPage> {
                   icon: const Icon(Icons.camera_alt_outlined),
                   label: const Text(AppStrings.aut06PickPhotoCamera),
                 ),
+                if (hasRealPhoto)
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: colors.primary,
+                      side: BorderSide(color: colors.primary),
+                      minimumSize: const Size(0, AppSizes.minTouchTarget),
+                    ),
+                    onPressed: _cropCurrentPhoto,
+                    icon: const Icon(Icons.crop_rounded),
+                    label: const Text(AppStrings.ber03CropPhotoBtn),
+                  ),
                 OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
                     foregroundColor: _isVideo ? colors.primary : colors.text,

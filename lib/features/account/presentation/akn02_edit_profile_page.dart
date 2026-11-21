@@ -6,11 +6,11 @@ import 'package:horas/core/l10n/app_strings.dart';
 import 'package:horas/core/router/app_pages.dart';
 import 'package:horas/core/theme/app_theme.dart';
 import 'package:horas/core/theme/app_tokens.dart';
+import 'package:horas/core/utils/image_data_uri_helper.dart';
 import 'package:horas/core/widgets/widgets.dart';
 import 'package:horas/domain/models/models.dart';
 import 'package:horas/domain/policies/app_limits.dart';
 import 'package:horas/features/home/presentation/home_feed_controller.dart';
-import 'package:horas/features/messages/presentation/chat_thread_widgets.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -161,9 +161,62 @@ class _Akn02EditProfilePageState extends ConsumerState<Akn02EditProfilePage> {
   }
 
   Future<void> _changePhoto([ImageSource source = ImageSource.gallery]) async {
-    final seed = await pickAndCompressChatPhoto(context, source: source);
-    if (seed != null && mounted) {
-      setState(() => _avatarSeed = seed);
+    try {
+      final raw = await ImageDataUriHelper.pickRawImage(
+        source,
+        maxDimension: 1024,
+        quality: 88,
+      );
+      if (!mounted) return;
+      if (raw == null) return;
+      final cropped = await PhotoCropPage.show(
+        context,
+        imageBytes: raw.bytes,
+        fileName: raw.name,
+        initialAspectRatio: 1.0,
+        isCircularPreview: true,
+        allowAspectSwitch: false,
+        outputMaxDimension: 512,
+        quality: 78,
+        maxRawBytes: AppLimits.messagePhotoMaxBytes,
+      );
+      if (cropped != null && mounted) {
+        setState(() => _avatarSeed = cropped.dataUri);
+      }
+      return;
+    } on FormatException {
+      if (mounted) {
+        AppToast.show(
+          context,
+          message: AppStrings.psn03PhotoTooLargeError,
+          variant: AppToastVariant.error,
+        );
+      }
+      return;
+    } on Object {
+      if (mounted) {
+        setState(
+          () => _avatarSeed =
+              'chat-photo-sample-${DateTime.now().millisecondsSinceEpoch}',
+        );
+      }
+    }
+  }
+
+  Future<void> _cropExistingAvatar() async {
+    final bytes = ImageDataUriHelper.decodeDataUri(_avatarSeed);
+    if (bytes == null) return;
+    final cropped = await PhotoCropPage.show(
+      context,
+      imageBytes: bytes,
+      initialAspectRatio: 1.0,
+      isCircularPreview: true,
+      allowAspectSwitch: false,
+      outputMaxDimension: 512,
+      quality: 78,
+    );
+    if (cropped != null && mounted) {
+      setState(() => _avatarSeed = cropped.dataUri);
     }
   }
 
@@ -254,6 +307,14 @@ class _Akn02EditProfilePageState extends ConsumerState<Akn02EditProfilePage> {
                               leadingIcon: Icons.camera_alt_outlined,
                               onPressed: () => _changePhoto(ImageSource.camera),
                             ),
+                            if (PlaceholderImage.isRealImageSeed(_avatarSeed) &&
+                                _avatarSeed.startsWith('data:image/'))
+                              AppButton(
+                                label: AppStrings.cropPageTitle,
+                                variant: AppButtonVariant.text,
+                                leadingIcon: Icons.crop_rounded,
+                                onPressed: _cropExistingAvatar,
+                              ),
                           ],
                         ),
                       ],

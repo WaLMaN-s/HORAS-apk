@@ -127,14 +127,46 @@ class _Ber04CreatePostPageState extends ConsumerState<Ber04CreatePostPage> {
 
   Future<void> _pickDirectFromGallery() async {
     if (_selectedMedia.length >= AppLimits.postMaxPhotos) return;
+    final remaining = AppLimits.postMaxPhotos - _selectedMedia.length;
     try {
+      if (remaining == 1) {
+        await _pickAndCropSingle(ImageSource.gallery, idPrefix: 'gal');
+        return;
+      }
       final pickedList = await ImageDataUriHelper.pickMultipleAndEncodeImages(
-        limit: AppLimits.postMaxPhotos - _selectedMedia.length,
-        maxDimension: 720,
-        quality: 75,
+        limit: remaining,
+        maxDimension: 960,
+        quality: 78,
         maxRawBytes: AppLimits.postPhotoMaxBytes,
       );
       if (!mounted || pickedList.isEmpty) return;
+      if (pickedList.length == 1) {
+        final item = pickedList.first;
+        final cropped = await PhotoCropPage.show(
+          context,
+          imageBytes: item.compressedBytes,
+          fileName: item.name,
+          initialAspectRatio: 1.0,
+          outputMaxDimension: 800,
+          quality: 78,
+          maxRawBytes: AppLimits.postPhotoMaxBytes,
+        );
+        if (!mounted) return;
+        final chosen = cropped ?? item;
+        setState(() {
+          _selectedMedia.add(
+            SelectedMediaItem(
+              id: 'gal-${DateTime.now().microsecondsSinceEpoch}-${_selectedMedia.length}',
+              seed: chosen.dataUri,
+              originalBytesCount: chosen.originalBytesCount,
+              compressedBytes: chosen.compressedBytes,
+              aspectRatio: chosen.aspectRatio,
+            ),
+          );
+          _errorText = null;
+        });
+        return;
+      }
       setState(() {
         for (final item in pickedList) {
           if (_selectedMedia.length >= AppLimits.postMaxPhotos) break;
@@ -166,25 +198,7 @@ class _Ber04CreatePostPageState extends ConsumerState<Ber04CreatePostPage> {
   Future<void> _pickDirectFromCamera() async {
     if (_selectedMedia.length >= AppLimits.postMaxPhotos) return;
     try {
-      final encoded = await ImageDataUriHelper.pickAndEncodeImage(
-        ImageSource.camera,
-        maxDimension: 720,
-        quality: 75,
-        maxRawBytes: AppLimits.postPhotoMaxBytes,
-      );
-      if (!mounted || encoded == null) return;
-      setState(() {
-        _selectedMedia.add(
-          SelectedMediaItem(
-            id: 'cam-${DateTime.now().microsecondsSinceEpoch}-${_selectedMedia.length}',
-            seed: encoded.dataUri,
-            originalBytesCount: encoded.originalBytesCount,
-            compressedBytes: encoded.compressedBytes,
-            aspectRatio: 1.0,
-          ),
-        );
-        _errorText = null;
-      });
+      await _pickAndCropSingle(ImageSource.camera, idPrefix: 'cam');
     } on FormatException {
       if (mounted) {
         AppToast.show(
@@ -196,6 +210,64 @@ class _Ber04CreatePostPageState extends ConsumerState<Ber04CreatePostPage> {
     } on Object {
       await _openMediaPicker();
     }
+  }
+
+  Future<void> _pickAndCropSingle(
+    ImageSource source, {
+    required String idPrefix,
+  }) async {
+    final raw = await ImageDataUriHelper.pickRawImage(
+      source,
+      maxDimension: 1440,
+      quality: 88,
+    );
+    if (!mounted || raw == null) return;
+    final cropped = await PhotoCropPage.show(
+      context,
+      imageBytes: raw.bytes,
+      fileName: raw.name,
+      initialAspectRatio: 1.0,
+      outputMaxDimension: 800,
+      quality: 78,
+      maxRawBytes: AppLimits.postPhotoMaxBytes,
+    );
+    if (!mounted || cropped == null) return;
+    setState(() {
+      _selectedMedia.add(
+        SelectedMediaItem(
+          id: '$idPrefix-${DateTime.now().microsecondsSinceEpoch}-${_selectedMedia.length}',
+          seed: cropped.dataUri,
+          originalBytesCount: cropped.originalBytesCount,
+          compressedBytes: cropped.compressedBytes,
+          aspectRatio: cropped.aspectRatio,
+        ),
+      );
+      _errorText = null;
+    });
+  }
+
+  Future<void> _cropSelectedMedia(int index) async {
+    final item = _selectedMedia[index];
+    final bytes =
+        item.compressedBytes ?? ImageDataUriHelper.decodeDataUri(item.seed);
+    if (bytes == null) return;
+    final cropped = await PhotoCropPage.show(
+      context,
+      imageBytes: bytes,
+      initialAspectRatio: item.aspectRatio,
+      outputMaxDimension: 800,
+      quality: 78,
+      maxRawBytes: AppLimits.postPhotoMaxBytes,
+    );
+    if (!mounted || cropped == null) return;
+    setState(() {
+      _selectedMedia[index] = item.copyWith(
+        seed: cropped.dataUri,
+        originalBytesCount: cropped.originalBytesCount,
+        compressedBytes: cropped.compressedBytes,
+        aspectRatio: cropped.aspectRatio,
+      );
+    });
   }
 
   Future<void> _onSubmit() async {
@@ -397,14 +469,42 @@ class _Ber04CreatePostPageState extends ConsumerState<Ber04CreatePostPage> {
                         const SizedBox(width: AppSpacing.sm),
                     itemBuilder: (context, index) {
                       final item = _selectedMedia[index];
+                      final canCrop =
+                          item.compressedBytes != null ||
+                          item.seed.startsWith('data:image/');
                       return Stack(
                         children: <Widget>[
-                          PlaceholderImage(
-                            seed: item.seed,
-                            width: 92,
-                            height: 92,
-                            borderRadius: AppRadius.photoRadius,
+                          GestureDetector(
+                            onTap: canCrop
+                                ? () => _cropSelectedMedia(index)
+                                : null,
+                            child: PlaceholderImage(
+                              seed: item.seed,
+                              width: 92,
+                              height: 92,
+                              borderRadius: AppRadius.photoRadius,
+                            ),
                           ),
+                          if (canCrop)
+                            Positioned(
+                              bottom: 4,
+                              left: 4,
+                              child: InkWell(
+                                onTap: () => _cropSelectedMedia(index),
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withValues(alpha: 0.7),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.crop_rounded,
+                                    size: 14,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
                           Positioned(
                             top: 2,
                             right: 2,

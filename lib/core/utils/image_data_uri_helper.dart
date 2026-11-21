@@ -11,24 +11,25 @@ final class EncodedImageResult {
     required this.originalBytesCount,
     required this.compressedBytes,
     required this.dataUri,
+    this.aspectRatio = 1.0,
   });
 
   final String name;
   final int originalBytesCount;
   final Uint8List compressedBytes;
   final String dataUri;
+  final double aspectRatio;
 }
 
 /// Helper untuk memilih foto dari Galeri/Kamera, menghapus EXIF/GPS di klien (`AC-10`),
 /// dan mengubahnya menjadi Data URI (`data:image/jpeg;base64,...`) agar langsung tampil
 /// di seluruh perangkat baik pada mode Mock maupun Supabase Cloud.
 abstract final class ImageDataUriHelper {
-  /// Memilih satu gambar dari [source] (`ImageSource.gallery` atau `ImageSource.camera`).
-  static Future<EncodedImageResult?> pickAndEncodeImage(
+  /// Memilih satu gambar mentah dari [source] untuk dipotong (`crop`) atau dikompres.
+  static Future<({String name, Uint8List bytes})?> pickRawImage(
     ImageSource source, {
-    int maxDimension = 640,
-    int quality = 75,
-    int? maxRawBytes,
+    int maxDimension = 1440,
+    int quality = 90,
   }) async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(
@@ -38,8 +39,77 @@ abstract final class ImageDataUriHelper {
       imageQuality: quality,
     );
     if (picked == null) return null;
-    return _encodeXFile(
-      picked,
+    final raw = await picked.readAsBytes();
+    if (raw.isEmpty) return null;
+    return (name: picked.name, bytes: raw);
+  }
+
+  /// Mendekode string `data:image/...;base64,...` menjadi bytes bila valid.
+  static Uint8List? decodeDataUri(String? seed) {
+    if (seed == null || !seed.startsWith('data:image/')) return null;
+    final comma = seed.indexOf(',');
+    if (comma <= 0 || comma >= seed.length - 1) return null;
+    try {
+      return base64Decode(seed.substring(comma + 1));
+    } on Object {
+      return null;
+    }
+  }
+
+  /// Mengompres [rawBytes] (menghapus EXIF/GPS) dan mengubahnya menjadi [EncodedImageResult].
+  static Future<EncodedImageResult> encodeBytes(
+    Uint8List rawBytes, {
+    String name = 'photo.jpg',
+    int maxDimension = 720,
+    int quality = 78,
+    int? maxRawBytes,
+    double aspectRatio = 1.0,
+  }) async {
+    Uint8List compressed = rawBytes;
+    try {
+      final result = await FlutterImageCompress.compressWithList(
+        rawBytes,
+        minWidth: maxDimension,
+        minHeight: maxDimension,
+        quality: quality,
+        keepExif: false, // AC-10: Hapus seluruh metadata EXIF/GPS
+      );
+      if (result.isNotEmpty) {
+        compressed = result;
+      }
+    } on Object {
+      // Gunakan bytes asli yang sudah di-resize bila kompresor native tidak tersedia.
+    }
+    if (maxRawBytes != null && compressed.length > maxRawBytes) {
+      throw FormatException('FILE_TOO_LARGE:${compressed.length}');
+    }
+
+    final base64Str = base64Encode(compressed);
+    return EncodedImageResult(
+      name: name,
+      originalBytesCount: rawBytes.length,
+      compressedBytes: compressed,
+      dataUri: 'data:image/jpeg;base64,$base64Str',
+      aspectRatio: aspectRatio,
+    );
+  }
+
+  /// Memilih satu gambar dari [source] (`ImageSource.gallery` atau `ImageSource.camera`).
+  static Future<EncodedImageResult?> pickAndEncodeImage(
+    ImageSource source, {
+    int maxDimension = 640,
+    int quality = 75,
+    int? maxRawBytes,
+  }) async {
+    final raw = await pickRawImage(
+      source,
+      maxDimension: maxDimension,
+      quality: quality,
+    );
+    if (raw == null) return null;
+    return encodeBytes(
+      raw.bytes,
+      name: raw.name,
       maxDimension: maxDimension,
       quality: quality,
       maxRawBytes: maxRawBytes,
@@ -93,51 +163,16 @@ abstract final class ImageDataUriHelper {
 
     final results = <EncodedImageResult>[];
     for (final file in pickedFiles.take(limit)) {
-      final encoded = await _encodeXFile(
-        file,
+      final rawBytes = await file.readAsBytes();
+      final encoded = await encodeBytes(
+        rawBytes,
+        name: file.name,
         maxDimension: maxDimension,
         quality: quality,
         maxRawBytes: maxRawBytes,
       );
-      if (encoded != null) {
-        results.add(encoded);
-      }
+      results.add(encoded);
     }
     return results;
-  }
-
-  static Future<EncodedImageResult?> _encodeXFile(
-    XFile file, {
-    required int maxDimension,
-    required int quality,
-    int? maxRawBytes,
-  }) async {
-    final rawBytes = await file.readAsBytes();
-    Uint8List compressed = rawBytes;
-    try {
-      final result = await FlutterImageCompress.compressWithList(
-        rawBytes,
-        minWidth: maxDimension,
-        minHeight: maxDimension,
-        quality: quality,
-        keepExif: false, // AC-10: Hapus seluruh metadata EXIF/GPS
-      );
-      if (result.isNotEmpty) {
-        compressed = result;
-      }
-    } on Object {
-      // Gunakan rawBytes yang sudah di-resize oleh ImagePicker bila kompresor native tidak tersedia.
-    }
-    if (maxRawBytes != null && compressed.length > maxRawBytes) {
-      throw FormatException('FILE_TOO_LARGE:${compressed.length}');
-    }
-
-    final base64Str = base64Encode(compressed);
-    return EncodedImageResult(
-      name: file.name,
-      originalBytesCount: rawBytes.length,
-      compressedBytes: compressed,
-      dataUri: 'data:image/jpeg;base64,$base64Str',
-    );
   }
 }

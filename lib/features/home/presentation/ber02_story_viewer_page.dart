@@ -36,24 +36,41 @@ class Ber02StoryViewerPage extends ConsumerStatefulWidget {
 }
 
 class _Ber02StoryViewerPageState extends ConsumerState<Ber02StoryViewerPage> {
+  final TextEditingController _replyController = TextEditingController();
+  final FocusNode _replyFocusNode = FocusNode();
+
   bool _isLoading = true;
   AppError? _error;
   List<Story> _stories = const <Story>[];
   int _currentIndex = 0;
   Timer? _playbackTimer;
   double _progress = 0.0;
+  int _currentTick = 0;
+  bool _isSendingReply = false;
   String? _myUserId;
 
   @override
   void initState() {
     super.initState();
+    _replyFocusNode.addListener(_onReplyFocusChanged);
     Future<void>.microtask(_loadStories);
   }
 
   @override
   void dispose() {
     _playbackTimer?.cancel();
+    _replyFocusNode.removeListener(_onReplyFocusChanged);
+    _replyFocusNode.dispose();
+    _replyController.dispose();
     super.dispose();
+  }
+
+  void _onReplyFocusChanged() {
+    if (_replyFocusNode.hasFocus) {
+      _playbackTimer?.cancel();
+    } else if (!_isSendingReply && mounted) {
+      _resumePlayback();
+    }
   }
 
   Future<void> _loadStories() async {
@@ -101,30 +118,102 @@ class _Ber02StoryViewerPageState extends ConsumerState<Ber02StoryViewerPage> {
   void _startPlayback() {
     _playbackTimer?.cancel();
     _progress = 0.0;
+    _currentTick = 0;
     if (_stories.isEmpty || _currentIndex >= _stories.length) return;
 
     final currentStory = _stories[_currentIndex];
     ref.read(storyRepositoryProvider).markStoryViewed(currentStory.id).ignore();
+    _resumePlayback();
+  }
 
+  void _resumePlayback() {
+    _playbackTimer?.cancel();
+    if (_stories.isEmpty ||
+        _currentIndex >= _stories.length ||
+        _replyFocusNode.hasFocus ||
+        _isSendingReply) {
+      return;
+    }
+
+    final currentStory = _stories[_currentIndex];
     final totalSeconds = currentStory.durationSeconds.clamp(3, 15);
     const tickMs = 100;
     final totalTicks = (totalSeconds * 1000) ~/ tickMs;
-    var currentTick = 0;
 
     _playbackTimer = Timer.periodic(const Duration(milliseconds: tickMs), (t) {
       if (!mounted) {
         t.cancel();
         return;
       }
-      currentTick++;
+      if (_replyFocusNode.hasFocus || _isSendingReply) {
+        t.cancel();
+        return;
+      }
+      _currentTick++;
       setState(() {
-        _progress = (currentTick / totalTicks).clamp(0.0, 1.0);
+        _progress = (_currentTick / totalTicks).clamp(0.0, 1.0);
       });
-      if (currentTick >= totalTicks) {
+      if (_currentTick >= totalTicks) {
         t.cancel();
         _nextStory();
       }
     });
+  }
+
+  Future<void> _sendStoryReply(Story story) async {
+    final clean = _replyController.text.trim();
+    if (clean.isEmpty || _isSendingReply) return;
+
+    _playbackTimer?.cancel();
+    setState(() => _isSendingReply = true);
+
+    final chatRepo = ref.read(chatRepositoryProvider);
+    final convRes = await chatRepo.openDirectConversationWithUser(
+      story.author.id,
+    );
+    if (!mounted) return;
+
+    if (convRes is Err<Conversation>) {
+      setState(() => _isSendingReply = false);
+      AppToast.show(
+        context,
+        message: convRes.failure.message,
+        variant: AppToastVariant.error,
+      );
+      _resumePlayback();
+      return;
+    }
+
+    final conv = (convRes as Ok<Conversation>).value;
+    final formatted = story.caption.trim().isNotEmpty
+        ? 'Membalas story ("${story.caption.trim()}"): $clean'
+        : 'Membalas story: $clean';
+
+    final msgRes = await chatRepo.sendMessage(
+      conversationId: conv.id,
+      text: formatted,
+    );
+    if (!mounted) return;
+
+    setState(() => _isSendingReply = false);
+    if (msgRes is Err<Message>) {
+      AppToast.show(
+        context,
+        message: msgRes.failure.message,
+        variant: AppToastVariant.error,
+      );
+      _resumePlayback();
+      return;
+    }
+
+    _replyController.clear();
+    _replyFocusNode.unfocus();
+    AppToast.show(
+      context,
+      message: AppStrings.ber02ReplySentToast,
+      variant: AppToastVariant.success,
+    );
+    _resumePlayback();
   }
 
   void _nextStory() {
@@ -441,7 +530,7 @@ class _Ber02StoryViewerPageState extends ConsumerState<Ber02StoryViewerPage> {
                 ),
               ),
 
-              // Bilah Bawah: Daftar Penonton (HANYA terlihat pembuat — BER-R12)
+              // Bilah Bawah: Daftar Penonton (pembuat) ATAU Komentar / Balas Story gaya IG (orang lain)
               // CATATAN: TANPA tombol bagikan ulang sesuai larangan BER-R12!
               if (isMine)
                 Positioned(
@@ -481,6 +570,72 @@ class _Ber02StoryViewerPageState extends ConsumerState<Ber02StoryViewerPage> {
                             ),
                           ],
                         ),
+                      ),
+                    ),
+                  ),
+                )
+              else
+                Positioned(
+                  bottom: AppSpacing.md,
+                  left: AppSpacing.md,
+                  right: AppSpacing.md,
+                  child: GestureDetector(
+                    onTap: () {},
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
+                        vertical: AppSpacing.xs,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.65),
+                        borderRadius: BorderRadius.circular(AppRadius.pill),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.35),
+                        ),
+                      ),
+                      child: Row(
+                        children: <Widget>[
+                          Expanded(
+                            child: TextField(
+                              controller: _replyController,
+                              focusNode: _replyFocusNode,
+                              style: typo.body.copyWith(color: Colors.white),
+                              cursorColor: Colors.white,
+                              textInputAction: TextInputAction.send,
+                              onSubmitted: (_) => _sendStoryReply(story),
+                              decoration: InputDecoration(
+                                hintText: AppStrings.ber02ReplyHint,
+                                hintStyle: typo.body.copyWith(
+                                  color: Colors.white.withValues(alpha: 0.7),
+                                ),
+                                border: InputBorder.none,
+                                isDense: true,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  vertical: AppSpacing.xs,
+                                ),
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: AppStrings.ber02ReplySendTooltip,
+                            onPressed: _isSendingReply
+                                ? null
+                                : () => _sendStoryReply(story),
+                            icon: _isSendingReply
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.send_rounded,
+                                    color: Colors.white,
+                                  ),
+                          ),
+                        ],
                       ),
                     ),
                   ),

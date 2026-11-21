@@ -399,8 +399,19 @@ abstract final class AppStrings {
 
   static const String ber02Title = 'Penampil Story';
   static const String ber02Purpose = 'Menonton story';
+  static const String ber02ReplyHint = 'Komentar / balas story...';
+  static const String ber02ReplySendTooltip = 'Kirim balasan story';
+  static const String ber02ReplySentToast = 'Balasan story terkirim ke pesan.';
   static const String ber03Title = 'Buat Story';
   static const String ber03Purpose = 'Membuat story foto/video';
+  static const String ber03CropPhotoBtn = 'Potong Foto';
+
+  static const String cropPageTitle = 'Potong Foto';
+  static const String cropApplyBtn = 'Gunakan';
+  static const String cropRotateTooltip = 'Putar 90 derajat';
+  static const String cropResetTooltip = 'Atur ulang posisi';
+  static const String cropHint =
+      'Cubit untuk zoom, geser untuk mengatur posisi.';
 
   static const String ber04Title = 'Buat Postingan';
   static const String ber04Purpose = 'Teks, foto, visibilitas';

@@ -25,6 +25,8 @@ final class SelectedMediaItem {
   final int? durationSeconds;
 
   SelectedMediaItem copyWith({
+    String? seed,
+    int? originalBytesCount,
     double? aspectRatio,
     Uint8List? compressedBytes,
     bool? isVideo,
@@ -32,8 +34,8 @@ final class SelectedMediaItem {
   }) {
     return SelectedMediaItem(
       id: id,
-      seed: seed,
-      originalBytesCount: originalBytesCount,
+      seed: seed ?? this.seed,
+      originalBytesCount: originalBytesCount ?? this.originalBytesCount,
       compressedBytes: compressedBytes ?? this.compressedBytes,
       aspectRatio: aspectRatio ?? this.aspectRatio,
       rawExifMetadata: rawExifMetadata,

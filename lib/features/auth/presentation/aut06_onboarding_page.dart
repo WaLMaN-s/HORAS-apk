@@ -91,21 +91,35 @@ class _Aut06OnboardingPageState extends ConsumerState<Aut06OnboardingPage> {
     super.dispose();
   }
 
-  /// Memilih foto dengan `image_picker`, menghapus EXIF (`AC-10`), dan menyimpannya sebagai Data URI.
+  /// Memilih foto dengan `image_picker`, memotong di [PhotoCropPage], menghapus EXIF (`AC-10`),
+  /// dan menyimpannya sebagai Data URI.
   Future<void> _pickAndCompressAvatar(ImageSource source) async {
     final controller = ref.read(authFlowControllerProvider.notifier);
     try {
-      final encoded = await ImageDataUriHelper.pickAndEncodeImage(
+      final raw = await ImageDataUriHelper.pickRawImage(
         source,
-        maxDimension: 512,
-        quality: 75,
+        maxDimension: 1024,
+        quality: 88,
       );
-      if (encoded != null) {
-        await controller.updateOnboardingDraft(
-          (d) => d.copyWith(photoSeedOrPath: encoded.dataUri),
+      if (raw != null && mounted) {
+        final cropped = await PhotoCropPage.show(
+          context,
+          imageBytes: raw.bytes,
+          fileName: raw.name,
+          initialAspectRatio: 1.0,
+          isCircularPreview: true,
+          allowAspectSwitch: false,
+          outputMaxDimension: 512,
+          quality: 78,
         );
+        if (cropped != null) {
+          await controller.updateOnboardingDraft(
+            (d) => d.copyWith(photoSeedOrPath: cropped.dataUri),
+          );
+        }
         return;
       }
+      if (raw == null) return;
     } on Object {
       // Pada simulator/pengujian tanpa galeri fisik, gunakan seed terkompresi deterministik.
     }
